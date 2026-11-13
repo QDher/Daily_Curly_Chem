@@ -59,7 +59,8 @@ sample steps, kept as a fixture of `test/test_readings.js` and `test/test_recogn
 
 Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml` (Settings → Pages →
 Source: GitHub Actions must be selected once), not linked from the daily sites, `noindex`, and opened with a tester
-code (`?t=CODE` or the form). `data/testers.json` holds the SHA-256 of the codes; the codes are not in the repository.
+code (`?t=CODE` or the form). `data/testers.json` holds the SHA-256 of the codes; the six current codes are listed in
+`docs/CONTEXT.md` (public since 2026-11-13, at the user's request).
 The check runs in the page: it keeps the page unlisted and labels entries (first 8 hex digits of the hash); it is not
 access control, since the repository is public.
 

@@ -1,5 +1,5 @@
 {
-  "note": "SHA-256 of the tester codes (the codes are not in the repository). The check runs in the page and only keeps the page unlisted; it is not access control.",
+  "note": "SHA-256 of the tester codes. The six current codes are listed in docs/CONTEXT.md (public since 2026-11-13). The check runs in the page and only keeps the page unlisted; it is not access control.",
   "sha256": [
     "bad7de231ca0e38a7b5c737d3d76ea099abb52e0f375f2ce00357f527317240f",
     "f84b544396efaa9c30170c759bb30041ab6c5a222effdea04a30b05f6caacd38",
