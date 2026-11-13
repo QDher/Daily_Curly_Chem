@@ -8,7 +8,16 @@ const rootDir = path.join(__dirname, '..');
 const shots = process.argv[2];
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.wasm': 'application/wasm' };
 
+const crypto = require('crypto');
+const CODE = 'local-test-code';
+const TESTERS = JSON.stringify({ sha256: [crypto.createHash('sha256').update(CODE).digest('hex')] });
+
 const server = http.createServer((req, res) => {
+  if (req.url.split('?')[0] === '/data/testers.json') {
+    // the test uses its own code; the real hashes are not needed
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(TESTERS);
+  }
   const f = path.join(rootDir, decodeURIComponent(req.url.split('?')[0]).replace(/^\/$/, '/index.html'));
   if (!f.startsWith(rootDir) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' });
@@ -27,13 +36,13 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
   const url = 'http://localhost:' + server.address().port + '/';
   const browser = await chromium.launch();
 
-  async function open(viewport, touch) {
+  async function open(viewport, touch, noCode) {
     const ctx = await browser.newContext({ viewport, hasTouch: !!touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(url);
-    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    await page.goto(noCode ? url : url + '?t=' + CODE);
+    await page.waitForSelector(noCode ? 'body[data-ready="gate"]' : 'body[data-ready="1"]', { timeout: 30000 });
     return { page, errors, ctx };
   }
   // client coordinates of points described in the page: atom lookups run in the browser
@@ -77,7 +86,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#yes');
     eq(await page.textContent('#msg2'), 'Arrows recorded.');
     let e = await page.evaluate(() => window.__entries[0]);
-    eq(e.accepted, 0, 'accepted'); eq(e.submitted, null, 'submitted before the choice'); eq(e.strokes.length, 2, 'strokes');
+    eq(e.accepted, 0, 'accepted'); eq(e.tester.length, 8, 'tester'); eq(e.submitted, null, 'submitted before the choice'); eq(e.strokes.length, 2, 'strokes');
     await page.click('#submit');
     e = await page.evaluate(() => window.__entries[0]);
     eq(e.submitted.match, true, 'match');
@@ -174,6 +183,21 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     const s = await page.evaluate(() => window.__app.input.getStrokes().map((x) => x.pointerType));
     eq(s.join(','), 'touch', 'strokes');
     if (shots) await page.screenshot({ path: path.join(shots, 'phone.png'), fullPage: true });
+  });
+
+  await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
+    const { page } = await open({ width: 1100, height: 900 }, false, true);
+    eq(await page.isHidden('#work'), true, 'work hidden');
+    eq(await page.isVisible('#gate'), true, 'gate shown');
+    eq(await page.getAttribute('meta[name="robots"]', 'content'), 'noindex, nofollow', 'robots');
+    await page.fill('#code', 'wrong');
+    await page.click('#gate-form button');
+    await page.waitForFunction(() => document.getElementById('gate-msg').textContent.includes('not valid'));
+    await page.fill('#code', ' ' + CODE.toUpperCase() + ' ');
+    await page.click('#gate-form button');
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.isVisible('#work'), true, 'work shown');
+    eq(await page.isHidden('#gate'), true, 'gate hidden');
   });
 
   await browser.close();

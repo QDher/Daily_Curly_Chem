@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>Daily Curly Chem</title>
 <style>
 :root {
@@ -28,7 +29,7 @@ p { margin: 6px 0; }
 .muted { color: var(--muted); font-size: 0.92rem; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 14px; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
-button, select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
+button, select, input { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
 button { cursor: pointer; }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -55,7 +56,17 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   <h1>Daily Curly Chem</h1>
   <p class="muted">Development page: arrows drawn on a structure. Nothing is sent or stored.</p>
 
-  <section class="panel">
+  <section class="panel" id="gate" hidden>
+    <h2>Tester code</h2>
+    <p class="muted">This page is a test run for invited testers. Enter the code you received.</p>
+    <form class="row" id="gate-form">
+      <input id="code" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Tester code">
+      <button class="primary">Open</button>
+    </form>
+    <p id="gate-msg" role="status"></p>
+  </section>
+
+  <section class="panel" id="work" hidden>
     <div class="row">
       <label for="step">Step</label>
       <select id="step"></select>
@@ -87,7 +98,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <p id="msg2" role="status"></p>
   </section>
 
-  <details class="panel">
+  <details class="panel" id="entries" hidden>
     <summary>Entries of this session</summary>
     <pre id="log">[]</pre>
   </details>
@@ -102,6 +113,36 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 (async function () {
   const $ = (id) => document.getElementById(id);
   const say = (id, text, cls) => { const e = $(id); e.textContent = text; e.className = cls || ''; };
+  // Tester code: ?t=CODE or the form. Only its hash is in the repository; entries carry the first 8 hex digits.
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  const allowed = (await (await fetch('data/testers.json')).json()).sha256;
+  async function testerOf(code) {
+    if (!code) return null;
+    const h = await sha256(code.trim().toLowerCase());
+    return allowed.includes(h) ? h.slice(0, 8) : null;
+  }
+  let stored = null;
+  try { stored = sessionStorage.getItem('curly:t'); } catch (e) { /* storage unavailable */ }
+  let tester = await testerOf(new URLSearchParams(location.search).get('t') || stored);
+  if (!tester) {
+    $('gate').hidden = false;
+    document.body.dataset.ready = 'gate';
+    tester = await new Promise((resolve) => {
+      $('gate-form').onsubmit = async (ev) => {
+        ev.preventDefault();
+        const t = await testerOf($('code').value);
+        if (t) { try { sessionStorage.setItem('curly:t', $('code').value.trim().toLowerCase()); } catch (e) { /* ignore */ } resolve(t); }
+        else say('gate-msg', 'This code is not valid.', 'bad');
+      };
+    });
+    $('gate').hidden = true;
+  }
+  $('work').hidden = false;
+  $('entries').hidden = false;
+
   const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
   const steps = (await (await fetch('data/steps.json')).json()).steps;
 
@@ -163,6 +204,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   function record(accepted) {
     const entry = {
       versions: { arrows: Arrows.VERSION, readings: Readings.VERSION },
+      tester,
       step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       scene: input.getScene(),

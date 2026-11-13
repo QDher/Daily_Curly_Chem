@@ -38,8 +38,11 @@ python3 -m http.server 8000   # then open http://localhost:8000/
 `data/steps.json`: sample steps from published problems of both sites (development only, not the task list of the
 test run). `src/arrows.js` has no dependency; the other modules need RDKit (`@rdkit/rdkit` 2026.9.1).
 
-Site: GitHub Pages, deployed by `.github/workflows/pages.yml` (Settings → Pages → Source: GitHub Actions must be
-selected once).
+Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml` (Settings → Pages →
+Source: GitHub Actions must be selected once), not linked from the daily sites, `noindex`, and opened with a tester
+code (`?t=CODE` or the form). `data/testers.json` holds the SHA-256 of the codes; the codes are not in the repository.
+The check runs in the page: it keeps the page unlisted and labels entries (first 8 hex digits of the hash); it is not
+access control, since the repository is public.
 
 Known limits: structures are compared by RDKit canonical SMILES (the tautomer rules of `chemkey.js` are not applied
 yet); the re-laid result is not aligned with the drawing it comes from; no stereochemistry is drawn.
