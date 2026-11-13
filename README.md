@@ -13,7 +13,7 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 | 1 | Scene format (`docs/SCENE.md`), arrow interpreter C1 (`src/arrows.js`), tests | done (2026-11-13) |
 | 2 | Canvas (`src/canvas.js`, `index.html`): structure from RDKit with atom ids (`src/scene.js`), pointer input (mouse, touch, pen), raw strokes kept, drawn hydrogens, clean re-layout of the result | done (2026-11-13) |
 | 3 | Candidate readings and fixed ranking I0 (`src/readings.js`), accept / reject of each reading | done (2026-11-13); thresholds in `Readings.P` not tuned on real drawings |
-| 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 65 % on ordinary (`docs/RECOGNITION.md`); not measured on real handwriting |
+| 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 66 % on ordinary (`docs/RECOGNITION.md`); not measured on real handwriting |
 | 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with level, votes, five questions and a file of the entries | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
 | 6 | Worker table and site key `mechpilot` (in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles), replay script | to do |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
@@ -36,7 +36,7 @@ confirmed (or the drawing discarded).
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
-npm test           # interpreter (19), readings (12), recognizer with its benchmark (11), task list (17)
+npm test           # interpreter (19), readings (12), recognizer with its benchmark (12), task list (17)
 npm run test:page  # index.html in headless Chromium with simulated pointer input (12); needs Playwright
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```

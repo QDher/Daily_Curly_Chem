@@ -69,6 +69,27 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     }
   });
 
+  test('Br with the r written in one stroke, B in one or three strokes (weakness 3)', () => {
+    const G = require('../src/glyphs.js');
+    const P = (st, dx) => st.map((p) => ({ x: (p[0] + dx) * 20, y: p[1] * 20 }));
+    const dense = (pts) => {
+      const o = [];
+      for (let i = 1; i < pts.length; i++) for (let k = 0; k < 6; k++) o.push({ x: pts[i - 1].x + ((pts[i].x - pts[i - 1].x) * k) / 6, y: pts[i - 1].y + ((pts[i].y - pts[i - 1].y) * k) / 6 });
+      o.push(pts[pts.length - 1]);
+      return o;
+    };
+    const B3 = G.G.B.map((st) => dense(P(st, 0)));
+    const B1 = [dense(P([[0, 1], [0, 0], [0.3, 0], [0.45, 0.1], [0.45, 0.35], [0.3, 0.47], [0, 0.47], [0.35, 0.47], [0.52, 0.6], [0.52, 0.85], [0.35, 1], [0, 1]], 0))];
+    const r1 = [dense(P([[0, 0.42], [0, 1], [0, 0.6], [0.14, 0.45], [0.32, 0.42]], 0.72))];
+    const r2 = G.G.r.map((st) => dense(P(st, 0.72)));
+    for (const [name, strokes] of [['B3 r1', B3.concat(r1)], ['B1 r1', B1.concat(r1)], ['B3 r2', B3.concat(r2)], ['B1 r2', B1.concat(r2)]]) {
+      eq(Rec.readLabel(strokes).el, 'Br', name);
+    }
+    // a B alone stays B, and B followed by H is not Br
+    eq(Rec.readLabel(B3).el, 'B', 'B alone');
+    eq(Rec.readLabel(B1).el, 'B', 'B alone, one stroke');
+  });
+
   test('a drawing without any bond is read with the nominal bond length', () => {
     const r = Rec.recognize(Ink.draw(Scene.fromSpecies(R, ['[OH-]']), { level: 0 }), { nominal: 45 });
     eq(smi(r.scene), can('[OH-]'));

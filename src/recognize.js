@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.1.1';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -381,6 +381,14 @@
         // the hook of an r is the rightmost stroke
         const stem = items.find((it) => it !== right && it.straight && isVertical(it.st) && it.b.h < 0.8 * tall && touches(it.st, right.st, tol) && it.b.cx > ob.cx);
         if (stem) tail = { name: 'r', set: [stem, right] };
+      }
+      // an r written in one stroke: a curved stroke at the right, lower than the capital and clear of it
+      if (!tail && !right.straight && right.b.diag >= 0.2 * tall && right.b.diag < 0.85 * tall &&
+          right.b.y0 > body.y0 + 0.22 * tall && right.b.x0 > ob.cx && right.b.x0 > ob.x1 - 0.1 * tall) {
+        tail = { name: 'r', set: [right] };
+      }
+      if (tail) {
+        // found
       } else if (right.b.diag < 0.2 * tall) {
         const stem = items.find((it) => it !== right && it.straight && isVertical(it.st) && it.b.h < 0.8 * tall && Math.abs(it.b.cx - right.b.cx) < 0.25 * tall);
         if (stem) tail = { name: 'i', set: [stem, right] };

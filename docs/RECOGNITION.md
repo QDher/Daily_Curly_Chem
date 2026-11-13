@@ -1,4 +1,4 @@
-# Hand-drawn structure recognition, version 0.1.0 (component R0)
+# Hand-drawn structure recognition, version 0.1.1 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
@@ -30,7 +30,7 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    C=C=O). A line is cut where another bond ends on its inside, and into two or three bonds when it is two or three
    bond lengths long.
 4. Labels: strokes closer than 0.2 L form one label. Removed in this order: + and − (small, raised, at the right), H
-   (two uprights joined by a bar), the tail of a two-letter symbol (l, r, i). The capital is matched against the
+   (two uprights joined by a bar), the tail of a two-letter symbol (l, r, i; an r may be one stroke or an upright with a hook). The capital is matched against the
    templates (C, N, O, S, F, P, B, H, I) by point-cloud distance ($P).
 5. Atoms: ends of segments closer than 0.38 L are one atom; an end that points at a label within 0.45 L of its box
    ends on that label. A lone + or − is given to the nearest atom within 0.9 L.
@@ -44,9 +44,9 @@ structure.
 | Noise level of the synthetic ink | Exact structures |
 |---|---|
 | 0 (exact lines and letters) | 85.9 % |
-| 1 (neat) | 81.8 % |
-| 2 (ordinary) | 65.2 % |
-| 3 (careless) | 27.4 % |
+| 1 (neat) | 82.0 % |
+| 2 (ordinary) | 66.0 % |
+| 3 (careless) | 27.5 % |
 
 The letters of the synthetic ink are the recognizer's own templates with distortion: these figures say that the
 method is consistent, not how it performs on real handwriting. That is measured in the test run.
