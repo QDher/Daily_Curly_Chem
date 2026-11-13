@@ -245,6 +245,32 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  await test('a reading can be flagged as wrong, with what is wrong; drawing again is recorded apart', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 2 });
+    const stroke = [];
+    for (let i = 0; i <= 10; i++) stroke.push({ x: 5 + 0.15 * i, y: 5 });
+    await page.evaluate((p) => window.__app.input.addInk(p), stroke);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    eq(await page.isHidden('#wrong-what'), true, 'choices hidden first');
+    await page.click('#r-wrong');
+    await page.check('#wrong-what input[value="bond-missing"]');
+    await page.check('#wrong-what input[value="letter"]');
+    await page.click('#r-wrong-send');
+    eq(await page.isHidden('#reading'), true, 'panel closed');
+    eq(await page.evaluate(() => window.__app.input.getInk().length), 0, 'ink cleared');
+    let e = await page.evaluate(() => window.__entries[0]);
+    eq(e.accepted, false); eq(e.flagged, 'wrong'); eq(e.wrong.join(','), 'bond-missing,letter'); eq(e.strokes.length, 1, 'strokes kept');
+    await page.evaluate((p) => window.__app.input.addInk(p), stroke);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    eq(await page.isChecked('#wrong-what input[value="letter"]'), false, 'choices reset');
+    await page.click('#r-no');
+    e = await page.evaluate(() => window.__entries[1]);
+    eq(e.accepted, false); eq(e.flagged, null, 'not flagged');
+  });
+
   await test('drawing on a shown structure is merged into it', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 3 });

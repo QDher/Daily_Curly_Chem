@@ -54,6 +54,8 @@ textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1
 .mstep { border-top: 1px solid var(--line); padding: 10px 0; }
 .mstep h3 { font-size: 0.95rem; margin: 0 0 6px; }
 #instr { font-weight: 600; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 8px 12px; }
+fieldset label { display: block; padding: 5px 0; }
 #msg { min-height: 1.5em; }
 .ok { color: var(--ok); } .bad { color: var(--bad); }
 pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 320px; }
@@ -155,8 +157,19 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <div class="row palette" id="pal-bond" hidden role="group" aria-label="Bond"></div>
     <div class="row">
       <button id="r-yes" class="primary">This is my structure</button>
+      <button id="r-wrong">The reading is wrong</button>
       <button id="r-no">Draw again</button>
     </div>
+    <fieldset id="wrong-what" hidden>
+      <legend>What is wrong? (one or more)</legend>
+      <label><input type="checkbox" value="bond-missing"> a bond is missing</label>
+      <label><input type="checkbox" value="bond-extra"> a bond or atom was added</label>
+      <label><input type="checkbox" value="bond-order"> single / double / triple bond</label>
+      <label><input type="checkbox" value="letter"> a letter (element)</label>
+      <label><input type="checkbox" value="charge"> a charge</label>
+      <label><input type="checkbox" value="all"> nothing like my drawing</label>
+      <div class="row"><button id="r-wrong-send" class="primary">Record and draw again</button></div>
+    </fieldset>
     <p id="msg3" role="status"></p>
   </section>
 
@@ -511,6 +524,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     picked = null;
     $('pal-atom').hidden = true;
     $('pal-bond').hidden = true;
+    $('wrong-what').hidden = true;
     $('reading').hidden = false;
   }
   $('read').onclick = () => {
@@ -557,13 +571,28 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     b.onclick = () => correct({ bond: picked.bond, order }, (sc) => Recognize.setBondOrder(sc, picked.bond, order));
     $('pal-bond').appendChild(b);
   }
-  $('r-no').onclick = () => {
-    entries.push({ kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, level, step: step.id, strokes: reading.strokes, recognized: reading.recognized, unknown: reading.unknown, corrections: reading.corrections, final: null, accepted: false });
+  // A reading that is not confirmed. flagged: 'wrong' when the tester says the reading does not match the
+  // drawing (with what is wrong), null when the tester only wants to draw again.
+  function discardReading(flagged, what) {
+    entries.push({
+      kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, level, step: step.id,
+      seconds: Math.round((performance.now() - t0) / 100) / 10,
+      strokes: reading.strokes, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
+      corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [],
+    });
     showLog();
     reading = null;
     $('reading').hidden = true;
+    $('wrong-what').hidden = true;
+    for (const c of $('wrong-what').querySelectorAll('input')) c.checked = false;
     input.clear();
-    say('msg', 'Drawing cleared.');
+  }
+  $('r-no').onclick = () => { discardReading(null); say('msg', 'Drawing cleared.'); };
+  $('r-wrong').onclick = () => { $('wrong-what').hidden = false; };
+  $('r-wrong-send').onclick = () => {
+    const what = Array.from($('wrong-what').querySelectorAll('input:checked')).map((c) => c.value);
+    discardReading('wrong', what);
+    say('msg', 'Recorded as a wrong reading. Drawing cleared.');
   };
   $('r-yes').onclick = () => {
     const smiles = Scene.canonical(R, reading.scene);
@@ -583,6 +612,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       final: reading.scene,
       smiles,
       accepted: true,
+      flagged: null,
     };
     if (step.draw) {
       const want = Scene.canonicalSmiles(R, step.start.concat([step.draw.smiles]).join('.'));

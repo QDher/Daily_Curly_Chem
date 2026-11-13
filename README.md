@@ -28,8 +28,9 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 Until the Worker table exists (work package 6), nothing is sent: the tester saves the entries as a JSON file at the
 end and sends it back.
 
-Hand-drawn structures give a third kind of entry: strokes, structure read, corrections made by the user, structure
-confirmed (or the drawing discarded).
+Hand-drawn structures give a third kind of entry: strokes, structure read, corrections made by the user, and one of
+three outcomes: confirmed (`accepted`), flagged as a wrong reading (`flagged: "wrong"` with what is wrong: bond
+missing, bond or atom added, bond order, letter, charge, nothing like the drawing), or discarded to draw again.
 
 ## Use
 
@@ -37,7 +38,7 @@ confirmed (or the drawing discarded).
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer with its benchmark (12), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input (12); needs Playwright
+npm run test:page  # index.html in headless Chromium with simulated pointer input (13); needs Playwright
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```
 
