@@ -35,7 +35,8 @@ function replayArrows(R, e) {
 
 function replayDrawing(e) {
   const strokes = e.strokes.map((s) => s.points);
-  const r = Recognize.recognize(strokes, e.base ? { scene: e.base } : { nominal: 1.5 });
+  const labels = e.typed || [];
+  const r = Recognize.recognize(strokes, e.base ? { scene: e.base, labels } : { nominal: 1.5, labels });
   if (JSON.stringify(r.scene) !== JSON.stringify(e.recognized)) return 'structure read';
   const stored = e.unknown || [];
   if (!(e.corrections || []).length && JSON.stringify(r.unknown) !== JSON.stringify(stored)) return 'labels to check';

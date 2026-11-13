@@ -47,6 +47,8 @@ button:disabled { opacity: 0.45; cursor: default; }
 .cc-hl-new { stroke-dasharray: 5 5; }
 .cc-inkline { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .cc-dot { fill: var(--ink); }
+.cc-typed { fill: var(--accent); font: 600 16px system-ui, sans-serif; }
+.cc-typed.cc-charge { font-size: 14px; }
 .cc-mark { fill: none; stroke: var(--hl); stroke-width: 2.5; stroke-dasharray: 4 3; }
 .palette button { min-width: 44px; padding: 8px; }
 #target-wrap .stage { max-width: 420px; }
@@ -117,6 +119,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       <button id="apply" class="primary">Apply arrows</button>
       <button id="read" class="primary" hidden>Read drawing</button>
     </div>
+    <div class="row palette" id="atoms" role="group" aria-label="Atoms and charges" hidden></div>
     <div class="stage" id="stage"></div>
     <p class="muted" id="help"></p>
     <p id="msg" role="status"></p>
@@ -296,7 +299,8 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.',
-    draw: 'Draw bonds as lines and write the letters of atoms other than carbon (with + or − at their upper right). You can also draw on the structure shown.',
+    draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges). Letters can also be written by hand.',
+    atom: 'Click where the atom or charge goes: the end of a bond, a corner, an atom, or an empty place. Press Draw to draw more bonds.',
     h: 'Tap an atom to draw one of its hydrogens.',
     erase: 'Tap a stroke to remove it.',
   };
@@ -326,9 +330,26 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   function setMode(m) {
     input.setMode(m);
     for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).setAttribute('aria-pressed', String(m === k));
-    $('apply').hidden = m === 'draw';
-    $('read').hidden = m !== 'draw';
+    const drawing = m === 'draw' || m === 'atom';
+    $('apply').hidden = drawing;
+    $('read').hidden = !drawing;
+    $('atoms').hidden = !drawing;
+    if (m !== 'atom') for (const b of $('atoms').querySelectorAll('button')) b.setAttribute('aria-pressed', 'false');
     $('help').textContent = HELP[m] || '';
+  }
+
+  // Atoms and charges without handwriting: choose in the row, then click the place.
+  for (const [label, tool] of [['C', { el: 'C' }], ['N', { el: 'N' }], ['O', { el: 'O' }], ['S', { el: 'S' }], ['P', { el: 'P' }], ['F', { el: 'F' }], ['Cl', { el: 'Cl' }], ['Br', { el: 'Br' }], ['I', { el: 'I' }], ['B', { el: 'B' }], ['Si', { el: 'Si' }], ['H', { el: 'H' }], ['+', { q: 1 }], ['\u2212', { q: -1 }]]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.dataset.tool = tool.el || (tool.q > 0 ? 'plus' : 'minus');
+    b.setAttribute('aria-pressed', 'false');
+    b.onclick = () => {
+      input.setTool(tool);
+      setMode('atom');
+      b.setAttribute('aria-pressed', 'true');
+    };
+    $('atoms').appendChild(b);
   }
 
   function load(scene, room) {
@@ -597,13 +618,14 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   }
   $('read').onclick = () => {
     const ink = input.getInk();
-    if (!ink.length) return say('msg', 'Draw the structure first.', 'bad');
+    const typed = input.getTyped();
+    if (!ink.length && !typed.length) return say('msg', 'Draw the structure first.', 'bad');
     const base = input.getScene();
     const blank = !base.atoms.length;
-    const r = Recognize.recognize(ink, blank ? { nominal: 1.5 } : { scene: base });
+    const r = Recognize.recognize(ink, blank ? { nominal: 1.5, labels: typed } : { scene: base, labels: typed });
     if (!r.scene.atoms.length) return say('msg', 'Nothing could be read from this drawing.', 'bad');
     const clean = blank ? Scene.relayout(R, r.scene) : r.scene;
-    reading = { strokes: strokeData(ink), recognized: r.scene, unknown: r.unknown, edits: r.edits, scene: clean, corrections: [], blank, base: blank ? null : base };
+    reading = { strokes: strokeData(ink), typed, recognized: r.scene, unknown: r.unknown, edits: r.edits, scene: clean, corrections: [], blank, base: blank ? null : base };
     say('msg', '');
     showReading();
   };
@@ -645,7 +667,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     entries.push({
       kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, level, step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
-      strokes: reading.strokes, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
+      strokes: reading.strokes, typed: reading.typed, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
       corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [],
     });
     showLog();
@@ -673,6 +695,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       strokes: reading.strokes,
+      typed: reading.typed,
       base: reading.base,
       recognized: reading.recognized,
       unknown: reading.unknown,
@@ -711,7 +734,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   };
 
   $('undo').onclick = () => input.undo();
-  $('clear').onclick = () => { const m = input.getMode(); load(start, startRoom); setMode(m); };
+  $('clear').onclick = () => { const m = input.getMode(); load(start, startRoom); setMode(m === 'atom' ? 'draw' : m); };
   for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).onclick = () => setMode(k);
 
   tasks.forEach((t, i) => {

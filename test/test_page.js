@@ -272,6 +272,70 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  const zigzag = [];
+  for (let i = 0; i <= 10; i++) zigzag.push({ x: 5 + 0.13 * i, y: 5 - 0.075 * i });
+  for (let i = 1; i <= 10; i++) zigzag.push({ x: 6.3 + 0.13 * i, y: 4.25 + 0.075 * i });
+
+  await test('atoms from the row: click an element, click the end of a bond; a charge the same way', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 2 });
+    eq(await page.isVisible('#atoms'), true, 'row shown in draw mode');
+    await page.evaluate((p) => window.__app.input.addInk(p), zigzag);
+    const end = await page.evaluate(() => window.__app.input.toClient({ x: 7.75, y: 5.12 }));
+    await page.click('#atoms button[data-tool="O"]');
+    eq(await page.getAttribute('#atoms button[data-tool="O"]', 'aria-pressed'), 'true', 'tool selected');
+    await page.mouse.click(end.x, end.y);
+    let t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 1); eq(t[0].el, 'O'); eq(t[0].snap, 'ink', 'snapped to the stroke end');
+    if (Math.abs(t[0].x - 7.6) > 0.01 || Math.abs(t[0].y - 5) > 0.01) throw new Error('position ' + t[0].x + ',' + t[0].y);
+    await page.click('#atoms button[data-tool="minus"]');
+    await page.mouse.click(end.x, end.y);
+    t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 1, 'charge on the same label'); eq(t[0].q, -1);
+    if (shots) await page.screenshot({ path: path.join(shots, 'typed.png'), fullPage: true });
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.smiles, 'CC[O-]'); eq(e.typed.length, 1, 'typed atoms recorded'); eq(e.unknown.length, 0, 'nothing to check');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('mouse and keyboard: point at a place and type the letters; + and Backspace; undo', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 2 });
+    await page.click('#m-draw');
+    await page.evaluate((p) => window.__app.input.addInk(p), zigzag);
+    const C = (x, y) => page.evaluate(([px, py]) => window.__app.input.toClient({ x: px, y: py }), [x, y]);
+    const a = await C(7.6, 5), b = await C(5, 5), far = await C(11, 2);
+    await page.mouse.move(a.x + 3, a.y + 2);
+    await page.keyboard.press('b');
+    await page.keyboard.press('r');
+    let t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 1); eq(t[0].el, 'Br', 'two letters');
+    await page.mouse.move(b.x, b.y);
+    await page.keyboard.press('n');
+    await page.keyboard.press('+');
+    t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 2); eq(t[1].el, 'N'); eq(t[1].q, 1, 'charge key');
+    await page.keyboard.press('Backspace');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 1, 'removed by Backspace');
+    await page.mouse.move(far.x, far.y);
+    await page.keyboard.press('o');
+    eq(await page.evaluate(() => window.__app.input.getTyped()[1].snap), 'free', 'free place');
+    await page.click('#undo');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 1, 'undo removes the last typed atom');
+    // keys are ignored when the pointer is outside the frame
+    await page.mouse.move(5, 5);
+    await page.keyboard.press('s');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 1, 'ignored outside');
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    eq(await page.evaluate(() => window.__entries[0].smiles), 'CCBr');
+    eq(errors.length, 0, 'page errors');
+  });
+
   await test('a reading can be flagged as wrong, with what is wrong; drawing again is recorded apart', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 2 });

@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.1.1';
+  const VERSION = '0.2.0';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -416,7 +416,8 @@
 
   // ---- structure ----
 
-  // strokes: [[{x, y}, ...], ...] or [{ points }]. options: { scene, L, nominal }.
+  // strokes: [[{x, y}, ...], ...] or [{ points }]. options: { scene, L, nominal, labels }.
+  // labels: atoms and charges entered without handwriting, [{ el | null, q, x, y }] (el null: a charge alone).
   // Returns { scene, L, unknown: [atom ids], edits, counts }.
   function recognize(strokesIn, options) {
     const opt = options || {};
@@ -429,9 +430,11 @@
     if (!L) {
       const use = strokes.filter((s, i) => !parts[i] && (isStraight(s) || pathLength(s) / (boxes[i].diag || 1e-9) < 1.25));
       const letters = boxes.filter((b, i) => !isStraight(strokes[i]) && pathLength(strokes[i]) / (b.diag || 1e-9) >= 1.25);
+      for (const t of opt.labels || []) letters.push(boxOf([t]));
       L = estimateL(use.length ? use : strokes, letters);
       if (opt.nominal && boxes.every((b) => b.diag < 0.6 * opt.nominal)) L = opt.nominal;
     }
+    if (!L && (opt.labels || []).length) L = opt.nominal || 1.5;
     if (!L) return { scene: base || { atoms: [], bonds: [] }, L: null, unknown: [], edits: [], labels: [], counts: { bondStrokes: 0, labelStrokes: 0 } };
 
     // Bond ink or label ink. Curved strokes: by size. Straight strokes: long ones are bonds; shorter ones are
@@ -455,6 +458,7 @@
     const isBond = strokes.map((s, i) => (straight[i] ? !parts[i] && lens[i] >= P.straightBond * L : boxes[i].diag >= P.labelMax * L));
     const ends = () => {
       const out = base ? base.atoms.map((a) => ({ x: a.x, y: a.y })) : [];
+      for (const t of opt.labels || []) out.push({ x: t.x, y: t.y });
       strokes.forEach((s, i) => {
         if (!isBond[i]) return;
         const poly = straight[i] ? [s[0], s[s.length - 1]] : simplify(s, P.corner * L);
@@ -632,6 +636,12 @@
       groups.get(r).push(s);
     });
     const labels = Array.from(groups.values()).map(readLabel);
+    // atoms and charges entered with the keyboard or the palette: labels that need no reading
+    for (const t of opt.labels || []) {
+      const r = (t.el ? 0.2 : 0.08) * L;
+      labels.push({ el: t.el || null, q: t.q || 0, sign: !t.el, unknown: false, typed: true, pos: { x: t.x, y: t.y },
+        box: { x0: t.x - r, y0: t.y - r, x1: t.x + r, y1: t.y + r, w: 2 * r, h: 2 * r, cx: t.x, cy: t.y, diag: 2.83 * r } });
+    }
 
     // nodes: atoms of the scene, labels, clusters of segment ends
     const nodes = [];

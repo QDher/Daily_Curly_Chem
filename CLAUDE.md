@@ -23,6 +23,11 @@
   training and ML work (decision of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
   rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
   `MECH_EXPORT_KEY` (never in a repository).
+- Open with the user: the contact e-mail for the "Write the e-mail" link at the end of the test run (`contact` in
+  `data/config.json`, public). The user asked on 2026-11-13 to be reminded later; raise it before testers are
+  invited, and suggest a dedicated address.
+- Drawing entries carry `typed` (atoms and charges entered without handwriting); the replay passes them to the
+  recognizer. Only handwritten letters are data for letter recognition.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged

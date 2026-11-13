@@ -90,6 +90,23 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(Rec.readLabel(B1).el, 'B', 'B alone, one stroke');
   });
 
+  test('atoms and charges entered without handwriting (typed labels)', () => {
+    const typed = (el, q, x, y) => ({ el, q, x, y });
+    // a zigzag of two bonds with O typed on one end and a typed minus on it
+    eq(smi(Rec.recognize([poly(0, 0, 40, 23, 80, 0)], { labels: [typed('O', 0, 80, 0)] }).scene), can('CCO'), 'element');
+    eq(smi(Rec.recognize([poly(0, 0, 40, 23, 80, 0)], { labels: [typed('O', -1, 80, 0)] }).scene), can('CC[O-]'), 'charge');
+    eq(smi(Rec.recognize([poly(0, 0, 40, 23, 80, 0)], { labels: [typed('Br', 0, 80, 0), typed('N', 0, 0, 0)] }).scene), can('NCBr'), 'two labels');
+    // a charge alone on a corner
+    eq(smi(Rec.recognize([poly(0, 0, 40, 23, 80, 0)], { labels: [typed(null, 1, 40, 23)] }).scene), can('C[CH+]C'), 'charge on carbon');
+    // a short bond between two typed atoms, and typed atoms without any stroke
+    eq(smi(Rec.recognize([line(10, 0, 30, 0)], { labels: [typed('Br', 0, 0, 0), typed('Br', 0, 40, 0)], nominal: 45 }).scene), can('BrBr'), 'short bond');
+    eq(smi(Rec.recognize([], { labels: [typed('O', -1, 3, 3)], nominal: 1.5 }).scene), can('[OH-]'), 'no stroke');
+    // on a shown structure: typing on an atom changes it
+    const base = Scene.fromSpecies(R, ['CC=O']);
+    const O = base.atoms.find((a) => a.el === 'O');
+    eq(smi(Rec.recognize([], { scene: base, labels: [typed('S', 0, O.x, O.y)] }).scene), can('CC=S'), 'on a scene');
+  });
+
   test('a drawing without any bond is read with the nominal bond length', () => {
     const r = Rec.recognize(Ink.draw(Scene.fromSpecies(R, ['[OH-]']), { level: 0 }), { nominal: 45 });
     eq(smi(r.scene), can('[OH-]'));

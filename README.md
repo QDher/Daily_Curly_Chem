@@ -13,7 +13,7 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 | 1 | Scene format (`docs/SCENE.md`), arrow interpreter C1 (`src/arrows.js`), tests | done (2026-11-13) |
 | 2 | Canvas (`src/canvas.js`, `index.html`): structure from RDKit with atom ids (`src/scene.js`), pointer input (mouse, touch, pen), raw strokes kept, drawn hydrogens, clean re-layout of the result | done (2026-11-13) |
 | 3 | Candidate readings and fixed ranking I0 (`src/readings.js`), accept / reject of each reading | done (2026-11-13); thresholds in `Readings.P` not tuned on real drawings |
-| 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 66 % on ordinary (`docs/RECOGNITION.md`); not measured on real handwriting |
+| 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation or flag; atoms and charges can be entered without handwriting (row of atoms, or pointing and typing with a mouse and keyboard), snapped to bond ends; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 66 % on ordinary (`docs/RECOGNITION.md`); handwritten letters not measured on real handwriting and reported as poor with a mouse |
 | 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with level, votes, five questions and a file of the entries | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
 | 6 | Storage and replay: the page can post each entry to the feedback Worker (table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles); `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13). Sending is switched off (`data/config.json`, `worker: null`): the Worker part stays on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is merged after the training and ML work (decision of 2026-11-13). Until then entries are collected as files saved by the testers |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
@@ -46,8 +46,8 @@ the arrows or the answer unusable.
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
-npm test           # interpreter (19), readings (12), recognizer with its benchmark (12), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (18); needs Playwright
+npm test           # interpreter (19), readings (12), recognizer with its benchmark (13), task list (17)
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (20); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```

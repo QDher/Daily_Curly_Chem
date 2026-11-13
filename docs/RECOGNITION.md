@@ -1,11 +1,11 @@
-# Hand-drawn structure recognition, version 0.1.1 (component R0)
+# Hand-drawn structure recognition, version 0.2.0 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
 
 ## Input and output
 
-`Recognize.recognize(strokes, { scene, L, nominal })` → `{ scene, L, unknown, edits, labels, counts }`.
+`Recognize.recognize(strokes, { scene, L, nominal, labels })` → `{ scene, L, unknown, edits, labels, counts }`.
 
 - `strokes`: point lists (the raw ink). Stroke order and timing are not used.
 - Without `scene`: a new structure; coordinates are scaled so that a bond is 1.5 units. `nominal` (the bond length
@@ -13,6 +13,11 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
 - With `scene`: the strokes are merged into it (L = 1.5): a line from an atom adds a bond and an atom, a line between
   two atoms adds a bond, a line along a bond raises its order, a letter written on an atom changes its element or
   charge. Atom and bond ids of the scene are kept; `edits` lists the changes.
+- `labels`: atoms and charges entered without handwriting, `[{ el | null, q, x, y }]` (`el` null: a charge alone,
+  given to the nearest atom). They need no reading and are never in `unknown`. On the page they come from the row of
+  atoms (click an element, click the place) or, with a mouse, from pointing at a place and typing the letters (B then
+  r for Br, C then l for Cl, S then i for Si; + and − for charges; Backspace removes). The place snaps to an atom, to
+  the end or a corner of a stroke, or stays where it is.
 - `unknown`: atoms whose label was not read with confidence; the page circles them.
 - Hydrogens are not read: they follow from the usual valence, the charge and the bonds (`implicitH`).
 

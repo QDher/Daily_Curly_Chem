@@ -1,7 +1,9 @@
 // SVG view of a scene with pointer input (mouse, touch, pen).
 // Modes: "arrow" (a drag is one curly arrow, stored as raw points), "draw" (strokes of a hand-drawn structure,
 // kept as ink until they are read), "erase" (a tap removes the nearest ink stroke or arrow), "h" (a tap on an
-// atom draws one of its hydrogens), "pick" (a tap reports the nearest atom or bond), "view" (no input).
+// atom draws one of its hydrogens), "atom" (a tap places the atom or charge of the current tool, snapped to the
+// end of a bond, a corner of a stroke or an atom; with a mouse, pointing and typing the letters does the same in
+// "draw" and "atom" modes), "pick" (a tap reports the nearest atom or bond), "view" (no input).
 // Browser only (window.CurlyCanvas, needs window.Scene and window.Readings).
 (function (root) {
   'use strict';
@@ -31,7 +33,7 @@
     const gHi = el('g', { class: 'cc-hi' }, svg);
     const gInk = el('g', { class: 'cc-ink' }, svg);
 
-    const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], marks: [], shown: [], mode: opt.mode || 'arrow', box: null };
+    const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], typed: [], marks: [], shown: [], hover: null, inside: false, tool: null, order: 0, mode: opt.mode || 'arrow', box: null };
     let drawing = null;
 
     // room: { right, minH } in scene units, free space kept for drawing next to the structure
@@ -40,6 +42,7 @@
       state.strokes = [];
       state.shown = [];
       state.ink = [];
+      state.typed = [];
       state.marks = [];
       if (!scene.atoms.length) {
         if (!state.box || !keepBox) state.box = { x: 0, y: 0, w: 16, h: 9 };
@@ -174,6 +177,15 @@
         const a = state.scene.atoms.find((x) => x.id === id);
         if (a) el('circle', { cx: a.x * UNIT, cy: a.y * UNIT, r: 15, class: 'cc-mark' }, gInk);
       }
+      for (const t of state.typed) {
+        const x = t.x * UNIT, y = t.y * UNIT;
+        const charge = !t.q ? '' : (Math.abs(t.q) > 1 ? Math.abs(t.q) : '') + (t.q > 0 ? '+' : '\u2212');
+        if (t.el) {
+          const tx = el('text', { x: x - (t.el.length > 1 ? 9 : 5.5), y: y + 5.5, class: 'cc-typed' }, gInk);
+          el('tspan', {}, tx).textContent = t.el;
+          if (charge) el('tspan', { class: 'cc-sup', dy: -8 }, tx).textContent = charge;
+        } else el('text', { x: x + 6, y: y - 6, class: 'cc-typed cc-charge' }, gInk).textContent = charge;
+      }
       const inks = drawing && state.mode === 'draw' ? state.ink.concat([drawing]) : state.ink;
       for (const st of inks) {
         if (st.points.length === 1) el('circle', { cx: st.points[0].x * UNIT, cy: st.points[0].y * UNIT, r: 1.4, class: 'cc-dot' }, gInk);
@@ -211,6 +223,66 @@
       return { x: p.x / UNIT, y: p.y / UNIT };
     }
 
+    // Where a typed atom goes: an atom of the scene, the end or a corner of an ink stroke, else the point itself.
+    function snap(p) {
+      let best = null, bd = 0.6;
+      const consider = (q, kind) => {
+        const d = Math.hypot(q.x - p.x, q.y - p.y);
+        if (d < bd) { bd = d; best = { x: q.x, y: q.y, kind }; }
+      };
+      for (const a of state.scene.atoms) consider(a, 'atom');
+      for (const st of state.ink) {
+        const poly = st.points.length > 2 && root.Recognize ? root.Recognize.simplify(st.points, 0.22) : st.points;
+        for (const q of poly) consider(q, 'ink');
+      }
+      return best || { x: p.x, y: p.y, kind: 'free' };
+    }
+    // tool: { el } or { q: +1 | -1 }. Returns the label placed or changed.
+    function place(p, tool) {
+      const s = snap(p);
+      let t = state.typed.find((x) => Math.hypot(x.x - s.x, x.y - s.y) < 0.45);
+      if (tool.el) {
+        if (t) t.el = tool.el;
+        else { t = { el: tool.el, q: 0, x: s.x, y: s.y, snap: s.kind, order: ++state.order }; state.typed.push(t); }
+      } else {
+        if (t) t.q = Math.max(-2, Math.min(2, (t.q || 0) + tool.q));
+        else { t = { el: null, q: tool.q, x: s.x, y: s.y, snap: s.kind, order: ++state.order }; state.typed.push(t); }
+        if (!t.el && !t.q) state.typed = state.typed.filter((x) => x !== t);
+      }
+      renderInk();
+      if (opt.onStroke) opt.onStroke();
+      return t;
+    }
+    const ONE = ['C', 'N', 'O', 'S', 'P', 'F', 'I', 'B', 'H'];
+    const TWO = ['Cl', 'Br', 'Si'];
+    let lastKey = null;
+    svg.addEventListener('pointerenter', () => { state.inside = true; });
+    svg.addEventListener('pointerleave', () => { state.inside = false; });
+    window.addEventListener('keydown', (ev) => {
+      if (!state.inside || !state.hover || (state.mode !== 'draw' && state.mode !== 'atom')) return;
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      const k = ev.key;
+      if (k === '+' || k === '-') { place(state.hover, { q: k === '+' ? 1 : -1 }); ev.preventDefault(); return; }
+      if (k === 'Backspace' || k === 'Delete') {
+        const n = state.typed.length;
+        state.typed = state.typed.filter((x) => Math.hypot(x.x - state.hover.x, x.y - state.hover.y) >= 0.6);
+        if (state.typed.length !== n) { renderInk(); ev.preventDefault(); }
+        return;
+      }
+      if (!/^[a-zA-Z]$/.test(k)) return;
+      const now = performance.now();
+      // a second letter typed soon after the first completes Cl, Br or Si
+      if (lastKey && now - lastKey.t < 900 && state.typed.includes(lastKey.label)) {
+        const two = lastKey.ch + k.toLowerCase();
+        if (TWO.includes(two)) { lastKey.label.el = two; lastKey = null; renderInk(); ev.preventDefault(); return; }
+      }
+      const one = k.toUpperCase();
+      if (!ONE.includes(one)) return;
+      lastKey = { ch: one, t: now, label: place(state.hover, { el: one }) };
+      ev.preventDefault();
+    });
+
     svg.addEventListener('pointerdown', (ev) => {
       if (state.mode === 'view' || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
       ev.preventDefault();
@@ -224,6 +296,8 @@
       }
     });
     svg.addEventListener('pointermove', (ev) => {
+      state.hover = toScene(ev);
+      state.inside = true;
       if (!drawing) return;
       const p = toScene(ev);
       const last = drawing.points[drawing.points.length - 1];
@@ -250,7 +324,12 @@
       for (let i = 1; i < st.points.length; i++) len += Math.hypot(st.points[i].x - st.points[i - 1].x, st.points[i].y - st.points[i - 1].y);
       if (ev.type === 'pointercancel') return renderInk();
       const record = { points: st.points, times: st.times, pressure: st.pressure, pointerType: st.pointerType, start: a, end: b };
+      if (state.mode === 'atom') {
+        if (len < 0.5 && state.tool) place(a, state.tool);
+        return renderInk();
+      }
       if (state.mode === 'draw') {
+        record.order = ++state.order;
         state.ink.push(record);
         if (opt.onStroke) opt.onStroke();
         return renderInk();
@@ -261,6 +340,9 @@
           list.forEach((s, i) => { for (const p of s.points) { const d = Math.hypot(p.x - a.x, p.y - a.y); if (d < bd) { bd = d; best = i; } } });
           return { best, bd };
         };
+        const nt = state.typed.length;
+        state.typed = state.typed.filter((x) => Math.hypot(x.x - a.x, x.y - a.y) >= 0.5);
+        if (state.typed.length !== nt) return renderInk();
         const i1 = near(state.ink), i2 = near(state.strokes);
         if (i1.best >= 0 && i1.bd <= i2.bd) state.ink.splice(i1.best, 1);
         else if (i2.best >= 0) state.strokes.splice(i2.best, 1);
@@ -312,8 +394,20 @@
       getBox: () => state.box,
       setBox: (b) => { state.box = b; },
       setMode: (m) => { state.mode = m; },
-      undo: () => { if (state.mode === 'draw' || (!state.strokes.length && state.ink.length)) state.ink.pop(); else state.strokes.pop(); renderInk(); },
-      clear: () => { state.strokes = []; state.ink = []; renderInk(); },
+      undo: () => {
+        const drawn = state.ink.concat(state.typed);
+        if (state.mode === 'draw' || state.mode === 'atom' || (!state.strokes.length && drawn.length)) {
+          // the last stroke or typed atom, whichever came last
+          const last = drawn.sort((p, q) => (q.order || 0) - (p.order || 0))[0];
+          state.ink = state.ink.filter((x) => x !== last);
+          state.typed = state.typed.filter((x) => x !== last);
+        } else state.strokes.pop();
+        renderInk();
+      },
+      clear: () => { state.strokes = []; state.ink = []; state.typed = []; renderInk(); },
+      getTyped: () => state.typed.map((t) => ({ el: t.el, q: t.q || 0, x: t.x, y: t.y, snap: t.snap })),
+      setTool: (tool) => { state.tool = tool; },
+      place: (p, tool) => place(p, tool),
       getInk: () => state.ink,
       // shows arrows given as data (a mechanism step)
       setArrows: (arrows) => { state.shown = arrows || []; renderInk(); },
