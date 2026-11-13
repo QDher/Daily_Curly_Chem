@@ -17,12 +17,23 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 
 ## Tester access (personal links)
 
-- Seven codes are valid; `data/testers.json` holds only their SHA-256, in this order: the creator's code (label
-  `4f7c82a3`), five personal codes of testers (labels `3005a301`, `c7eda040`, `1d947771`, `cb9ecc7f`, `6527e5a7`),
-  and a code for Claude Code sessions (label `93cd24ee`). All have 20 characters. No code is written in this
-  repository; the user holds them and who received which.
-- Session code: read it from the environment variable `CURLY_TESTER_CODE` (set by the user in the settings of the
-  cloud environment, so that no session has to ask). If the variable is empty, ask the user once for the session
+- Seven codes are valid (state of 2026-11-13). `data/testers.json` holds only their SHA-256, in the order of this
+  table. All have 20 characters. No code is written in this repository; the user holds them and knows which tester
+  received which.
+
+  | Who | Label in entries and file names | Note |
+  |---|---|---|
+  | Creator (the user) | `4f7c82a3` | private code since 2026-11-13; earlier entries carry `bad7de23` (below) |
+  | Tester 1 | `3005a301` | |
+  | Tester 2 | `c7eda040` | |
+  | Tester 3 | `1d947771` | |
+  | Tester 4 | `cb9ecc7f` | |
+  | Tester 5 | `6527e5a7` | |
+  | Claude Code sessions | `93cd24ee` | never tester data; leave such entries out of any count |
+
+  The same seven labels are in `MECH_TESTERS` on the Worker branch of the One-Pot repository.
+- Session code: read it from the environment variable `CURLY_TESTER_CODE` (to be set by the user in the settings
+  of the cloud environment, so that no session has to ask; on 2026-11-13 it was not yet confirmed as set). If the variable is empty, ask the user once for the session
   code and do not write it into any file. Use it only to open the live or local page; entries recorded with it
   carry the label `93cd24ee` and are not tester data.
 - The creator's earlier entries (file of 2026-11-13) carry the label `bad7de23`, from a code that was public and
@@ -205,6 +216,9 @@ by pull request. The daily pages keep Ketcher for structure input; nothing of th
 
 ## When a tester sends an entries file
 
+0. Identify it: the name is `curly-entries-<label>-<device tag>.json`, and the file holds `tester` (the label)
+   and `device`. The label says who (table in "Tester access"); two files with one label and different tags are
+   one tester on two devices, to be counted together. Files with the label `93cd24ee` come from sessions.
 1. Copy it outside the repository. `node tools/replay.js FILE --verbose` (all current-version entries must replay).
 2. Count per kind: arrows (first reading accepted, readings rejected), drawings (confirmed, corrected, flagged with
    reasons, `typed` atoms), votes, questions.
