@@ -6,6 +6,8 @@ Test run and shared modules for curly-arrow mechanisms on One-Pot Puzzles
 Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future development: curly-arrow mechanisms"
 (components C1 to C4, test run in section F).
 
+For a new working session: `docs/CONTEXT.md` (state, decisions, known issues and fixes, pitfalls).
+
 ## Status (phase 1, build)
 
 | Work package | Content | Status |
