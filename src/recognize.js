@@ -8,14 +8,19 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.2.0';
+  const VERSION = '0.3.0';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
     straightBond: 0.55, // a straight stroke at least this long is a bond
     shortBond: 0.25, // a shorter straight stroke can be a bond if both ends point at something
+    freeEndBond: 0.4, // or, from this length, if one end does (a bond to a methyl group drawn short)
     pointReach: 0.5,
-    corner: 0.15, // tolerance of the corner detection of bond strokes
+    corner: 0.15, // tolerance used when the bond length is estimated
+    straight: 0.88, // a stroke is straight when its end-to-end distance is at least this share of its length
+    straightTurn: 40, // degrees: a stroke with a larger turning at one place is not straight
+    cornerTurn: 25, // degrees: smallest turning of the direction that is a corner between two bonds
+    letterMax: 1.3, // a curved stroke with a larger bounding-box diagonal is never a letter
     minSeg: 0.3, // shorter pieces of a bond stroke are dropped
     join: 0.38, // segment ends closer than this are one atom
     anchor: 0.42, // a segment end closer than this to an atom of the scene is that atom
@@ -108,6 +113,60 @@
     return out;
   }
 
+  // Corners of a stroke, from the turning of its direction: the angle between the piece before and the piece
+  // after each point (0.2 L each), where it is a local maximum of at least P.cornerTurn degrees. A bowed line
+  // turns a little everywhere and has no corner; two bonds at a shallow angle turn at one place.
+  // Returns { pts: first point, corners, last point; turns: turning at each corner in degrees }.
+  function corners(points, L) {
+    const step = 0.05 * L;
+    const rs = [points[0]];
+    let prev = points[0], acc = 0;
+    for (let i = 1; i < points.length; i++) {
+      let seg = dist(points[i], prev);
+      while (acc + seg >= step && seg > 0) {
+        const t = (step - acc) / seg;
+        prev = { x: prev.x + t * (points[i].x - prev.x), y: prev.y + t * (points[i].y - prev.y) };
+        rs.push(prev);
+        seg = dist(points[i], prev);
+        acc = 0;
+      }
+      acc += seg;
+      prev = points[i];
+    }
+    const last = points[points.length - 1];
+    if (dist(rs[rs.length - 1], last) > 0.3 * step) rs.push(last);
+    else rs[rs.length - 1] = last;
+    const w = 4, n = rs.length;
+    if (n < 2 * w + 1) return { pts: [rs[0], rs[n - 1]], turns: [] };
+    const turn = new Array(n).fill(0);
+    for (let i = w; i < n - w; i++) {
+      const ax = rs[i].x - rs[i - w].x, ay = rs[i].y - rs[i - w].y, bx = rs[i + w].x - rs[i].x, by = rs[i + w].y - rs[i].y;
+      turn[i] = Math.abs((Math.atan2(ax * by - ay * bx, ax * bx + ay * by) * 180) / Math.PI);
+    }
+    const order = [];
+    for (let i = w; i < n - w; i++) if (turn[i] >= P.cornerTurn) order.push(i);
+    order.sort((p, q) => turn[q] - turn[p]);
+    const sep = Math.round(0.35 / 0.05), kept = [];
+    for (const i of order) if (kept.every((j) => Math.abs(i - j) >= sep)) kept.push(i);
+    kept.sort((p, q) => p - q);
+    return { pts: [rs[0]].concat(kept.map((i) => rs[i]), [rs[n - 1]]), turns: kept.map((i) => turn[i]) };
+  }
+
+  // A curved stroke that is a letter and not bonds. Letters written by hand are often as large as two thirds of
+  // a bond, so size alone does not decide: a letter is compact (long path in a small box) or turns back sharply
+  // (N, M), while bonds meet at wide angles. A closed stroke with long straight sides is a ring.
+  function letterShape(s, b, L) {
+    if (b.diag < P.labelMax * L) return true;
+    if (b.diag >= P.letterMax * L) return false;
+    const c = corners(s, L);
+    if (dist(s[0], s[s.length - 1]) < 0.3 * b.diag) {
+      let long = 0;
+      for (let k = 1; k < c.pts.length; k++) if (dist(c.pts[k], c.pts[k - 1]) >= 0.6 * L) long += 1;
+      return !(long >= 3 && c.turns.filter((t) => t >= 50).length >= 2);
+    }
+    return Math.max(0, ...c.turns) >= 125 || pathLength(s) / (b.diag || 1e-9) >= 1.6;
+  }
+
   // Bond length of a drawing, from the long straight pieces of its strokes.
   // letters: boxes of the small curved strokes; a straight stroke that points at one is a bond drawn short
   // of its label, and is counted up to the centre of that label.
@@ -150,9 +209,34 @@
     return L0 ? pass(() => P.corner * L0) : null;
   }
 
+  // A stroke is straight when it is close to its chord and its direction turns nowhere by a clear corner: a bowed
+  // or wobbly line is straight, a zigzag is not. The turning is measured between the fifth of the stroke before
+  // and the fifth after each point, whatever the scale (small windows are too sensitive to mouse jitter). Two
+  // bonds at a very shallow angle pass as one straight line here; they are cut later by their length.
   function isStraight(stroke) {
     const len = pathLength(stroke);
-    return len > 0 && dist(stroke[0], stroke[stroke.length - 1]) / len > 0.93;
+    if (!(len > 0) || dist(stroke[0], stroke[stroke.length - 1]) / len <= P.straight) return false;
+    const n = 20, rs = [stroke[0]];
+    let prev = stroke[0], acc = 0;
+    const step = len / n;
+    for (let i = 1; i < stroke.length; i++) {
+      let seg = dist(stroke[i], prev);
+      while (acc + seg >= step && seg > 0) {
+        const t = (step - acc) / seg;
+        prev = { x: prev.x + t * (stroke[i].x - prev.x), y: prev.y + t * (stroke[i].y - prev.y) };
+        rs.push(prev);
+        seg = dist(stroke[i], prev);
+        acc = 0;
+      }
+      acc += seg;
+      prev = stroke[i];
+    }
+    const w = 4;
+    for (let i = w; i < rs.length - w; i++) {
+      const ax = rs[i].x - rs[i - w].x, ay = rs[i].y - rs[i - w].y, bx = rs[i + w].x - rs[i].x, by = rs[i + w].y - rs[i].y;
+      if (Math.abs((Math.atan2(ax * by - ay * bx, ax * bx + ay * by) * 180) / Math.PI) >= P.straightTurn) return false;
+    }
+    return true;
   }
 
   // Straight strokes that are parts of letters whatever the scale: a small curved stroke touches their
@@ -174,10 +258,13 @@
         if (j === i) continue;
         if (!st[j]) {
           if (box[j].diag > 1.6 * len[i] || pathLength(strokes[j]) / (box[j].diag || 1e-9) < 1.2) continue;
+          // the curved stroke runs along the straight one (the bowl of a B or P), it does not just meet its end
+          let lo = Infinity, hi = -Infinity;
           for (const p of strokes[j]) {
             const r = along(i, p);
-            if (r.t > 0.15 && r.t < 0.85 && r.d < 0.12 * len[i]) { part[i] = true; break; }
+            if (r.t > -0.08 && r.t < 1.08 && r.d < 0.12 * len[i]) { lo = Math.min(lo, r.t); hi = Math.max(hi, r.t); }
           }
+          if (hi - lo >= 0.3) part[i] = true;
         }
       }
     }
@@ -285,6 +372,13 @@
         const m = Math.max(bh.w, bv.h);
         if (Math.abs(bh.cx - bv.cx) < 0.3 * m && Math.abs(bh.cy - bv.cy) < 0.3 * m && bh.w > 0.5 * bv.h && bv.h > 0.5 * bh.w) return { name: '+', d: 0 };
       }
+    }
+    // N in one stroke: two sharp reversals and no loop, whatever the slant
+    if (strokes.length === 1) {
+      const b = boxOf(strokes[0]);
+      const c = corners(strokes[0], 1.2 * b.diag);
+      const open = dist(strokes[0][0], strokes[0][strokes[0].length - 1]) > 0.45 * b.diag;
+      if (open && c.turns.length === 2 && c.turns.every((t) => t >= 105)) return { name: 'N', d: 0.05, margin: 1 };
     }
     const cloud = normalize(resample(strokes, P.points));
     let best = null, second = Infinity;
@@ -425,16 +519,20 @@
     const base = opt.scene || null;
     const boxes = strokes.map(boxOf);
     const parts = letterParts(strokes);
-    let L = opt.L || (base ? 1.5 : null);
-    const estimated = !L;
+    // On a shown structure the drawing has its own scale (often smaller than the structure): the bond length is
+    // estimated from the strokes when it is plausible, else the bond length of the structure is used.
+    const nominal = opt.nominal || (base ? 1.5 : null);
+    let L = opt.L || null;
+    const estimated = !L && !base;
     if (!L) {
       const use = strokes.filter((s, i) => !parts[i] && (isStraight(s) || pathLength(s) / (boxes[i].diag || 1e-9) < 1.25));
       const letters = boxes.filter((b, i) => !isStraight(strokes[i]) && pathLength(strokes[i]) / (b.diag || 1e-9) >= 1.25);
       for (const t of opt.labels || []) letters.push(boxOf([t]));
       L = estimateL(use.length ? use : strokes, letters);
-      if (opt.nominal && boxes.every((b) => b.diag < 0.6 * opt.nominal)) L = opt.nominal;
+      if (nominal && boxes.every((b) => b.diag < 0.6 * nominal)) L = nominal;
+      if (base && (!L || L < 0.5 * 1.5 || L > 1.4 * 1.5)) L = 1.5;
     }
-    if (!L && (opt.labels || []).length) L = opt.nominal || 1.5;
+    if (!L && (opt.labels || []).length) L = nominal || 1.5;
     if (!L) return { scene: base || { atoms: [], bonds: [] }, L: null, unknown: [], edits: [], labels: [], counts: { bondStrokes: 0, labelStrokes: 0 } };
 
     // Bond ink or label ink. Curved strokes: by size. Straight strokes: long ones are bonds; shorter ones are
@@ -455,13 +553,13 @@
         }
       }
     }
-    const isBond = strokes.map((s, i) => (straight[i] ? !parts[i] && lens[i] >= P.straightBond * L : boxes[i].diag >= P.labelMax * L));
+    const isBond = strokes.map((s, i) => (straight[i] ? !parts[i] && lens[i] >= P.straightBond * L : !letterShape(s, boxes[i], L)));
     const ends = () => {
       const out = base ? base.atoms.map((a) => ({ x: a.x, y: a.y })) : [];
       for (const t of opt.labels || []) out.push({ x: t.x, y: t.y });
       strokes.forEach((s, i) => {
         if (!isBond[i]) return;
-        const poly = straight[i] ? [s[0], s[s.length - 1]] : simplify(s, P.corner * L);
+        const poly = straight[i] ? [s[0], s[s.length - 1]] : corners(s, L).pts;
         for (const p of poly) out.push(p);
       });
       return out;
@@ -492,7 +590,7 @@
       const a = s[0], b = s[s.length - 1];
       for (let j = 0; j < strokes.length; j++) {
         if (j === i || !isBond[j]) continue;
-        const poly = straight[j] ? [strokes[j][0], strokes[j][strokes[j].length - 1]] : simplify(strokes[j], P.corner * L);
+        const poly = straight[j] ? [strokes[j][0], strokes[j][strokes[j].length - 1]] : corners(strokes[j], L).pts;
         for (let k = 1; k < poly.length; k++) {
           const A = poly[k - 1], B = poly[k];
           const la = dist(A, B), lb = lens[i];
@@ -514,7 +612,9 @@
       for (let i = 0; i < strokes.length; i++) {
         if (isBond[i] || parts[i] || !straight[i] || lens[i] < P.shortBond * L) continue;
         const s = strokes[i];
-        if ((pointsAt(i, s[0], s[s.length - 1]) && pointsAt(i, s[s.length - 1], s[0])) || alongBond(i)) {
+        const e0 = pointsAt(i, s[0], s[s.length - 1]), e1 = pointsAt(i, s[s.length - 1], s[0]);
+        // both ends point at something, or one end does and the stroke is long enough for a bond with a free end
+        if ((e0 && e1) || ((e0 || e1) && lens[i] >= P.freeEndBond * L) || alongBond(i)) {
           isBond[i] = true;
           changed = true;
         }
@@ -527,7 +627,7 @@
     // segments of the bond strokes
     let segs = [];
     for (const s of bondStrokes) {
-      let poly = simplify(s, P.corner * L);
+      let poly = corners(s, L).pts;
       // drop short hooks at the ends, merge short pieces inside
       while (poly.length > 2 && dist(poly[0], poly[1]) < P.minSeg * L) poly.shift();
       while (poly.length > 2 && dist(poly[poly.length - 1], poly[poly.length - 2]) < P.minSeg * L) poly.pop();
@@ -671,7 +771,11 @@
         if (n.atom && !n.label) d = dist(n, p) < P.anchor * L ? dist(n, p) : Infinity;
         else if (n.label) {
           const bx = boxDist(n.label.box, p);
-          d = bx < P.labelReach * L && aims(n) ? bx * 0.5 : Infinity;
+          // the nearest point of the label must lie ahead of the end, close to the line of the bond
+          const q = { x: Math.max(n.label.box.x0, Math.min(n.label.box.x1, p.x)), y: Math.max(n.label.box.y0, Math.min(n.label.box.y1, p.y)) };
+          const ax = (q.x - p.x) * ux + (q.y - p.y) * uy;
+          const pd = Math.abs((q.x - p.x) * uy - (q.y - p.y) * ux);
+          d = bx < P.labelReach * L && aims(n) && ax > -0.05 * L && pd < 0.2 * L ? bx * 0.5 : Infinity;
           if (n.atom && dist(n, p) < P.anchor * L) d = Math.min(d, dist(n, p));
         } else d = dist(n, p) < P.join * L ? dist(n, p) : Infinity;
         if (d < bd) { bd = d; best = n; }
@@ -776,7 +880,7 @@
       const sum = bonds.reduce((s, b) => s + (b.a === a.id || b.b === a.id ? b.order : 0), 0);
       a.h = implicitH(a.el, a.q, sum);
     }
-    return { scene: { atoms, bonds }, L, unknown, edits, labels: labels.map((l) => ({ el: l.el, q: l.q, sign: !!l.sign, unknown: l.unknown, chars: l.chars })), counts: { bondStrokes: bondStrokes.length, labelStrokes: labelStrokes.length } };
+    return { scene: { atoms, bonds }, L, unknown, edits, bondInk: isBond.slice(), labels: labels.map((l) => ({ el: l.el, q: l.q, sign: !!l.sign, unknown: l.unknown, chars: l.chars })), counts: { bondStrokes: bondStrokes.length, labelStrokes: labelStrokes.length } };
   }
 
   // Changes made by the user after recognition; each returns a new scene with hydrogens recomputed.
@@ -812,5 +916,5 @@
     return rehydrate(s, ends);
   }
 
-  return { VERSION, P, recognize, implicitH, estimateL, simplify, readLabel, readChar, setAtom, removeAtom, setBondOrder };
+  return { VERSION, P, recognize, implicitH, estimateL, simplify, corners, readLabel, readChar, setAtom, removeAtom, setBondOrder };
 });
