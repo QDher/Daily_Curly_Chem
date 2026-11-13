@@ -1,5 +1,5 @@
 {
-  "note": "worker: base URL of the feedback Worker (QDher/Daily-organic-chemistry-puzzles, feedback-worker/), or null to send nothing. Entries are posted to <worker>/mech_entries with this site key.",
-  "worker": "https://puzzle-feedback.dailyorgchem.workers.dev",
+  "note": "worker: base URL of the feedback Worker (QDher/Daily-organic-chemistry-puzzles, feedback-worker/), or null to send nothing. Null since 2026-11-13: the Worker part (table mech_entries) is merged only after the training and ML work (user decision), so entries are collected as files saved by the testers. To send entries: \"https://puzzle-feedback.dailyorgchem.workers.dev\" (posted to <worker>/mech_entries with this site key).",
+  "worker": null,
   "site": "mechpilot"
 }

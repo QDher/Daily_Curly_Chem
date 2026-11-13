@@ -15,7 +15,7 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 | 3 | Candidate readings and fixed ranking I0 (`src/readings.js`), accept / reject of each reading | done (2026-11-13); thresholds in `Readings.P` not tuned on real drawings |
 | 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 66 % on ordinary (`docs/RECOGNITION.md`); not measured on real handwriting |
 | 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with level, votes, five questions and a file of the entries | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
-| 6 | Storage and replay: the page posts each entry to the feedback Worker (`data/config.json`; table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles) and keeps the file as a fallback; `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13); the Worker part is on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is active once merged to its `main` |
+| 6 | Storage and replay: the page can post each entry to the feedback Worker (table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles); `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13). Sending is switched off (`data/config.json`, `worker: null`): the Worker part stays on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is merged after the training and ML work (decision of 2026-11-13). Until then entries are collected as files saved by the testers |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
 
 ## Two separate choices
@@ -25,9 +25,9 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 2. Answer: the user may submit a structure as an answer to the problem. Only then is it compared with the problem's
    structures. Arrows do not have to lead to an intermediate of the problem.
 
-Each entry is posted to the Worker when it is recorded and again when it is completed (same session and number, so
-the row is replaced). An entry that cannot be sent is kept and tried again; at the end the page says whether all
-entries were sent, and the tester can always save them as a JSON file.
+Entries are collected as files for now: at the end the tester saves them as a JSON file and sends it back; the files
+are checked with `tools/replay.js`. When `worker` is set in `data/config.json`, each entry is also posted to the Worker
+when it is recorded and again when it is completed; an entry that cannot be sent is kept and tried again.
 
 Hand-drawn structures give a third kind of entry: strokes, structure read, corrections made by the user, and one of
 three outcomes: confirmed (`accepted`), flagged as a wrong reading (`flagged: "wrong"` with what is wrong: bond
