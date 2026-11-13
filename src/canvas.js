@@ -3,7 +3,7 @@
 // kept as ink until they are read), "erase" (a tap removes the nearest ink stroke or arrow), "h" (a tap on an
 // atom draws one of its hydrogens), "atom" (a tap places the atom or charge of the current tool, snapped to the
 // end of a bond, a corner of a stroke or an atom; with a mouse, pointing and typing the letters does the same in
-// "draw" and "atom" modes), "pick" (a tap reports the nearest atom or bond), "view" (no input).
+// "draw" and "atom" modes, and a right click opens a text box for the symbol), "pick" (a tap reports the nearest atom or bond), "view" (no input).
 // Browser only (window.CurlyCanvas, needs window.Scene and window.Readings).
 (function (root) {
   'use strict';
@@ -297,7 +297,60 @@
       ev.preventDefault();
     });
 
+    // Right click with a mouse (draw and atom modes): a small text box at that place; the symbol typed there
+    // (Br, o, N+, O-, or a charge alone) is placed with Enter, snapped like the other typed atoms. Esc or a click
+    // elsewhere closes it.
+    let box = null;
+    const closeBox = () => { if (box) { const b = box; box = null; b.remove(); } };
+    function parseAtom(text) {
+      const m = /^\s*([A-Za-z]{1,2})?\s*([+\-\u2212]{0,2})\s*$/.exec(text);
+      if (!m || (!m[1] && !m[2])) return null;
+      let elName = null;
+      if (m[1]) {
+        elName = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+        if (!ONE.includes(elName) && !TWO.includes(elName)) return null;
+      }
+      let q = 0;
+      for (const c of m[2]) q += c === '+' ? 1 : -1;
+      return { el: elName, q };
+    }
+    function askAtom(ev) {
+      closeBox();
+      const at = toScene(ev);
+      const r = container.getBoundingClientRect();
+      container.style.position = 'relative';
+      box = document.createElement('input');
+      box.className = 'cc-ask';
+      box.setAttribute('aria-label', 'Atom symbol, with + or - for a charge');
+      box.setAttribute('autocomplete', 'off');
+      box.setAttribute('autocapitalize', 'none');
+      box.setAttribute('spellcheck', 'false');
+      box.maxLength = 5;
+      box.style.position = 'absolute';
+      box.style.left = Math.max(0, Math.min(r.width - 70, ev.clientX - r.left - 8)) + 'px';
+      box.style.top = Math.max(0, Math.min(r.height - 36, ev.clientY - r.top - 16)) + 'px';
+      box.addEventListener('keydown', (k) => {
+        k.stopPropagation();
+        if (k.key === 'Escape') return closeBox();
+        if (k.key !== 'Enter') return box.removeAttribute('aria-invalid');
+        const a = parseAtom(box.value);
+        if (!a) return box.setAttribute('aria-invalid', 'true');
+        if (a.el) place(at, { el: a.el });
+        const t = state.typed.find((x) => Math.hypot(x.x - snap(at).x, x.y - snap(at).y) < 0.45);
+        if (t && a.el) t.q = 0;
+        for (let i = 0; i < Math.abs(a.q); i++) place(at, { q: a.q > 0 ? 1 : -1 });
+        closeBox();
+      });
+      box.addEventListener('blur', closeBox);
+      container.appendChild(box);
+      box.focus();
+    }
+
     svg.addEventListener('pointerdown', (ev) => {
+      if (ev.pointerType === 'mouse' && ev.button === 2 && (state.mode === 'draw' || state.mode === 'atom')) {
+        ev.preventDefault();
+        return askAtom(ev);
+      }
       if (state.mode === 'view' || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
       ev.preventDefault();
       svg.setPointerCapture(ev.pointerId);

@@ -50,6 +50,8 @@ button:disabled { opacity: 0.45; cursor: default; }
 .cc-dot { fill: var(--ink); }
 .cc-typed { fill: var(--accent); font: 600 16px system-ui, sans-serif; }
 .cc-typed.cc-charge { font-size: 14px; }
+.cc-ask { width: 70px; min-height: 32px; padding: 4px 6px; border: 2px solid var(--accent); border-radius: 6px; z-index: 2; }
+.cc-ask[aria-invalid="true"] { border-color: var(--bad); }
 .cc-mark { fill: none; stroke: var(--hl); stroke-width: 2.5; stroke-dasharray: 4 3; }
 .palette button { min-width: 44px; padding: 8px; }
 #target-wrap .stage { max-width: 420px; }
@@ -300,7 +302,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.',
-    draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges). Letters can also be written by hand.',
+    draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
     atom: 'Click where the atom or charge goes: the end of a bond, a corner, an atom, or an empty place. Press Draw to draw more bonds.',
     h: 'Tap an atom to draw one of its hydrogens.',
     erase: 'Tap a stroke to remove it.',

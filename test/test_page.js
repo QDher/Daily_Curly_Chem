@@ -336,6 +336,47 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  await test('right click: a text box at that place; the symbol typed is placed and snapped; wrong text is refused', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 2 });
+    await page.click('#m-draw');
+    await page.evaluate((p) => window.__app.input.addInk(p), zigzag);
+    const C = (x, y) => page.evaluate(([px, py]) => window.__app.input.toClient({ x: px, y: py }), [x, y]);
+    const a = await C(7.7, 5.1), b = await C(5, 5);
+    await page.mouse.click(a.x, a.y, { button: 'right' });
+    await page.waitForSelector('#stage .cc-ask');
+    eq(await page.evaluate(() => document.activeElement.className), 'cc-ask', 'box focused');
+    await page.keyboard.type('xx');
+    await page.keyboard.press('Enter');
+    eq(await page.getAttribute('#stage .cc-ask', 'aria-invalid'), 'true', 'unknown symbol refused');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 0, 'nothing placed');
+    await page.fill('#stage .cc-ask', 'br');
+    await page.keyboard.press('Enter');
+    eq(await page.locator('#stage .cc-ask').count(), 0, 'box closed');
+    let t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 1); eq(t[0].el, 'Br'); eq(t[0].snap, 'ink', 'snapped');
+    await page.mouse.click(b.x, b.y, { button: 'right' });
+    await page.waitForSelector('#stage .cc-ask');
+    await page.keyboard.type('N+');
+    await page.keyboard.press('Enter');
+    t = await page.evaluate(() => window.__app.input.getTyped());
+    eq(t.length, 2); eq(t[1].el, 'N'); eq(t[1].q, 1, 'charge typed with the symbol');
+    // Esc closes without placing; the box does not open in arrow mode
+    await page.mouse.click(a.x + 60, a.y - 80, { button: 'right' });
+    await page.waitForSelector('#stage .cc-ask');
+    await page.keyboard.press('Escape');
+    eq(await page.locator('#stage .cc-ask').count(), 0, 'closed by Esc');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 2, 'nothing added');
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    eq(await page.evaluate(() => window.__entries[0].typed.length), 2, 'typed atoms recorded');
+    eq(await page.evaluate(() => window.__entries[0].smiles), SceneN.canonicalSmiles(RN, '[NH3+]CBr'), 'structure');
+    await page.mouse.click(a.x, a.y, { button: 'right' });
+    eq(await page.locator('#stage .cc-ask').count(), 0, 'no box in arrow mode');
+    eq(errors.length, 0, 'page errors');
+  });
+
   await test('a reading can be flagged as wrong, with what is wrong; drawing again is recorded apart', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 2 });

@@ -32,7 +32,7 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17: each ends with N/N passed
-npm run test:page                # 21 browser tests (Playwright, already installed in cloud sessions)
+npm run test:page                # 22 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
 python3 -m http.server 8000      # local page: http://localhost:8000/?t=CODE (codes are not in the repository)
@@ -65,7 +65,9 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 | Only one tester so far, mouse only | All real figures come from one person; touch is untested by a person | – |
 | The share button and the row of atoms on a real touch screen | Only exercised in headless Chromium | `index.html` |
 
-Not built, by choice: right-click text entry of atoms; drag and drop from the row (click, then click, is used).
+Atoms without handwriting, three ways (all give `typed` labels, snapped to a bond end, corner or atom): the row of
+atoms (click, then click the place; also by touch), pointing and typing the letters, and a right click that opens a
+text box (Br, N+, O-; Enter places, Esc closes; mouse only). Not built, by choice: drag and drop from the row.
 
 ## Fixed issues (cause, fix, test)
 

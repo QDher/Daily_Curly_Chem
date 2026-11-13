@@ -16,7 +16,8 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
 - `labels`: atoms and charges entered without handwriting, `[{ el | null, q, x, y }]` (`el` null: a charge alone,
   given to the nearest atom). They need no reading and are never in `unknown`. On the page they come from the row of
   atoms (click an element, click the place) or, with a mouse, from pointing at a place and typing the letters (B then
-  r for Br, C then l for Cl, S then i for Si; + and − for charges; Backspace removes). The place snaps to an atom, to
+  r for Br, C then l for Cl, S then i for Si; + and − for charges; Backspace removes), or from a right click, which
+  opens a text box for the symbol (Br, N+, O-, or a charge alone; Enter places it). The place snaps to an atom, to
   the end or a corner of a stroke, or stays where it is.
 - `unknown`: atoms whose label was not read with confidence; the page circles them.
 - Hydrogens are not read: they follow from the usual valence, the charge and the bonds (`implicitH`).
