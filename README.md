@@ -33,13 +33,18 @@ Hand-drawn structures give a third kind of entry: strokes, structure read, corre
 three outcomes: confirmed (`accepted`), flagged as a wrong reading (`flagged: "wrong"` with what is wrong: bond
 missing, bond or atom added, bond order, letter, charge, nothing like the drawing), or discarded to draw again.
 
+When a hand-drawn structure is confirmed, the arrow phase starts from a clean layout of all structures. In a
+draw-and-arrows task it starts from the structures asked for, also when the confirmed drawing differs from them (the
+drawing entry keeps what was confirmed, with `replaced: true`), so that an error of the drawing phase does not make
+the arrows or the answer unusable.
+
 ## Use
 
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer with its benchmark (12), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (15); needs Playwright
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (17); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```

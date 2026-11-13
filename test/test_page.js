@@ -353,6 +353,70 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  await test('T3: a wrong structure confirmed in the drawing phase does not block the arrow phase; structures are redrawn cleanly', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 9 });
+    // a line is drawn in place of hydroxide and confirmed
+    const pts = await page.evaluate(() => {
+      const sc = window.__app.input.getScene();
+      const x = Math.max(...sc.atoms.map((a) => a.x)) + 3, y = sc.atoms.reduce((t, a) => t + a.y, 0) / sc.atoms.length;
+      const out = [];
+      for (let i = 0; i <= 10; i++) out.push({ x: x + 0.15 * i, y: y + 0.03 * i });
+      return out;
+    });
+    await page.evaluate((p) => window.__app.input.addInk(p), pts);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    let e = await page.evaluate(() => window.__entries[0]);
+    eq(e.target.match, false, 'drawing differs'); eq(e.replaced, true, 'replaced');
+    eq(e.final.atoms.some((a) => a.el === 'O' && a.q === -1), false, 'entry keeps what was confirmed');
+    if (!(await page.textContent('#msg')).includes('differs from the species asked for')) throw new Error('message');
+    eq(await page.evaluate(() => window.__app.input.getScene().atoms.some((a) => a.el === 'O' && a.q === -1 && a.h === 1)), true, 'hydroxide present');
+    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+    const p = await page.evaluate((h) => {
+      const { sc, nb, C, mid } = eval('(' + h + ')')();
+      const O = sc.atoms.find((a) => a.el === 'O' && a.q === -1);
+      const Cc = sc.atoms.find((a) => a.el === 'C' && nb(a).filter((n) => n.atom.el === 'O').length === 2);
+      const Oc = nb(Cc).find((n) => n.order === 2).atom;
+      return { O: C(O), Cc: C(Cc), m: C(mid(Cc, Oc)), Oc: C(Oc) };
+    }, helpers.toString());
+    await drag(page, p.O, p.Cc);
+    await drag(page, p.m, p.Oc, 10);
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#yes');
+    await page.click('#submit');
+    e = await page.evaluate(() => window.__entries[1]);
+    eq(e.submitted.match, true, 'answer accepted');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('after a drawing on a shown structure, the arrow phase shows all structures with a clean layout', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 3 });
+    await page.click('#m-draw');
+    // a long, crooked bond from the methyl carbon
+    const pts = await page.evaluate(() => {
+      const sc = window.__app.input.getScene();
+      const C = sc.atoms.find((a) => a.id.startsWith('s0') && a.el === 'C' && a.h === 3);
+      const out = [];
+      for (let i = 0; i <= 12; i++) out.push({ x: C.x - (2.6 * i) / 12, y: C.y + (0.4 * i) / 12 });
+      return out;
+    });
+    await page.evaluate((p) => window.__app.input.addInk(p), pts);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    const longest = await page.evaluate(() => {
+      const sc = window.__app.input.getScene();
+      const at = new Map(sc.atoms.map((a) => [a.id, a]));
+      return Math.max(...sc.bonds.map((b) => Math.hypot(at.get(b.a).x - at.get(b.b).x, at.get(b.a).y - at.get(b.b).y)));
+    });
+    if (!(longest < 1.6)) throw new Error('bond length ' + longest);
+    eq(await page.getAttribute('#m-arrow', 'aria-pressed'), 'true', 'arrow mode');
+  });
+
   await test('T4: mechanism shown with arrows; votes for every step are recorded', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 13 });

@@ -13,3 +13,8 @@ status; a correction comes with a test built from the strokes when a file is ava
 Check of case 3 with constructed strokes (2026-11-13, `Recognize.readLabel`, version 0.1.0): B in 3 strokes + r in 2
 strokes → Br; with the r in one stroke → not Br, whether the B is written in 3 strokes or in 1. Version 0.1.1 reads all
 four as Br.
+
+| # | Date | Component | Observation | Cause | Status |
+|---|---|---|---|---|---|
+| 4 | 2026-11-13 | Page (draw and arrows) | When an incorrect structure was confirmed in the drawing phase, the arrow phase could not be validated although arrows and result were right | The arrow phase continued from the confirmed drawing, so every result contained the wrong species | corrected: the arrow phase starts from the structures asked for; test in `test/test_page.js` |
+| 5 | 2026-11-13 | Page (draw and arrows) | Structures were not redrawn when switching to the arrow phase | Atoms added by a drawing on a shown structure kept their hand-drawn positions | corrected: clean layout of all structures at the switch; test in `test/test_page.js` |

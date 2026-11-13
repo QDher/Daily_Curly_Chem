@@ -663,14 +663,27 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       e.target = { smiles: want, match: want === smiles };
     }
     if (step.target) e.target = { smiles: Scene.canonicalSmiles(R, step.target), match: Scene.canonicalSmiles(R, step.target) === smiles };
+    // The arrow phase starts from clean structures. In a draw-and-arrows task it starts from the structures
+    // asked for, also when the confirmed drawing differs from them: the drawing entry keeps what was confirmed
+    // (replaced: true), and the arrows are not made unusable by an error of the drawing phase.
+    let scene = Scene.relayout(R, reading.scene);
+    let note = 'Structure recorded.', cls = 'ok';
+    if (step.draw && !e.target.match) {
+      e.replaced = true;
+      scene = Tasks.startScene(R, step, true);
+      note = 'Structure recorded. It differs from the species asked for; the arrows continue from the structures asked for, shown here.';
+      cls = '';
+    } else if (step.target) {
+      note = e.target.match ? 'Structure recorded. It is the structure shown.' : 'Structure recorded. It differs from the structure shown.';
+      cls = e.target.match ? 'ok' : 'bad';
+    }
     entries.push(e);
     if (step.type === 'T2') markDone();
     showLog();
-    const scene = reading.scene;
     reading = null;
     load(scene);
     setMode('arrow');
-    say('msg', step.target ? (e.target.match ? 'Structure recorded. It is the structure shown.' : 'Structure recorded. It differs from the structure shown.') : 'Structure recorded.', step.target && !e.target.match ? 'bad' : 'ok');
+    say('msg', note, cls);
   };
 
   $('undo').onclick = () => input.undo();
