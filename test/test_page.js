@@ -12,7 +12,28 @@ const crypto = require('crypto');
 const CODE = 'local-test-code';
 const TESTERS = JSON.stringify({ sha256: [crypto.createHash('sha256').update(CODE).digest('hex')] });
 
+const posts = []; // bodies received by the stand-in for the feedback Worker
+let failPosts = false;
+const collected = []; // entries of the page tests, replayed at the end
+
 const server = http.createServer((req, res) => {
+  if (req.url.split('?')[0] === '/data/config.json') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ worker: 'http://localhost:' + server.address().port, site: 'mechpilot' }));
+  }
+  if (req.url === '/mech_entries' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      if (failPosts) { res.writeHead(500); return res.end('{}'); }
+      const b = JSON.parse(body);
+      const again = posts.some((x) => x.session === b.session && x.seq === b.seq);
+      posts.push(b);
+      res.writeHead(again ? 200 : 201, { 'content-type': 'application/json' });
+      res.end('{}');
+    });
+    return;
+  }
   if (req.url.split('?')[0] === '/data/testers.json') {
     // the test uses its own code; the real hashes are not needed
     res.writeHead(200, { 'content-type': 'application/json' });
@@ -25,9 +46,14 @@ const server = http.createServer((req, res) => {
 });
 
 let pass = 0, total = 0;
+const pages = [];
 async function test(name, fn) {
   total += 1;
   try { await fn(); pass += 1; } catch (e) { console.log('FAIL ' + name + ': ' + e.message.split('\n')[0]); }
+  // keep the entries of the pages this test opened, for the replay test
+  for (const p of pages.splice(0)) {
+    try { collected.push(...(await p.evaluate(() => (window.__entries ? JSON.parse(JSON.stringify(window.__entries)) : [])))); } catch (e) { /* page closed */ }
+  }
 }
 const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'value') + ': got ' + got + ', expected ' + want); };
 
@@ -39,6 +65,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
   async function open(viewport, touch, noCode) {
     const ctx = await browser.newContext({ viewport, hasTouch: !!touch, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
+    pages.push(page);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(noCode ? url : url + '?t=' + CODE);
@@ -377,7 +404,65 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(await page.isVisible('#work'), true, 'work shown');
   });
 
+  await test('entries are sent as they are recorded, and again when completed; failures are kept and retried', async () => {
+    posts.length = 0;
+    const { page } = await open({ width: 1100, height: 900 });
+    const p = await page.evaluate((h) => {
+      const { sc, nb, C, mid } = eval('(' + h + ')')();
+      const O = sc.atoms.find((a) => a.id.startsWith('s1'));
+      const Cc = sc.atoms.find((a) => a.el === 'C' && nb(a).filter((n) => n.atom.el === 'O').length === 2);
+      const Oc = nb(Cc).find((n) => n.order === 2).atom;
+      return { O: C(O), Cc: C(Cc), m: C(mid(Cc, Oc)), Oc: C(Oc) };
+    }, helpers.toString());
+    await drag(page, p.O, p.Cc);
+    await drag(page, p.m, p.Oc, 10);
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#yes');
+    await page.evaluate(() => window.__app.flush());
+    eq(posts.length, 1, 'posts after confirmation');
+    const b = posts[0];
+    eq(b.site, 'mechpilot'); eq(b.kind, 'arrows'); eq(b.task, 't1-addition'); eq(b.seq, 0); eq(b.user_level, 'graduate');
+    if (!/^[0-9a-f]{8}$/.test(b.visitor)) throw new Error('visitor'); if (!/^[0-9a-f-]{36}$/.test(b.session)) throw new Error('session');
+    eq(b.payload.accepted, 0); eq(b.payload.submitted, null); eq(b.payload.strokes.length, 2);
+    if (JSON.stringify(b).length > 250000) throw new Error('payload size ' + JSON.stringify(b).length);
+    await page.click('#submit');
+    await page.evaluate(() => window.__app.flush());
+    eq(posts.length, 2, 'sent again when completed'); eq(posts[1].seq, 0); eq(posts[1].payload.submitted.match, true);
+    // the Worker fails: the entry is kept, the end message says so, and it is sent once the Worker answers
+    failPosts = true;
+    await page.selectOption('#step', { index: 13 });
+    await page.click('#next');
+    await page.click('#finish');
+    await page.waitForFunction(() => document.getElementById('quest-msg').textContent.includes('could not be sent'));
+    eq(await page.evaluate(() => window.__app.unsent.size), 1, 'kept');
+    failPosts = false;
+    await page.click('#finish');
+    await page.waitForFunction(() => document.getElementById('quest-msg').textContent.includes('were sent'));
+    eq(await page.evaluate(() => window.__app.unsent.size), 0, 'sent');
+    eq(posts.filter((x) => x.kind === 'questionnaire').length >= 1, true, 'questionnaire sent');
+  });
+
   await browser.close();
+
+  await test('the entries recorded by these tests replay to the same results (tools/replay.js); a changed stroke does not', async () => {
+    const { replay } = require('../tools/replay.js');
+    const r = await replay({ entries: collected });
+    if (r.failures.length) throw new Error(JSON.stringify(r.failures.slice(0, 3)));
+    if (r.count.arrows[1] < 4 || r.count.drawing[1] < 5) throw new Error('too few entries: ' + JSON.stringify(r.count));
+    eq(r.count.version, 0, 'versions');
+    const changed = JSON.parse(JSON.stringify(collected));
+    const d = changed.find((e) => e.kind === 'drawing' && e.accepted && e.strokes.length > 3);
+    d.strokes = d.strokes.slice(0, 2);
+    const a = changed.find((e) => e.kind === 'arrows' && Number.isInteger(e.accepted));
+    a.strokes[0].points[0] = { x: a.strokes[0].points[0].x + 30, y: a.strokes[0].points[0].y + 30 };
+    const r2 = await replay({ entries: changed });
+    eq(r2.failures.length, 2, 'failures after the change');
+    // the export of the Worker has one payload per row
+    const r3 = await replay(collected.map((e) => ({ payload: e })));
+    eq(r3.failures.length, 0, 'export shape');
+  });
+
   server.close();
   console.log(pass + '/' + total + ' passed');
   process.exit(pass === total ? 0 : 1);

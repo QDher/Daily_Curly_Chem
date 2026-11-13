@@ -18,6 +18,10 @@
 - `data/tasks.json`: every reference and mechanism step must pass `node test/test_tasks.js` (valid for
   `src/arrows.js`, stated result, no names or mechanism words in the texts shown). References are never shown before
   the answer and never judge a tester's arrows.
+- Entries: the page posts them to the Worker of QDher/Daily-organic-chemistry-puzzles (`data/config.json`; set
+  `worker` to null to send nothing). The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
+  rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
+  `MECH_EXPORT_KEY` (never in a repository).
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged

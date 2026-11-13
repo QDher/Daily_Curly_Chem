@@ -1,0 +1,5 @@
+{
+  "note": "worker: base URL of the feedback Worker (QDher/Daily-organic-chemistry-puzzles, feedback-worker/), or null to send nothing. Entries are posted to <worker>/mech_entries with this site key.",
+  "worker": "https://puzzle-feedback.dailyorgchem.workers.dev",
+  "site": "mechpilot"
+}

@@ -6,7 +6,8 @@
   "scripts": {
     "setup": "mkdir -p rdkit && cp node_modules/@rdkit/rdkit/dist/RDKit_minimal.js node_modules/@rdkit/rdkit/dist/RDKit_minimal.wasm rdkit/",
     "test": "node test/test_arrows.js && node test/test_readings.js && node test/test_recognize.js && node test/test_tasks.js",
-    "test:page": "node test/test_page.js"
+    "test:page": "node test/test_page.js",
+    "replay": "node tools/replay.js"
   },
   "devDependencies": {
     "@rdkit/rdkit": "^2026.9.1"
