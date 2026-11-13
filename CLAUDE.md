@@ -2,6 +2,11 @@
 
 Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls, commands. Keep it up to date.
 
+- Commits go to `main` (no pull requests unless asked): the site is deployed from `main`, and all work so far was
+  pushed there with the user's agreement. Start with `git fetch origin main && git checkout -B main origin/main`;
+  if a push is rejected, rebase on `origin/main`; never force-push.
+- Setup in a new session: `npm ci && npm run setup`, then `npm test` and `npm run test:page` before any change.
+
 - Purpose: test-run page and single source of the shared curly-arrow modules for the two puzzle sites. The plan is
   `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles (section "Future development: curly-arrow mechanisms"); update
   it there when a decision changes, and the status table in `README.md` here.

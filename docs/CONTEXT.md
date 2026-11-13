@@ -4,6 +4,17 @@ Read this first. It replaces reading the history of the project. Written 2026-11
 fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer rules and figures),
 `docs/WEAKNESSES.md` (each reported case), `docs/SCENE.md` (arrow rules), `CLAUDE.md` (rules of work).
 
+## What a new session does not have
+
+- The tester codes (only their hashes are in `data/testers.json`). The tests use their own code; to open the live
+  or local page as a tester, ask the user for a code.
+- The entries file the user sent on 2026-11-13: only the stroke points of its 14 drawings are here
+  (`test/fixtures/`). Its arrow entries, votes and timings are not.
+- The other two repositories. The plan and the Worker code are on a branch of
+  QDher/Daily-organic-chemistry-puzzles: add that repository to the session before working on them.
+- The conversation in which this was built. What was decided is in this file and in `CLAUDE.md`; if something is
+  not written here, ask the user instead of assuming.
+
 ## What this is
 
 Test-run page for curly-arrow mechanisms, https://qdher.github.io/Daily_Curly_Chem/ (unlisted, opened with
