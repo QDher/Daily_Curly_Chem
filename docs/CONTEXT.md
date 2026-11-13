@@ -93,10 +93,14 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 ## Daily set (user request of 2026-11-13)
 
 - Each day: 5 arrow tasks and 10 structures to copy, from the problems of the two sites: One-Pot undergraduate and
-  graduate problems only, all Name Reaction problems, from the day before the set and older, the newest first, as
-  long as they are still in their
-  `data/problems.json` (about 32 days). A task is never given twice (`data/daily/used.json`; the structures of the
-  standard set are excluded too). At most 2 arrow tasks and 3 structures per problem.
+  graduate problems only, all Name Reaction problems.
+- Date rule (user request of 2026-11-13): a set dated D uses only problems dated before D, the newest first, as
+  long as they are still in the sites' `data/problems.json` (about 32 days). The puzzle of the day is never used,
+  so no task shows one of its intermediates. In the code: `eligible` in `tools/make_daily.js` (`s.date < date`);
+  test "only from before the day of the set" in `test/test_daily.js`.
+- One set per date: a second run on the same day changes nothing (`data/daily/<date>.json` exists). A task is
+  never given twice (`data/daily/used.json`; the structures of the standard set are excluded too). At most 2 arrow
+  tasks and 3 structures per problem.
 - Nothing is written by hand or by a model. An arrow task is kept only when `src/solver.js` finds one entry of at
   most three arrows from its start to the next structure listed by the problem; a structure only when the
   recognizer reads a clean synthetic drawing of it (4 to 20 heavy atoms, at most three rings, supported elements).
@@ -114,8 +118,10 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Page: the intro offers "Start today's tasks" (when the set has tasks) and "Start the standard set" (the 14 fixed
   tasks). Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
   of an expected structure (by-products not listed by the problem do not count against it).
-- A set uses only problems dated before its own day (user request of 2026-11-13): the puzzle of the day is
-  never used, so no task shows one of its intermediates. The set of 2026-11-13 was rebuilt under this rule.
+- The set of 2026-11-13 was first built with that day's problems, then rebuilt with the tool under the date rule
+  (problems of 2026-11-11 and 2026-11-12). It is the only set made in a session.
+- To check after the first scheduled run (night of 2026-11-14, New York): a commit "Daily set <date>" by
+  github-actions on `main`, `data/daily/latest.json` with that date, and no problem of that date among its sources.
 
 ## Decisions of the user (do not reopen)
 
@@ -126,6 +132,9 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - The page is unlisted on GitHub Pages; the repository is public.
 - The page does not ask the tester's level (2026-11-13); tasks come from undergraduate and graduate problems
   of One-Pot and from Name Reaction Daily (no levels), not from advanced problems.
+- Daily tasks: 5 arrow tasks and 10 structures; One-Pot undergraduate and graduate problems and Name Reaction
+  problems; past problems when needed; "No new task today" when too few good tasks are left; never the puzzle
+  of the day itself (section "Daily set").
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 
