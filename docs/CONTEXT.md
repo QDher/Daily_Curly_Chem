@@ -6,7 +6,8 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 
 ## What a new session does not have
 
-- The tester codes: only their hashes are here (section "Tester access"). Ask the user for one when needed.
+- The tester codes: only their hashes are here. A session uses its own code from the environment variable
+  `CURLY_TESTER_CODE` (section "Tester access").
 - The entries file the user sent on 2026-11-13: only the stroke points of its 14 drawings are here
   (`test/fixtures/`). Its arrow entries, votes and timings are not.
 - The other two repositories. The plan and the Worker code are on a branch of
@@ -16,11 +17,16 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 
 ## Tester access (personal links)
 
-- Six codes are valid; `data/testers.json` holds only their SHA-256. One is the owner's (label `bad7de23`), five are
-  personal codes of testers (20 characters; labels `3005a301`, `c7eda040`, `1d947771`, `cb9ecc7f`, `6527e5a7`).
-  No code is written in this repository; the user holds them and who received which. Ask the user for a code when
-  the live or local page must be opened as a tester. The six codes used before 2026-11-13 are in the git history;
-  five of them no longer work, the sixth is the owner's.
+- Seven codes are valid; `data/testers.json` holds only their SHA-256, in this order: the creator's code (label
+  `4f7c82a3`), five personal codes of testers (labels `3005a301`, `c7eda040`, `1d947771`, `cb9ecc7f`, `6527e5a7`),
+  and a code for Claude Code sessions (label `93cd24ee`). All have 20 characters. No code is written in this
+  repository; the user holds them and who received which.
+- Session code: read it from the environment variable `CURLY_TESTER_CODE` (set by the user in the settings of the
+  cloud environment, so that no session has to ask). If the variable is empty, ask the user once for the session
+  code and do not write it into any file. Use it only to open the live or local page; entries recorded with it
+  carry the label `93cd24ee` and are not tester data.
+- The creator's earlier entries (file of 2026-11-13) carry the label `bad7de23`, from a code that was public and
+  was retired on 2026-11-13. The codes used before that date are in the git history; none of them works any more.
 - A tester receives the link `https://qdher.github.io/Daily_Curly_Chem/#t=CODE`. On the first visit the page checks
   the code, keeps it in the browser (`localStorage`, key `curly:code`) and removes it from the address bar; later
   visits to the plain address open directly. The same link works on any device; entries and finished-task marks are
@@ -63,7 +69,7 @@ npm test                         # arrows 19, readings 12, recognizer 14, tasks 
 npm run test:page                # 23 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
-python3 -m http.server 8000      # local page: http://localhost:8000/#t=CODE (ask the user for a code)
+python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_TESTER_CODE
 ```
 
 Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml` runs `npm test` first). Check with
