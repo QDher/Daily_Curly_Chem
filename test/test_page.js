@@ -185,6 +185,82 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     if (shots) await page.screenshot({ path: path.join(shots, 'phone.png'), fullPage: true });
   });
 
+  // hand-drawn structures: synthetic ink made in Node, placed in the frame of the page
+  const initRDKit = require('@rdkit/rdkit');
+  const SceneN = require('../src/scene.js');
+  const InkN = require('../src/ink.js');
+  const RN = await initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rdkit')), f) });
+  const inkFor = (smiles, level) => {
+    const sc = SceneN.fromSpecies(RN, smiles.split('.'));
+    const b = SceneN.bbox(sc);
+    return InkN.draw(sc, { level, seed: 5, scale: 1 }).map((st) => st.points.map((p) => ({ x: p.x - (b.x0 + b.x1) / 2 + 8, y: p.y - (b.y0 + b.y1) / 2 + 4.5 })));
+  };
+
+  await test('draw task: ink is read, confirmed, compared with the structure shown, then usable for arrows', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 7 }); // bromoketone
+    eq(await page.isVisible('#target-wrap'), true, 'target shown');
+    const tgt = await page.evaluate(() => window.__app.tasks[7].target);
+    await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
+    if (shots) await page.screenshot({ path: path.join(shots, 'draw-ink.png'), fullPage: true });
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    if (shots) await page.screenshot({ path: path.join(shots, 'draw-read.png'), fullPage: true });
+    await page.click('#r-yes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.kind, 'drawing'); eq(e.target.match, true, 'match'); eq(e.accepted, true); eq(e.corrections.length, 0, 'corrections');
+    if (!(e.strokes.length > 3)) throw new Error('strokes');
+    eq(await page.getAttribute('#m-arrow', 'aria-pressed'), 'true', 'arrow mode after confirmation');
+    eq(await page.evaluate(() => window.__app.input.getScene().atoms.some((a) => a.el === 'Br')), true, 'scene loaded');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('real pointer strokes in draw mode; a correction is recorded', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 5 });
+    const P = (x, y) => page.evaluate(([px, py]) => window.__app.input.toClient({ x: px, y: py }), [x, y]);
+    const a = await P(5, 5), b = await P(6.3, 4.25), c = await P(7.6, 5);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + ((b.x - a.x) * i) / 10, a.y + ((b.y - a.y) * i) / 10);
+    for (let i = 1; i <= 10; i++) await page.mouse.move(b.x + ((c.x - b.x) * i) / 10, b.y + ((c.y - b.y) * i) / 10);
+    await page.mouse.up();
+    eq(await page.evaluate(() => window.__app.input.getInk().length), 1, 'ink strokes');
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    eq(await page.evaluate(() => window.__app.getReading().scene.atoms.length), 3, 'atoms');
+    // tap the first atom in the reading panel and make it an oxygen
+    await page.evaluate(() => document.getElementById('stage3').scrollIntoView({ block: 'center' }));
+    const t = await page.evaluate(() => { const r = window.__app.getReading().scene; const at = r.atoms.find((x) => x.h === 3); return window.__app.fixer.toClient(at); });
+    await page.mouse.click(t.x, t.y);
+    await page.waitForSelector('#pal-atom:not([hidden])');
+    await page.click('#pal-atom button:text-is("O")');
+    await page.click('#r-yes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.smiles, 'CCO'); eq(e.corrections.length, 1, 'corrections'); eq(e.target.match, false, 'target');
+    eq(e.strokes[0].pointerType, 'mouse');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('drawing on a shown structure is merged into it', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 2 });
+    await page.click('#m-draw');
+    const pts = await page.evaluate(() => {
+      const sc = window.__app.input.getScene();
+      const C = sc.atoms.find((a) => a.id.startsWith('s0') && a.el === 'C' && a.h === 3);
+      const out = [];
+      for (let i = 0; i <= 10; i++) out.push({ x: C.x - (1.3 * i) / 10, y: C.y + (0.75 * i) / 10 });
+      return out;
+    });
+    await page.evaluate((p) => window.__app.input.addInk(p), pts);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    await page.click('#r-yes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.smiles, 'CCC=[NH2+].[C-]#N'); eq(e.base.atoms.length, 5, 'base kept');
+  });
+
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
     const { page } = await open({ width: 1100, height: 900 }, false, true);
     eq(await page.isHidden('#work'), true, 'work hidden');

@@ -1,5 +1,5 @@
 {
-  "note": "Sample steps for the canvas, taken from published problems of the two sites (all still \"verified\": false there). start: one SMILES per species. expected: structures of the problem that follow this step (all species, joined by '.'); used only when the user submits a structure as an answer, never to judge the arrows. Not the final task list of the test run.",
+  "note": "Sample steps for the canvas, taken from published problems of the two sites (all still \"verified\": false there). start: one SMILES per species. expected: structures of the problem that follow this step (all species, joined by '.'); used only when the user submits a structure as an answer, never to judge the arrows. Not the final task list of the test run. drawings: structures to copy by hand (substrates and one intermediate of published problems).",
   "steps": [
     {
       "id": "onepot-tetraponerine-1",
@@ -61,6 +61,33 @@
         "[O-]C1=CCCCCC1Br.O",
         "O=C1[CH-]CCCCC1Br.O"
       ]
+    }
+  ],
+  "drawings": [
+    {
+      "id": "draw-diketone",
+      "source": { "site": "namerxn", "problem": "smn-paal-knorr-pyrrole-trimethylpyrrole" },
+      "target": "CC(=O)CCC(C)=O"
+    },
+    {
+      "id": "draw-acrylate",
+      "source": { "site": "namerxn", "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate" },
+      "target": "C=CC(=O)OC"
+    },
+    {
+      "id": "draw-bromoketone",
+      "source": { "site": "namerxn", "problem": "smn-favorskii-cyclohexanecarboxylic-acid" },
+      "target": "O=C1CCCCCC1Br"
+    },
+    {
+      "id": "draw-iminium",
+      "source": { "site": "namerxn", "problem": "smn-strecker-alanine" },
+      "target": "CC=[NH2+]"
+    },
+    {
+      "id": "draw-ketoester",
+      "source": { "site": "onepot", "problem": "jcs1904-perkin-grignard-ester-terpineol" },
+      "target": "CCOC(=O)C1CCC(C)=CC1"
     }
   ]
 }

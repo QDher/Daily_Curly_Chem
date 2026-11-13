@@ -1,6 +1,8 @@
 // SVG view of a scene with pointer input (mouse, touch, pen).
-// Modes: "arrow" (a drag is one curly arrow, stored as raw points), "h" (a tap on an atom draws one of its
-// hydrogens), "view" (no input). Browser only (window.CurlyCanvas, needs window.Scene and window.Readings).
+// Modes: "arrow" (a drag is one curly arrow, stored as raw points), "draw" (strokes of a hand-drawn structure,
+// kept as ink until they are read), "erase" (a tap removes the nearest ink stroke or arrow), "h" (a tap on an
+// atom draws one of its hydrogens), "pick" (a tap reports the nearest atom or bond), "view" (no input).
+// Browser only (window.CurlyCanvas, needs window.Scene and window.Readings).
 (function (root) {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
@@ -29,13 +31,17 @@
     const gHi = el('g', { class: 'cc-hi' }, svg);
     const gInk = el('g', { class: 'cc-ink' }, svg);
 
-    const state = { scene: { atoms: [], bonds: [] }, strokes: [], mode: opt.mode || 'arrow', box: null };
+    const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], marks: [], mode: opt.mode || 'arrow', box: null };
     let drawing = null;
 
     function setScene(scene, keepBox) {
       state.scene = scene;
       state.strokes = [];
-      if (!keepBox || !state.box) {
+      state.ink = [];
+      state.marks = [];
+      if (!scene.atoms.length) {
+        if (!state.box || !keepBox) state.box = { x: 0, y: 0, w: 16, h: 9 };
+      } else if (!keepBox || !state.box) {
         const b = root.Scene.bbox(scene);
         state.box = { x: b.x0 - PAD, y: b.y0 - PAD, w: b.x1 - b.x0 + 2 * PAD, h: b.y1 - b.y0 + 2 * PAD };
       }
@@ -119,6 +125,16 @@
 
     function renderInk() {
       gInk.textContent = '';
+      for (const id of state.marks) {
+        const a = state.scene.atoms.find((x) => x.id === id);
+        if (a) el('circle', { cx: a.x * UNIT, cy: a.y * UNIT, r: 15, class: 'cc-mark' }, gInk);
+      }
+      const inks = drawing && state.mode === 'draw' ? state.ink.concat([drawing]) : state.ink;
+      for (const st of inks) {
+        if (st.points.length === 1) el('circle', { cx: st.points[0].x * UNIT, cy: st.points[0].y * UNIT, r: 1.4, class: 'cc-dot' }, gInk);
+        else el('path', { d: pathOf(st.points), class: 'cc-inkline' }, gInk);
+      }
+      if (drawing && state.mode === 'draw') return;
       const all = drawing ? state.strokes.concat([drawing]) : state.strokes;
       all.forEach((st) => {
         if (st.points.length < 2) return;
@@ -170,6 +186,7 @@
       drawing.points.push(p);
       drawing.times.push(Math.round(performance.now() - drawing.t0));
       drawing.pressure.push(ev.pressure);
+      if (state.mode === 'draw') renderInk();
       if (state.mode === 'arrow') {
         renderInk();
         if (drawing.src) {
@@ -187,6 +204,41 @@
       let len = 0;
       for (let i = 1; i < st.points.length; i++) len += Math.hypot(st.points[i].x - st.points[i - 1].x, st.points[i].y - st.points[i - 1].y);
       if (ev.type === 'pointercancel') return renderInk();
+      const record = { points: st.points, times: st.times, pressure: st.pressure, pointerType: st.pointerType, start: a, end: b };
+      if (state.mode === 'draw') {
+        state.ink.push(record);
+        if (opt.onStroke) opt.onStroke();
+        return renderInk();
+      }
+      if (state.mode === 'erase') {
+        const near = (list) => {
+          let best = -1, bd = 0.5;
+          list.forEach((s, i) => { for (const p of s.points) { const d = Math.hypot(p.x - a.x, p.y - a.y); if (d < bd) { bd = d; best = i; } } });
+          return { best, bd };
+        };
+        const i1 = near(state.ink), i2 = near(state.strokes);
+        if (i1.best >= 0 && i1.bd <= i2.bd) state.ink.splice(i1.best, 1);
+        else if (i2.best >= 0) state.strokes.splice(i2.best, 1);
+        return renderInk();
+      }
+      if (state.mode === 'pick') {
+        if (len < 0.5 && opt.onPick) {
+          let best = null;
+          for (const at of state.scene.atoms) {
+            const d = Math.hypot(at.x - a.x, at.y - a.y);
+            if (d < 0.6 && (!best || d < best.d)) best = { atom: at.id, d };
+          }
+          if (!best) {
+            for (const bd of state.scene.bonds) {
+              const A = state.scene.atoms.find((x) => x.id === bd.a), B = state.scene.atoms.find((x) => x.id === bd.b);
+              const d = Math.hypot((A.x + B.x) / 2 - a.x, (A.y + B.y) / 2 - a.y);
+              if (d < 0.6 && (!best || d < best.d)) best = { bond: bd.id, d };
+            }
+          }
+          if (best) opt.onPick(best);
+        }
+        return renderInk();
+      }
       if (state.mode === 'h') {
         if (len < 0.5 && opt.onTapAtom) {
           let best = null;
@@ -199,7 +251,7 @@
         return renderInk();
       }
       if (len >= 0.5) {
-        state.strokes.push({ points: st.points, times: st.times, pressure: st.pressure, pointerType: st.pointerType, start: a, end: b });
+        state.strokes.push(record);
         if (opt.onStroke) opt.onStroke();
       }
       renderInk();
@@ -215,8 +267,13 @@
       getBox: () => state.box,
       setBox: (b) => { state.box = b; },
       setMode: (m) => { state.mode = m; },
-      undo: () => { state.strokes.pop(); renderInk(); },
-      clear: () => { state.strokes = []; renderInk(); },
+      undo: () => { if (state.mode === 'draw' || (!state.strokes.length && state.ink.length)) state.ink.pop(); else state.strokes.pop(); renderInk(); },
+      clear: () => { state.strokes = []; state.ink = []; renderInk(); },
+      getInk: () => state.ink,
+      getMode: () => state.mode,
+      setMarks: (ids) => { state.marks = ids || []; renderInk(); },
+      // adds an ink stroke given in scene coordinates (tests, replay)
+      addInk: (points) => { state.ink.push({ points, times: [], pressure: [], pointerType: 'script', start: points[0], end: points[points.length - 1] }); renderInk(); },
       // adds a stroke given in scene coordinates (tests, replay)
       addStroke: (points) => {
         state.strokes.push({ points, times: [], pressure: [], pointerType: 'script', start: points[0], end: points[points.length - 1] });

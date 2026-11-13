@@ -45,6 +45,11 @@ button:disabled { opacity: 0.45; cursor: default; }
 .cc-hl { fill: none; stroke: var(--hl); stroke-width: 3; opacity: 0.9; }
 .cc-hl-bond { stroke-width: 7; opacity: 0.55; stroke-linecap: round; }
 .cc-hl-new { stroke-dasharray: 5 5; }
+.cc-inkline { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cc-dot { fill: var(--ink); }
+.cc-mark { fill: none; stroke: var(--hl); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.palette button { min-width: 44px; padding: 8px; }
+#target-wrap .stage { max-width: 420px; }
 #msg { min-height: 1.5em; }
 .ok { color: var(--ok); } .bad { color: var(--bad); }
 pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 320px; }
@@ -54,7 +59,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 <body>
 <main>
   <h1>Daily Curly Chem</h1>
-  <p class="muted">Development page: arrows drawn on a structure. Nothing is sent or stored.</p>
+  <p class="muted">Development page: arrows and structures drawn by hand. Nothing is sent or stored.</p>
 
   <section class="panel" id="gate" hidden>
     <h2>Tester code</h2>
@@ -68,20 +73,40 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   <section class="panel" id="work" hidden>
     <div class="row">
-      <label for="step">Step</label>
+      <label for="step">Task</label>
       <select id="step"></select>
       <span id="cond" class="muted"></span>
     </div>
+    <div id="target-wrap" hidden>
+      <p class="muted">Copy this structure by hand in the frame below, then press “Read drawing”.</p>
+      <div class="stage" id="target"></div>
+    </div>
     <div class="row" role="group" aria-label="Tools">
       <button id="m-arrow" aria-pressed="true">Arrow</button>
+      <button id="m-draw" aria-pressed="false" title="Draw bonds and letters by hand">Draw</button>
       <button id="m-h" aria-pressed="false" title="Tap an atom to draw one of its hydrogens">H</button>
+      <button id="m-erase" aria-pressed="false" title="Tap a stroke to remove it">Erase</button>
       <button id="undo">Undo</button>
       <button id="clear">Clear</button>
       <button id="apply" class="primary">Apply arrows</button>
+      <button id="read" class="primary" hidden>Read drawing</button>
     </div>
     <div class="stage" id="stage"></div>
-    <p class="muted">Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.</p>
+    <p class="muted" id="help"></p>
     <p id="msg" role="status"></p>
+  </section>
+
+  <section class="panel" id="reading" hidden>
+    <h2>Structure read from your drawing</h2>
+    <div class="stage" id="stage3"></div>
+    <p class="muted">Tap an atom or a bond to correct it. Circled atoms were not read with confidence.</p>
+    <div class="row palette" id="pal-atom" hidden role="group" aria-label="Atom"></div>
+    <div class="row palette" id="pal-bond" hidden role="group" aria-label="Bond"></div>
+    <div class="row">
+      <button id="r-yes" class="primary">This is my structure</button>
+      <button id="r-no">Draw again</button>
+    </div>
+    <p id="msg3" role="status"></p>
   </section>
 
   <section class="panel" id="result" hidden>
@@ -108,6 +133,8 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 <script src="src/arrows.js"></script>
 <script src="src/scene.js"></script>
 <script src="src/readings.js"></script>
+<script src="src/glyphs.js"></script>
+<script src="src/recognize.js"></script>
 <script src="src/canvas.js"></script>
 <script>
 (async function () {
@@ -144,12 +171,19 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   $('entries').hidden = false;
 
   const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
-  const steps = (await (await fetch('data/steps.json')).json()).steps;
+  const data = await (await fetch('data/steps.json')).json();
+  const tasks = data.steps.concat(data.drawings);
 
   const entries = [];
   window.__entries = entries;
   let step = null, start = null, readings = [], shown = 0, rejected = [], t0 = 0;
 
+  const HELP = {
+    arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.',
+    draw: 'Draw bonds as lines and write the letters of atoms other than carbon (with + or − at their upper right). You can also draw on the structure shown.',
+    h: 'Tap an atom to draw one of its hydrogens.',
+    erase: 'Tap a stroke to remove it.',
+  };
   const input = CurlyCanvas.create($('stage'), {
     onTapAtom: (id) => {
       const r = Scene.drawHydrogen(input.getScene(), id);
@@ -161,25 +195,47 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     onStroke: () => say('msg', ''),
   });
   const output = CurlyCanvas.create($('stage2'), { mode: 'view' });
+  const target = CurlyCanvas.create($('target'), { mode: 'view' });
+  let reading = null; // { strokes, recognized, unknown, scene, corrections, blank }
+  let picked = null;
+  const fixer = CurlyCanvas.create($('stage3'), {
+    mode: 'pick',
+    onPick: (hit) => {
+      picked = hit;
+      $('pal-atom').hidden = !hit.atom;
+      $('pal-bond').hidden = !hit.bond;
+    },
+  });
 
   function setMode(m) {
     input.setMode(m);
-    $('m-arrow').setAttribute('aria-pressed', String(m === 'arrow'));
-    $('m-h').setAttribute('aria-pressed', String(m === 'h'));
+    for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).setAttribute('aria-pressed', String(m === k));
+    $('apply').hidden = m === 'draw';
+    $('read').hidden = m !== 'draw';
+    $('help').textContent = HELP[m] || '';
   }
 
   function load(scene) {
     start = scene;
     input.setScene(scene);
     $('result').hidden = true;
-    say('msg', ''); say('msg2', '');
+    $('reading').hidden = true;
+    say('msg', ''); say('msg2', ''); say('msg3', '');
     t0 = performance.now();
   }
 
   function selectStep(i) {
-    step = steps[i];
-    $('cond').textContent = step.conditions;
-    load(Scene.fromSpecies(R, step.start));
+    step = tasks[i];
+    $('cond').textContent = step.conditions || '';
+    $('target-wrap').hidden = !step.target;
+    if (step.target) {
+      target.setScene(Scene.fromSpecies(R, step.target.split('.')));
+      load({ atoms: [], bonds: [] });
+      setMode('draw');
+    } else {
+      load(Scene.fromSpecies(R, step.start));
+      setMode('arrow');
+    }
   }
 
   const WHY = {
@@ -201,21 +257,32 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     say('msg2', '');
   }
 
+  const strokeData = (list) => list.map((s) => ({ points: s.points, times: s.times, pressure: s.pressure, pointerType: s.pointerType }));
+  function showLog() {
+    $('log').textContent = JSON.stringify(entries.map((e) => Object.assign({}, e, {
+      scene: e.scene ? '(' + e.scene.atoms.length + ' atoms)' : undefined,
+      strokes: e.strokes.length + ' stroke(s)',
+      recognized: e.recognized ? '(' + e.recognized.atoms.length + ' atoms)' : undefined,
+      final: e.final ? '(' + e.final.atoms.length + ' atoms)' : undefined,
+    })), null, 1);
+  }
+
   function record(accepted) {
     const entry = {
+      kind: 'arrows',
       versions: { arrows: Arrows.VERSION, readings: Readings.VERSION },
       tester,
       step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       scene: input.getScene(),
-      strokes: input.getStrokes().map((s) => ({ points: s.points, times: s.times, pressure: s.pressure, pointerType: s.pointerType })),
+      strokes: strokeData(input.getStrokes()),
       readings: readings.map((r) => ({ arrows: r.arrows, score: Math.round(r.score * 1000) / 1000, smiles: Scene.canonical(R, r.scene) })),
       rejected: rejected.slice(),
       accepted: accepted, // index of the reading the user confirmed, or null
       submitted: null, // filled only if the user submits the structure as an answer
     };
     entries.push(entry);
-    $('log').textContent = JSON.stringify(entries.map((e) => Object.assign({}, e, { scene: '(' + e.scene.atoms.length + ' atoms)', strokes: e.strokes.length + ' stroke(s)' })), null, 1);
+    showLog();
     return entry;
   }
 
@@ -251,28 +318,119 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     say('msg2', 'Arrows recorded.');
   };
 
-  $('continue').onclick = () => load(readings[shown].clean);
+  $('continue').onclick = () => { load(readings[shown].clean); setMode('arrow'); };
 
   // Separate choice: the structure as an answer to the problem. It does not judge the arrows.
   $('submit').onclick = () => {
+    if (!step.expected) return say('msg2', 'This task has no answer to compare with.');
     const got = Scene.canonical(R, readings[shown].scene);
     const match = step.expected.some((e) => Scene.canonicalSmiles(R, e) === got);
     lastEntry.submitted = { smiles: got, match };
+    showLog();
     say('msg2', match ? 'This structure is one of the problem’s structures.' : 'This structure is not one of the problem’s structures for this step.', match ? 'ok' : 'bad');
   };
 
-  $('undo').onclick = () => input.undo();
-  $('clear').onclick = () => { load(start); };
-  $('m-arrow').onclick = () => setMode('arrow');
-  $('m-h').onclick = () => setMode('h');
+  // Hand-drawn structure: read, corrected by the user if needed, then confirmed.
+  function showReading() {
+    fixer.setScene(reading.scene);
+    fixer.setMarks(reading.unknown.filter((id) => reading.scene.atoms.some((a) => a.id === id)));
+    picked = null;
+    $('pal-atom').hidden = true;
+    $('pal-bond').hidden = true;
+    $('reading').hidden = false;
+  }
+  $('read').onclick = () => {
+    const ink = input.getInk();
+    if (!ink.length) return say('msg', 'Draw the structure first.', 'bad');
+    const base = input.getScene();
+    const blank = !base.atoms.length;
+    const r = Recognize.recognize(ink, blank ? { nominal: 1.5 } : { scene: base });
+    if (!r.scene.atoms.length) return say('msg', 'Nothing could be read from this drawing.', 'bad');
+    const clean = blank ? Scene.relayout(R, r.scene) : r.scene;
+    reading = { strokes: strokeData(ink), recognized: r.scene, unknown: r.unknown, edits: r.edits, scene: clean, corrections: [], blank, base: blank ? null : base };
+    say('msg', '');
+    showReading();
+  };
+  function correct(change, apply) {
+    if (!reading || !picked) return;
+    reading.scene = apply(reading.scene);
+    reading.corrections.push(change);
+    reading.unknown = reading.unknown.filter((id) => id !== picked.atom);
+    showReading();
+  }
+  for (const elName of ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'I', 'B', 'Si', 'H']) {
+    const b = document.createElement('button');
+    b.textContent = elName;
+    b.onclick = () => correct({ atom: picked.atom, el: elName }, (sc) => Recognize.setAtom(sc, picked.atom, elName));
+    $('pal-atom').appendChild(b);
+  }
+  for (const [label, q] of [['−', -1], ['0', 0], ['+', 1]]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.setAttribute('aria-label', 'charge ' + q);
+    b.onclick = () => correct({ atom: picked.atom, q }, (sc) => Recognize.setAtom(sc, picked.atom, null, q));
+    $('pal-atom').appendChild(b);
+  }
+  {
+    const b = document.createElement('button');
+    b.textContent = 'Remove atom';
+    b.onclick = () => correct({ atom: picked.atom, remove: true }, (sc) => Recognize.removeAtom(sc, picked.atom));
+    $('pal-atom').appendChild(b);
+  }
+  for (const [label, order] of [['Single', 1], ['Double', 2], ['Triple', 3], ['Remove bond', 0]]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.onclick = () => correct({ bond: picked.bond, order }, (sc) => Recognize.setBondOrder(sc, picked.bond, order));
+    $('pal-bond').appendChild(b);
+  }
+  $('r-no').onclick = () => {
+    entries.push({ kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, step: step.id, strokes: reading.strokes, recognized: reading.recognized, unknown: reading.unknown, corrections: reading.corrections, final: null, accepted: false });
+    showLog();
+    reading = null;
+    $('reading').hidden = true;
+    input.clear();
+    say('msg', 'Drawing cleared.');
+  };
+  $('r-yes').onclick = () => {
+    const smiles = Scene.canonical(R, reading.scene);
+    if (!smiles) return say('msg3', 'This structure has an atom with too many bonds. Correct it first.', 'bad');
+    const e = {
+      kind: 'drawing',
+      versions: { recognize: Recognize.VERSION },
+      tester,
+      step: step.id,
+      seconds: Math.round((performance.now() - t0) / 100) / 10,
+      strokes: reading.strokes,
+      base: reading.base,
+      recognized: reading.recognized,
+      unknown: reading.unknown,
+      corrections: reading.corrections,
+      final: reading.scene,
+      smiles,
+      accepted: true,
+    };
+    if (step.target) e.target = { smiles: Scene.canonicalSmiles(R, step.target), match: Scene.canonicalSmiles(R, step.target) === smiles };
+    entries.push(e);
+    showLog();
+    const scene = reading.scene;
+    reading = null;
+    load(scene);
+    setMode('arrow');
+    say('msg', step.target ? (e.target.match ? 'Structure recorded. It is the structure shown.' : 'Structure recorded. It differs from the structure shown.') : 'Structure recorded.', step.target && !e.target.match ? 'bad' : 'ok');
+  };
 
-  steps.forEach((s, i) => {
+  $('undo').onclick = () => input.undo();
+  $('clear').onclick = () => { const m = input.getMode(); load(start); setMode(m); };
+  for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).onclick = () => setMode(k);
+
+  tasks.forEach((s, i) => {
     const o = document.createElement('option');
-    o.value = i; o.textContent = String(i + 1);
+    o.value = i;
+    o.textContent = s.target ? 'Draw ' + (i - data.steps.length + 1) : 'Arrows ' + (i + 1);
     $('step').appendChild(o);
   });
   $('step').onchange = (e) => selectStep(Number(e.target.value));
-  window.__app = { R, input, output, steps, selectStep };
+  window.__app = { R, input, output, fixer, tasks, selectStep, getReading: () => reading };
   selectStep(0);
   document.body.dataset.ready = '1';
 })();

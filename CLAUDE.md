@@ -11,6 +11,10 @@
 - `src/scene.js`, `src/readings.js` (I0), `src/canvas.js`, `index.html`: after a change, `npm test` and
   `npm run test:page` must end with N/N passed (`npm run setup` first). A change of `Readings.P` or of the ranking
   increases `Readings.VERSION`.
+- `src/recognize.js` (R0): rules, benchmark figures and limits in `docs/RECOGNITION.md`; a change of `Recognize.P`
+  or of the rules increases `Recognize.VERSION` and the figures are updated from `node test/test_recognize.js`. The
+  benchmark uses synthetic ink made from the recognizer's own letter templates: do not tune thresholds further on
+  it; tune on drawings from the test run.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
   against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)

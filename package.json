@@ -5,7 +5,7 @@
   "description": "Curly-arrow mechanisms: test run and shared modules for One-Pot Puzzles and Name Reaction Daily",
   "scripts": {
     "setup": "mkdir -p rdkit && cp node_modules/@rdkit/rdkit/dist/RDKit_minimal.js node_modules/@rdkit/rdkit/dist/RDKit_minimal.wasm rdkit/",
-    "test": "node test/test_arrows.js && node test/test_readings.js",
+    "test": "node test/test_arrows.js && node test/test_readings.js && node test/test_recognize.js",
     "test:page": "node test/test_page.js"
   },
   "devDependencies": {
