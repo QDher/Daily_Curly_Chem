@@ -8,6 +8,11 @@
 - `src/arrows.js` (component C1): no dependency, runs in Node and in the page. Every rule is described in
   `docs/SCENE.md` and covered in `test/test_arrows.js`; `node test/test_arrows.js` must end with N/N passed. A change
   of the rules or of the scene format increases `VERSION`.
+- `src/scene.js`, `src/readings.js` (I0), `src/canvas.js`, `index.html`: after a change, `npm test` and
+  `npm run test:page` must end with N/N passed (`npm run setup` first). A change of `Readings.P` or of the ranking
+  increases `Readings.VERSION`.
+- Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
+  against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)
   that lists the options; choosing between readings belongs to the ranking component (C3).
 - Text shown to testers before they answer follows the content rules of the site repositories (no reaction names,

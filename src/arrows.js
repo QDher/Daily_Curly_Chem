@@ -7,7 +7,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.1.1';
 
   // Valence electrons of the neutral atom.
   const VALENCE = {
@@ -218,7 +218,8 @@
 
   // SMILES with every atom in brackets (hydrogen count and charge explicit, no aromatic symbols).
   // Not canonical: canonical SMILES and the comparison key are derived with RDKit and chemkey.js.
-  function toSmiles(scene) {
+  // smilesParts: one { smiles, atoms } per connected species; atoms = ids in the order they are written.
+  function smilesParts(scene) {
     const adj = new Map(scene.atoms.map((a) => [a.id, []]));
     for (const b of scene.bonds) {
       adj.get(b.a).push({ to: b.b, order: b.order, id: b.id });
@@ -253,11 +254,13 @@
       const charge = q === 0 ? '' : (q > 0 ? '+' : '-') + (Math.abs(q) > 1 ? Math.abs(q) : '');
       return '[' + a.el + (h ? 'H' + (h > 1 ? h : '') : '') + charge + ']';
     };
-    const write = (a) => {
+    const order = [];
+    const writeOrdered = (a) => {
+      order.push(a);
       let s = atomStr(byId.get(a)) + (closures.get(a) || '');
       const ch = children.get(a);
       ch.forEach((e, i) => {
-        const part = sym(e.order) + write(e.to);
+        const part = sym(e.order) + writeOrdered(e.to);
         s += i < ch.length - 1 ? '(' + part + ')' : part;
       });
       return s;
@@ -266,10 +269,16 @@
     for (const a of scene.atoms) {
       if (visited.has(a.id)) continue;
       walk(a.id);
-      parts.push(write(a.id));
+      const from = order.length;
+      const smiles = writeOrdered(a.id);
+      parts.push({ smiles, atoms: order.slice(from) });
     }
-    return parts.join('.');
+    return parts;
   }
 
-  return { VERSION, apply, lonePairs, isVacant, electrons, explicitH, totalCharge, toSmiles };
+  function toSmiles(scene) {
+    return smilesParts(scene).map((p) => p.smiles).join('.');
+  }
+
+  return { VERSION, apply, lonePairs, isVacant, electrons, explicitH, totalCharge, toSmiles, smilesParts };
 });

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Curly Chem</title>
+<style>
+:root {
+  --bg: #fbfaf7; --panel: #ffffff; --ink: #1d2126; --muted: #5d6670; --line: #d9d5cc;
+  --accent: #0b6e6e; --accent-ink: #ffffff; --arrow: #b3261e; --hl: #e8a400; --ok: #1e7a3c; --bad: #b3261e;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171a; --panel: #1c2024; --ink: #e8e6e1; --muted: #a0a8b0; --line: #343a40;
+    --accent: #4fc3c3; --accent-ink: #0c1214; --arrow: #ff8a80; --hl: #ffc93c; --ok: #7bd69a; --bad: #ff8a80;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171a; --panel: #1c2024; --ink: #e8e6e1; --muted: #a0a8b0; --line: #343a40;
+  --accent: #4fc3c3; --accent-ink: #0c1214; --arrow: #ff8a80; --hl: #ffc93c; --ok: #7bd69a; --bad: #ff8a80;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 1.35rem; margin: 0 0 2px; }
+h2 { font-size: 1rem; margin: 0 0 8px; }
+p { margin: 6px 0; }
+.muted { color: var(--muted); font-size: 0.92rem; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+button, select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
+button { cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+.stage { border: 1px dashed var(--line); border-radius: 8px; overflow: hidden; display: flex; justify-content: center; }
+.cc-svg { width: 100%; display: block; user-select: none; -webkit-user-select: none; }
+.cc-bond { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.cc-atom { fill: var(--ink); font: 16px system-ui, sans-serif; }
+.cc-sub { font-size: 11px; } .cc-sup { font-size: 12px; }
+.cc-charge { fill: var(--ink); font: 13px system-ui, sans-serif; }
+.cc-arrow { fill: none; stroke: var(--arrow); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.cc-head { fill: var(--arrow); }
+.cc-hl { fill: none; stroke: var(--hl); stroke-width: 3; opacity: 0.9; }
+.cc-hl-bond { stroke-width: 7; opacity: 0.55; stroke-linecap: round; }
+.cc-hl-new { stroke-dasharray: 5 5; }
+#msg { min-height: 1.5em; }
+.ok { color: var(--ok); } .bad { color: var(--bad); }
+pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 320px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Daily Curly Chem</h1>
+  <p class="muted">Development page: arrows drawn on a structure. Nothing is sent or stored.</p>
+
+  <section class="panel">
+    <div class="row">
+      <label for="step">Step</label>
+      <select id="step"></select>
+      <span id="cond" class="muted"></span>
+    </div>
+    <div class="row" role="group" aria-label="Tools">
+      <button id="m-arrow" aria-pressed="true">Arrow</button>
+      <button id="m-h" aria-pressed="false" title="Tap an atom to draw one of its hydrogens">H</button>
+      <button id="undo">Undo</button>
+      <button id="clear">Clear</button>
+      <button id="apply" class="primary">Apply arrows</button>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="muted">Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.</p>
+    <p id="msg" role="status"></p>
+  </section>
+
+  <section class="panel" id="result" hidden>
+    <h2>Structure given by your arrows <span id="rank" class="muted"></span></h2>
+    <div class="stage" id="stage2"></div>
+    <div class="row" id="confirm">
+      <button id="yes" class="primary">This is what I meant</button>
+      <button id="no">Not what I meant</button>
+    </div>
+    <div class="row" id="after" hidden>
+      <button id="continue" class="primary">Continue from this structure</button>
+      <button id="submit">Submit this structure as an answer</button>
+    </div>
+    <p id="msg2" role="status"></p>
+  </section>
+
+  <details class="panel">
+    <summary>Entries of this session</summary>
+    <pre id="log">[]</pre>
+  </details>
+</main>
+
+<script src="rdkit/RDKit_minimal.js"></script>
+<script src="src/arrows.js"></script>
+<script src="src/scene.js"></script>
+<script src="src/readings.js"></script>
+<script src="src/canvas.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const say = (id, text, cls) => { const e = $(id); e.textContent = text; e.className = cls || ''; };
+  const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
+  const steps = (await (await fetch('data/steps.json')).json()).steps;
+
+  const entries = [];
+  window.__entries = entries;
+  let step = null, start = null, readings = [], shown = 0, rejected = [], t0 = 0;
+
+  const input = CurlyCanvas.create($('stage'), {
+    onTapAtom: (id) => {
+      const r = Scene.drawHydrogen(input.getScene(), id);
+      if (!r) return say('msg', 'This atom has no hydrogen to draw.', 'bad');
+      input.setScene(r.scene); // arrows already drawn are cleared with the structure change
+      say('msg', 'Hydrogen drawn.');
+      setMode('arrow');
+    },
+    onStroke: () => say('msg', ''),
+  });
+  const output = CurlyCanvas.create($('stage2'), { mode: 'view' });
+
+  function setMode(m) {
+    input.setMode(m);
+    $('m-arrow').setAttribute('aria-pressed', String(m === 'arrow'));
+    $('m-h').setAttribute('aria-pressed', String(m === 'h'));
+  }
+
+  function load(scene) {
+    start = scene;
+    input.setScene(scene);
+    $('result').hidden = true;
+    say('msg', ''); say('msg2', '');
+    t0 = performance.now();
+  }
+
+  function selectStep(i) {
+    step = steps[i];
+    $('cond').textContent = step.conditions;
+    load(Scene.fromSpecies(R, step.start));
+  }
+
+  const WHY = {
+    octet: 'An arrow ends on an atom that has no room for two more electrons. Add the arrow that breaks one of its bonds, or end the arrow elsewhere.',
+    'no-lone-pair': 'An arrow starts on an atom that has no lone pair. Start it on a bond or on another atom.',
+    'bond-order': 'Too many arrows start on the same bond.',
+    electrons: 'The arrows take more electrons from an atom than it has.',
+  };
+
+  function show(k) {
+    shown = k;
+    const r = readings[k];
+    if (!r.clean) r.clean = Scene.relayout(R, r.scene);
+    output.setScene(r.clean);
+    $('rank').textContent = '(reading ' + (k + 1) + ' of ' + readings.length + ')';
+    $('result').hidden = false;
+    $('confirm').hidden = false;
+    $('after').hidden = true;
+    say('msg2', '');
+  }
+
+  function record(accepted) {
+    const entry = {
+      versions: { arrows: Arrows.VERSION, readings: Readings.VERSION },
+      step: step.id,
+      seconds: Math.round((performance.now() - t0) / 100) / 10,
+      scene: input.getScene(),
+      strokes: input.getStrokes().map((s) => ({ points: s.points, times: s.times, pressure: s.pressure, pointerType: s.pointerType })),
+      readings: readings.map((r) => ({ arrows: r.arrows, score: Math.round(r.score * 1000) / 1000, smiles: Scene.canonical(R, r.scene) })),
+      rejected: rejected.slice(),
+      accepted: accepted, // index of the reading the user confirmed, or null
+      submitted: null, // filled only if the user submits the structure as an answer
+    };
+    entries.push(entry);
+    $('log').textContent = JSON.stringify(entries.map((e) => Object.assign({}, e, { scene: '(' + e.scene.atoms.length + ' atoms)', strokes: e.strokes.length + ' stroke(s)' })), null, 1);
+    return entry;
+  }
+
+  $('apply').onclick = () => {
+    const strokes = input.getStrokes();
+    if (!strokes.length) return say('msg', 'Draw at least one arrow.', 'bad');
+    const out = Readings.read(input.getScene(), strokes);
+    readings = out.readings; rejected = [];
+    if (!readings.length) {
+      $('result').hidden = true;
+      const f = out.failure || {};
+      if (f.unattached) return say('msg', 'Arrow ' + (f.unattached[0] + 1) + ': its ' + f.unattached[1] + ' is not near an atom or bond that can play that role.', 'bad');
+      const code = f.errors && f.errors[0] ? f.errors[0].code : '';
+      return say('msg', WHY[code] || 'These arrows do not give a valid structure.', 'bad');
+    }
+    say('msg', '');
+    show(0);
+  };
+
+  $('no').onclick = () => {
+    rejected.push(shown);
+    if (shown + 1 < readings.length) return show(shown + 1);
+    record(null);
+    $('result').hidden = true;
+    say('msg', 'No other reading of these arrows. Clear and draw them again.', 'bad');
+  };
+
+  let lastEntry = null;
+  $('yes').onclick = () => {
+    lastEntry = record(shown);
+    $('confirm').hidden = true;
+    $('after').hidden = false;
+    say('msg2', 'Arrows recorded.');
+  };
+
+  $('continue').onclick = () => load(readings[shown].clean);
+
+  // Separate choice: the structure as an answer to the problem. It does not judge the arrows.
+  $('submit').onclick = () => {
+    const got = Scene.canonical(R, readings[shown].scene);
+    const match = step.expected.some((e) => Scene.canonicalSmiles(R, e) === got);
+    lastEntry.submitted = { smiles: got, match };
+    say('msg2', match ? 'This structure is one of the problem’s structures.' : 'This structure is not one of the problem’s structures for this step.', match ? 'ok' : 'bad');
+  };
+
+  $('undo').onclick = () => input.undo();
+  $('clear').onclick = () => { load(start); };
+  $('m-arrow').onclick = () => setMode('arrow');
+  $('m-h').onclick = () => setMode('h');
+
+  steps.forEach((s, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = String(i + 1);
+    $('step').appendChild(o);
+  });
+  $('step').onchange = (e) => selectStep(Number(e.target.value));
+  window.__app = { R, input, output, steps, selectStep };
+  selectStep(0);
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

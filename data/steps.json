@@ -1,0 +1,66 @@
+{
+  "note": "Sample steps for the canvas, taken from published problems of the two sites (all still \"verified\": false there). start: one SMILES per species. expected: structures of the problem that follow this step (all species, joined by '.'); used only when the user submits a structure as an answer, never to judge the arrows. Not the final task list of the test run.",
+  "steps": [
+    {
+      "id": "onepot-tetraponerine-1",
+      "source": { "site": "onepot", "problem": "anie2026-saponification-decarboxylation-tetraponerine", "date": "2026-11-07" },
+      "conditions": "NaOH (1 M, aq.), THF, rt",
+      "start": [
+        "COC(=O)C1C2CCCN2C2CCCN2C1=O",
+        "[OH-]"
+      ],
+      "expected": [
+        "COC([O-])(O)C1C2CCCN2C2CCCN2C1=O"
+      ]
+    },
+    {
+      "id": "onepot-tetraponerine-2",
+      "source": { "site": "onepot", "problem": "anie2026-saponification-decarboxylation-tetraponerine", "date": "2026-11-07" },
+      "conditions": "NaOH (1 M, aq.), THF, rt (continued)",
+      "start": [
+        "COC([O-])(O)C1C2CCCN2C2CCCN2C1=O"
+      ],
+      "expected": [
+        "OC(=O)C1C2CCCN2C2CCCN2C1=O.C[O-]"
+      ]
+    },
+    {
+      "id": "namerxn-iminium-cyanide",
+      "source": { "site": "namerxn", "problem": "smn-strecker-alanine", "date": "2026-11-06" },
+      "conditions": "NaCN",
+      "start": [
+        "CC=[NH2+]",
+        "[C-]#N"
+      ],
+      "expected": [
+        "CC(N)C#N"
+      ]
+    },
+    {
+      "id": "namerxn-acrylate-amine-1",
+      "source": { "site": "namerxn", "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate", "date": "2026-11-09" },
+      "conditions": "NMe3 (catalytic)",
+      "start": [
+        "C=CC(=O)OC",
+        "CN(C)C"
+      ],
+      "expected": [
+        "C[N+](C)(C)CC=C([O-])OC",
+        "C[N+](C)(C)C[CH-]C(=O)OC"
+      ]
+    },
+    {
+      "id": "namerxn-bromoketone-1",
+      "source": { "site": "namerxn", "problem": "smn-favorskii-cyclohexanecarboxylic-acid", "date": "2026-11-12" },
+      "conditions": "NaOH, H2O. Draw the hydrogen you need first (button H).",
+      "start": [
+        "O=C1CCCCCC1Br",
+        "[OH-]"
+      ],
+      "expected": [
+        "[O-]C1=CCCCCC1Br.O",
+        "O=C1[CH-]CCCCC1Br.O"
+      ]
+    }
+  ]
+}
