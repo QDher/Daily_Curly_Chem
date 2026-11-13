@@ -149,6 +149,23 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     }
   });
 
+  // Real drawings (stroke points only): what the recognizer reads must not change without notice, and the
+  // number read exactly must not go down.
+  const real = require('./fixtures/drawings_2026-11-13.json');
+  test('real drawings of 2026-11-13: same readings as recorded for this version, at least 5 of 14 exact', () => {
+    let exact = 0;
+    const changed = [];
+    for (const d of real.drawings) {
+      const strokes = d.strokes.map((st) => st.map((p) => ({ x: p[0], y: p[1] })));
+      const got = smi(Rec.recognize(strokes, d.base ? { scene: d.base } : { nominal: 1.5 }).scene);
+      if (got === d.asked) exact += 1;
+      if (got !== d.reads) changed.push(d.n + ': ' + got + ' instead of ' + d.reads);
+    }
+    console.log('real drawings read exactly: ' + exact + '/' + real.drawings.length + ' (fixture made with recognizer ' + real.recognizer + ')');
+    if (exact < 5) throw new Error('exact: ' + exact);
+    if (changed.length) throw new Error('readings changed (update the fixture and docs/RECOGNITION.md if intended): ' + changed.join('; '));
+  });
+
   // Benchmark: structures of the published problems redrawn as synthetic ink. Exact structure required.
   const rate = {};
   let used = 0;

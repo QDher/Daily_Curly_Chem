@@ -46,7 +46,7 @@ the arrows or the answer unusable.
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
-npm test           # interpreter (19), readings (12), recognizer with its benchmark (13), task list (17)
+npm test           # interpreter (19), readings (12), recognizer with its benchmark and the first real drawings (14), task list (17)
 npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (20); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/

@@ -70,8 +70,10 @@ method is consistent, not how it performs on real handwriting. That is measured 
 
 ## Real drawings (first file, 2026-11-13)
 
-One tester, mouse, 14 drawings recorded with version 0.1.1 (letters written by hand; the entries file is not in the
-repository). Read as exactly the structure asked:
+One tester, mouse, 14 drawings recorded with version 0.1.1 (letters written by hand). Their stroke points are in
+`test/fixtures/drawings_2026-11-13.json` (no timing, pressure or tester label; committed with the tester's
+agreement), with the structure asked and what the current version reads; `test/test_recognize.js` fails when a
+reading changes or fewer than 5 are exact. Read as exactly the structure asked:
 
 | Version | Exact | Bonds right, a letter wrong |
 |---|---|---|

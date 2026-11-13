@@ -24,5 +24,6 @@ four as Br.
 | 9 | 2026-11-13 | Structure recognition (R0) | Handwritten Br read as B or O; a small N read as P; "NH2+" with a subscript and "Me" not read | Letter reading by templates; subscripts and abbreviations are not supported | open; atoms can be entered without handwriting. Letter reading is the part to train (R2) |
 
 First entries file (2026-11-13, one tester, mouse, recognizer 0.1.1): all 14 drawings and 8 arrow entries replay to
-the stored results. Arrows: the first reading was accepted in 8 of 8 entries. Drawings: figures in
+the stored results. The stroke points of the drawings are the regression test of cases 1, 7, 8 and 9
+(`test/fixtures/drawings_2026-11-13.json`). Arrows: the first reading was accepted in 8 of 8 entries. Drawings: figures in
 `docs/RECOGNITION.md`.

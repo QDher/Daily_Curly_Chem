@@ -28,6 +28,9 @@
   invited, and suggest a dedicated address.
 - Drawing entries carry `typed` (atoms and charges entered without handwriting); the replay passes them to the
   recognizer. Only handwritten letters are data for letter recognition.
+- Real strokes in the repository: only with the agreement of the person who drew them, and only stroke points
+  (no timing, pressure, tester label or free text). `test/fixtures/drawings_2026-11-13.json` was agreed on
+  2026-11-13. After a change of the recognizer, rebuild its `reads` and `recognizer` fields and report the count.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
