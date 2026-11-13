@@ -74,7 +74,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   <section class="panel" id="gate" hidden>
     <h2>Tester code</h2>
-    <p class="muted">This page is a test run for invited testers. Enter the code you received.</p>
+    <p class="muted">This page is a test run for invited testers. Open the personal link you received, or enter its code here. This browser will remember you.</p>
     <form class="row" id="gate-form">
       <input id="code" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Tester code">
       <button class="primary">Open</button>
@@ -200,6 +200,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <div class="row"><button id="save2">Save entries as a file</button><span id="sync" class="muted" role="status"></span></div>
     <pre id="log">[]</pre>
   </details>
+  <p class="muted"><button id="forget" hidden>Forget me on this device</button></p>
 </main>
 
 <script src="rdkit/RDKit_minimal.js"></script>
@@ -225,22 +226,38 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     const h = await sha256(code.trim().toLowerCase());
     return allowed.includes(h) ? h.slice(0, 8) : null;
   }
+  // Personal link: .../#t=CODE (the part after # is not sent to the server). The code is checked, kept in this
+  // browser and removed from the address bar; later visits need no code. ?t=CODE is still accepted.
+  const CODE_KEY = 'curly:code';
+  const fromLink = new URLSearchParams(location.hash.replace(/^#/, '')).get('t') || new URLSearchParams(location.search).get('t');
   let stored = null;
-  try { stored = sessionStorage.getItem('curly:t'); } catch (e) { /* storage unavailable */ }
-  let tester = await testerOf(new URLSearchParams(location.search).get('t') || stored);
+  try { stored = localStorage.getItem(CODE_KEY); } catch (e) { /* storage unavailable */ }
+  const remember = (code) => { try { localStorage.setItem(CODE_KEY, code.trim().toLowerCase()); } catch (e) { /* ignore */ } };
+  let tester = await testerOf(fromLink);
+  if (tester) remember(fromLink);
+  else tester = await testerOf(stored);
+  if (fromLink) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ } }
   if (!tester) {
     $('gate').hidden = false;
+    if (fromLink) say('gate-msg', 'The code of this link is not valid.', 'bad');
     document.body.dataset.ready = 'gate';
     tester = await new Promise((resolve) => {
       $('gate-form').onsubmit = async (ev) => {
         ev.preventDefault();
         const t = await testerOf($('code').value);
-        if (t) { try { sessionStorage.setItem('curly:t', $('code').value.trim().toLowerCase()); } catch (e) { /* ignore */ } resolve(t); }
+        if (t) { remember($('code').value); resolve(t); }
         else say('gate-msg', 'This code is not valid.', 'bad');
       };
     });
     $('gate').hidden = true;
   }
+  // Shared computer: the code and the entries kept in this browser are removed.
+  $('forget').hidden = false;
+  $('forget').onclick = () => {
+    if (!confirm('Remove your code and the entries kept in this browser? Save your entries as a file first if you still need them.')) return;
+    try { localStorage.removeItem(CODE_KEY); localStorage.removeItem('curly:entries:' + tester); } catch (e) { /* ignore */ }
+    location.replace(location.pathname);
+  };
   $('intro').hidden = false;
   let level = '';
   try { level = localStorage.getItem('puzzles:level') || ''; } catch (e) { /* storage unavailable */ }

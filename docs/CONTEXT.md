@@ -6,7 +6,7 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 
 ## What a new session does not have
 
-- Nothing for the tester codes: they are in the section "Tester codes" below.
+- The tester codes: only their hashes are here (section "Tester access"). Ask the user for one when needed.
 - The entries file the user sent on 2026-11-13: only the stroke points of its 14 drawings are here
   (`test/fixtures/`). Its arrow entries, votes and timings are not.
 - The other two repositories. The plan and the Worker code are on a branch of
@@ -14,32 +14,28 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 - The conversation in which this was built. What was decided is in this file and in `CLAUDE.md`; if something is
   not written here, ask the user instead of assuming.
 
-## Tester codes
+## Tester access (personal links)
 
-Added here at the user's request (2026-11-13). The repository is public, so these codes are public: anyone who
-reads this file can open the page, and later send entries under one of these labels. The code check was never
-access control (`README.md`). Before inviting outside testers, new codes can be made (replace the hashes in
-`data/testers.json` with the SHA-256 of the new codes, and `MECH_TESTERS` on the Worker branch with their first 8
-hex digits) and kept out of the repository.
-
-Open the page with `https://qdher.github.io/Daily_Curly_Chem/?t=CODE` (or `http://localhost:8000/?t=CODE`).
-The label is the first 8 hex digits of the SHA-256 of the code; entries carry the label, not the code.
-
-| Code | Label in entries | Use so far |
-|---|---|---|
-| `wb7nesycsp` | `bad7de23` | used by the user for the entries file of 2026-11-13 |
-| `js3dwn3da9` | `f84b5443` | used by Claude to check the live page (no entry recorded) |
-| `q5c8mq2uz8` | `defa5566` | not given out |
-| `ne9n6prrvh` | `a8ab329b` | not given out |
-| `vykjuf8xfm` | `27246f6e` | not given out |
-| `hs4egrw2ys` | `c9dc4bd2` | not given out |
-
-The browser tests do not use these: they serve their own `data/testers.json` with the code `local-test-code`.
+- Six codes are valid; `data/testers.json` holds only their SHA-256. One is the owner's (label `bad7de23`), five are
+  personal codes of testers (20 characters; labels `3005a301`, `c7eda040`, `1d947771`, `cb9ecc7f`, `6527e5a7`).
+  No code is written in this repository; the user holds them and who received which. Ask the user for a code when
+  the live or local page must be opened as a tester. The six codes used before 2026-11-13 are in the git history;
+  five of them no longer work, the sixth is the owner's.
+- A tester receives the link `https://qdher.github.io/Daily_Curly_Chem/#t=CODE`. On the first visit the page checks
+  the code, keeps it in the browser (`localStorage`, key `curly:code`) and removes it from the address bar; later
+  visits to the plain address open directly. The same link works on any device; entries and finished-task marks are
+  kept per browser, so a tester who uses two devices sends back one file from each. `?t=CODE` is still accepted, and
+  the code can be typed in the form.
+- "Forget me on this device" (bottom of the page) removes the code and the entries kept in that browser.
+- The label in entries is the first 8 hex digits of the SHA-256 of the code. New codes: put their SHA-256 in
+  `data/testers.json` and their labels in `MECH_TESTERS` (`feedback-worker/wrangler.toml` on the One-Pot branch).
+- The check runs in the page: it identifies testers and keeps the page unlisted; it is not access control.
+- The browser tests do not use these codes: they serve their own `data/testers.json` (code `local-test-code`).
 
 ## What this is
 
-Test-run page for curly-arrow mechanisms, https://qdher.github.io/Daily_Curly_Chem/ (unlisted, opened with
-`?t=CODE`). A tester draws arrows on structures, draws structures by hand, and votes on two mechanisms; the entries
+Test-run page for curly-arrow mechanisms, https://qdher.github.io/Daily_Curly_Chem/ (unlisted, opened with a
+personal link `#t=CODE`). A tester draws arrows on structures, draws structures by hand, and votes on two mechanisms; the entries
 (strokes, readings, answers) are the data for later models. Plan: `ML_PLAN.md` in
 QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` (not merged).
 
@@ -64,10 +60,10 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17: each ends with N/N passed
-npm run test:page                # 22 browser tests (Playwright, already installed in cloud sessions)
+npm run test:page                # 23 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
-python3 -m http.server 8000      # local page: http://localhost:8000/?t=CODE (codes: section "Tester codes")
+python3 -m http.server 8000      # local page: http://localhost:8000/#t=CODE (ask the user for a code)
 ```
 
 Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml` runs `npm test` first). Check with

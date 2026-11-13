@@ -49,7 +49,7 @@ the arrows or the answer unusable.
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer with its benchmark and the first real drawings (14), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (22); needs Playwright
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (23); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```
@@ -57,12 +57,12 @@ python3 -m http.server 8000   # then open http://localhost:8000/
 `data/tasks.json`: the task list of the test run, from published problems of both sites. `data/steps.json`: earlier
 sample steps, kept as a fixture of `test/test_readings.js` and `test/test_recognize.js`. `data/structures.json`: benchmark set of the recognizer. `src/arrows.js` has no dependency; the other modules need RDKit (`@rdkit/rdkit` 2026.9.1).
 
-Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml` (Settings → Pages →
-Source: GitHub Actions must be selected once), not linked from the daily sites, `noindex`, and opened with a tester
-code (`?t=CODE` or the form). `data/testers.json` holds the SHA-256 of the codes; the six current codes are listed in
-`docs/CONTEXT.md` (public since 2026-11-13, at the user's request).
-The check runs in the page: it keeps the page unlisted and labels entries (first 8 hex digits of the hash); it is not
-access control, since the repository is public.
+Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml`, not linked from the
+daily sites, `noindex`. Each tester has a personal link (`#t=CODE`); the browser remembers the code after the first
+visit and removes it from the address bar ("Forget me on this device" clears it). `data/testers.json` holds the
+SHA-256 of the codes; no code is in the repository. The check runs in the page: it identifies testers (entries carry
+the first 8 hex digits of the hash) and keeps the page unlisted; it is not access control, since the repository is
+public. Details: `docs/CONTEXT.md`, "Tester access".
 
 Known limits: structures are compared by RDKit canonical SMILES (the tautomer rules of `chemkey.js` are not applied
 yet); the re-laid result is not aligned with the drawing it comes from; no stereochemistry is drawn.

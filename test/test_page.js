@@ -68,7 +68,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     pages.push(page);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(noCode ? url : url + '?t=' + CODE);
+    await page.goto(noCode ? url : url + '#t=' + CODE);
     await page.waitForSelector(noCode ? 'body[data-ready="gate"]' : 'body[data-ready="1"]', { timeout: 30000 });
     if (!noCode) {
       await page.selectOption('#level', 'graduate');
@@ -615,6 +615,45 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await swipe(t.x, t.bottom - 10, t.top + 10);
     if (!((await page.evaluate(() => window.scrollY)) > y1)) throw new Error('the showing frame does not scroll');
     eq(await page.evaluate(() => getComputedStyle(document.querySelector('#target svg')).touchAction), 'auto', 'touch-action of the showing frame');
+  });
+
+  await test('personal link: the code leaves the address bar, the browser remembers it, "Forget me" removes it', async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    const page = await ctx.newPage();
+    pages.push(page);
+    await page.goto(url + '#t=' + CODE);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.evaluate(() => location.hash + location.search), '', 'code removed from the address');
+    eq(await page.isVisible('#intro'), true, 'opened');
+    // a later visit without the code
+    await page.goto(url);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.isHidden('#gate'), true, 'remembered');
+    // a second tab of the same browser is remembered too
+    const page2 = await ctx.newPage();
+    await page2.goto(url);
+    await page2.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    await page2.close();
+    // an entry, then forget: code and entries are removed, the gate comes back
+    await page.selectOption('#level', 'graduate');
+    await page.click('#start');
+    await page.selectOption('#step', { index: 12 });
+    const rows = page.locator('#mech-steps .mstep [role="group"]');
+    for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
+    await page.click('#votes');
+    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).length), 2, 'code and entries kept');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#forget');
+    await page.waitForSelector('body[data-ready="gate"]', { timeout: 30000 });
+    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).length), 0, 'nothing kept');
+    // a link with a wrong code says so; the old ?t= form still works
+    await page.goto(url + '#t=not-a-code');
+    await page.reload();
+    await page.waitForSelector('body[data-ready="gate"]', { timeout: 30000 });
+    await page.goto(url + '?t=' + CODE);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.evaluate(() => location.search), '', 'query removed');
+    await ctx.close();
   });
 
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {

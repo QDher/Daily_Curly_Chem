@@ -1,11 +1,11 @@
 {
-  "note": "SHA-256 of the tester codes. The six current codes are listed in docs/CONTEXT.md (public since 2026-11-13). The check runs in the page and only keeps the page unlisted; it is not access control.",
+  "note": "SHA-256 of the tester codes: the first is the owner's code, the five others are personal codes of testers (20 characters, sent to each tester as a link, never written in the repository). The check runs in the page and only keeps the page unlisted; it is not access control.",
   "sha256": [
     "bad7de231ca0e38a7b5c737d3d76ea099abb52e0f375f2ce00357f527317240f",
-    "f84b544396efaa9c30170c759bb30041ab6c5a222effdea04a30b05f6caacd38",
-    "defa55666b3d629794fbd4d2e944980dc34469b3df051e2443127751b4380f1f",
-    "a8ab329b985021417bda3646460c088bb844b57f15eef2158acf198b3769ecbc",
-    "27246f6ed416b320f3a47bebf961fd1f60f1a537c6df807fe9b93652bb2d4616",
-    "c9dc4bd2a9aef3e710ba6b860af97d2c3144f1ce4d8c61390032a4463e554ede"
+    "3005a301127b9aaa522bad0fb628f9302c0edd671b0637895f59dff7f72c1bde",
+    "c7eda040810e2f70fbc5b4ee073c7554031864573e9afecb56ff6ed565cff220",
+    "1d9477712001830fa16eb371d96fb537dc999d9740c4ffe931aa69ed501f20e1",
+    "cb9ecc7f2a3c394bdd6d42f1c126e2d27b187ab379c7c7357a6544815ce0135d",
+    "6527e5a7e05aaf6c1345d9be2cb970f7fdb7c1c7bdb9c3b404c8fe3e3b83d18f"
   ]
 }
