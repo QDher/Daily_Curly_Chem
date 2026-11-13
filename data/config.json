@@ -1,6 +1,14 @@
 {
-  "note": "worker: base URL of the feedback Worker (QDher/Daily-organic-chemistry-puzzles, feedback-worker/), or null to send nothing. Null since 2026-11-13: the Worker part (table mech_entries) is merged only after the training and ML work (user decision), so entries are collected as files saved by the testers. To send entries: \"https://puzzle-feedback.dailyorgchem.workers.dev\" (posted to <worker>/mech_entries with this site key). contact: e-mail address shown as a \"Write the e-mail\" link at the end (public in this repository), or null.",
+  "note": "worker: base URL of the feedback Worker (QDher/Daily-organic-chemistry-puzzles, feedback-worker/), or null to send nothing. Null since 2026-11-13: the Worker part (table mech_entries) is merged only after the training and ML work (user decision), so entries are collected as files saved by the testers. To send entries: \"https://puzzle-feedback.dailyorgchem.workers.dev\" (posted to <worker>/mech_entries with this site key). contact: e-mail address shown as a \"Write the e-mail\" link at the end (public in this repository), or null. remarks: tester labels shown a remark box (500 characters) under each task, for faults not foreseen; the creator and the five testers of the first round (2026-11-13). The session label 93cd24ee is not included.",
   "worker": null,
   "site": "mechpilot",
-  "contact": null
+  "contact": null,
+  "remarks": [
+    "4f7c82a3",
+    "3005a301",
+    "c7eda040",
+    "1d947771",
+    "cb9ecc7f",
+    "6527e5a7"
+  ]
 }

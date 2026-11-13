@@ -11,6 +11,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applic
 const crypto = require('crypto');
 const CODE = 'local-test-code';
 const TESTERS = JSON.stringify({ sha256: [crypto.createHash('sha256').update(CODE).digest('hex')] });
+const LABEL = crypto.createHash('sha256').update(CODE).digest('hex').slice(0, 8);
+let remarkLabels = [LABEL]; // labels served as "remarks" in data/config.json
 
 const posts = []; // bodies received by the stand-in for the feedback Worker
 let failPosts = false;
@@ -19,7 +21,7 @@ const collected = []; // entries of the page tests, replayed at the end
 const server = http.createServer((req, res) => {
   if (req.url.split('?')[0] === '/data/config.json') {
     res.writeHead(200, { 'content-type': 'application/json' });
-    return res.end(JSON.stringify({ worker: 'http://localhost:' + server.address().port, site: 'mechpilot' }));
+    return res.end(JSON.stringify({ worker: 'http://localhost:' + server.address().port, site: 'mechpilot', remarks: remarkLabels }));
   }
   if (req.url === '/mech_entries' && req.method === 'POST') {
     let body = '';
@@ -226,7 +228,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     return InkN.draw(sc, { level, seed: 5, scale: 1 }).map((st) => st.points.map((p) => ({ x: p.x - (b.x0 + b.x1) / 2 + 8, y: p.y - (b.y0 + b.y1) / 2 + 4.5 })));
   };
 
-  await test('draw task: ink is read, confirmed, compared with the structure shown, then usable for arrows', async () => {
+  await test('copy task: ink is read, confirmed, compared with the structure shown; arrow tools stay off', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 5 }); // bromoketone
     eq(await page.isVisible('#target-wrap'), true, 'target shown');
@@ -240,8 +242,11 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     const e = await page.evaluate(() => window.__entries[0]);
     eq(e.kind, 'drawing'); eq(e.target.match, true, 'match'); eq(e.accepted, true); eq(e.corrections.length, 0, 'corrections');
     if (!(e.strokes.length > 3)) throw new Error('strokes');
-    eq(await page.getAttribute('#m-arrow', 'aria-pressed'), 'true', 'arrow mode after confirmation');
-    eq(await page.evaluate(() => window.__app.input.getScene().atoms.some((a) => a.el === 'Br')), true, 'scene loaded');
+    eq(await page.getAttribute('#m-draw', 'aria-pressed'), 'true', 'draw mode after confirmation');
+    eq(await page.isDisabled('#m-arrow'), true, 'arrow off'); eq(await page.isDisabled('#m-h'), true, 'H off');
+    eq(await page.isHidden('#apply'), true, 'apply hidden'); eq(await page.isVisible('#read'), true, 'read shown');
+    eq(await page.evaluate(() => window.__app.input.getScene().atoms.length), 0, 'frame cleared');
+    if (!(await page.locator('#step option').nth(5).textContent()).endsWith('\u2713')) throw new Error('done mark');
     eq(errors.length, 0, 'page errors');
   });
 
@@ -405,8 +410,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('drawing on a shown structure is merged into it', async () => {
     const { page } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 3 });
-    await page.click('#m-draw');
+    await page.selectOption('#step', { index: 11 });
     const pts = await page.evaluate(() => {
       const sc = window.__app.input.getScene();
       const C = sc.atoms.find((a) => a.id.startsWith('s0') && a.el === 'C' && a.h === 3);
@@ -419,13 +423,14 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#reading:not([hidden])');
     await page.click('#r-yes');
     const e = await page.evaluate(() => window.__entries[0]);
-    eq(e.smiles, SceneN.canonicalSmiles(RN, 'CCC(=O)[NH-].BrBr')); eq(e.base.atoms.length, 6, 'base kept');
+    eq(e.smiles, SceneN.canonicalSmiles(RN, 'C=CC(=O)OCC')); eq(e.base.atoms.length, 6, 'base kept');
   });
 
   await test('T3: a species written next to the structure, then arrows from it', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 9 });
     eq(await page.getAttribute('#m-draw', 'aria-pressed'), 'true', 'draw mode');
+    eq(await page.isDisabled('#m-arrow'), true, 'arrow off while drawing'); eq(await page.isHidden('#apply'), true, 'apply hidden');
     if (!(await page.textContent('#instr')).includes('hydroxide')) throw new Error('instruction');
     const where = await page.evaluate(() => {
       const sc = window.__app.input.getScene();
@@ -439,6 +444,8 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-yes');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.kind, 'drawing'); eq(e.target.match, true, 'species read');
+    eq(await page.isDisabled('#m-draw'), true, 'draw off in the arrow phase'); eq(await page.isEnabled('#m-arrow'), true, 'arrow on');
+    eq(await page.isHidden('#read'), true, 'read hidden'); eq(await page.isHidden('#atoms'), true, 'row of atoms hidden');
     await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
     const p = await page.evaluate((h) => {
       const { sc, nb, C, mid } = eval('(' + h + ')')();
@@ -499,20 +506,25 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('after a drawing on a shown structure, the arrow phase shows all structures with a clean layout', async () => {
     const { page } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 3 });
-    await page.click('#m-draw');
-    // a long, crooked bond from the methyl carbon
-    const pts = await page.evaluate(() => {
+    await page.selectOption('#step', { index: 11 });
+    // trimethylamine drawn next to the structure with one long, crooked bond
+    const where = await page.evaluate(() => {
       const sc = window.__app.input.getScene();
-      const C = sc.atoms.find((a) => a.id.startsWith('s0') && a.el === 'C' && a.h === 3);
-      const out = [];
-      for (let i = 0; i <= 12; i++) out.push({ x: C.x - (2.6 * i) / 12, y: C.y + (0.4 * i) / 12 });
-      return out;
+      return { x: Math.max(...sc.atoms.map((a) => a.x)) + 3.5, y: sc.atoms.reduce((t, a) => t + a.y, 0) / sc.atoms.length };
     });
-    await page.evaluate((p) => window.__app.input.addInk(p), pts);
+    const { x, y } = where;
+    const amine = {
+      atoms: [{ id: 'n', el: 'N', q: 0, h: 0, x, y }, { id: 'c1', el: 'C', q: 0, h: 3, x: x + 2.2, y: y + 0.5 },
+        { id: 'c2', el: 'C', q: 0, h: 3, x: x - 0.75, y: y + 0.75 }, { id: 'c3', el: 'C', q: 0, h: 3, x: x - 0.4, y: y - 1 }],
+      bonds: [{ id: 'b1', a: 'n', b: 'c1', order: 1 }, { id: 'b2', a: 'n', b: 'c2', order: 1 }, { id: 'b3', a: 'n', b: 'c3', order: 1 }],
+    };
+    const ink = InkN.draw(amine, { level: 1, seed: 3, scale: 1 }).map((st) => st.points);
+    await page.evaluate((list) => list.forEach((pts) => window.__app.input.addInk(pts)), ink);
     await page.click('#read');
     await page.waitForSelector('#reading:not([hidden])');
     await page.click('#r-yes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.target.match, true, 'species read');
     const longest = await page.evaluate(() => {
       const sc = window.__app.input.getScene();
       const at = new Map(sc.atoms.map((a) => [a.id, a]));
@@ -520,6 +532,72 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     });
     if (!(longest < 1.6)) throw new Error('bond length ' + longest);
     eq(await page.getAttribute('#m-arrow', 'aria-pressed'), 'true', 'arrow mode');
+  });
+
+  await test('arrow task: drawing tools are off; typed letters place nothing; copy task: arrow tools are off', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    for (const i of [0, 3, 4, 6, 7]) {
+      await page.selectOption('#step', { index: i });
+      eq(await page.isDisabled('#m-draw'), true, 'draw off in task ' + i);
+      eq(await page.isEnabled('#m-arrow'), true, 'arrow on'); eq(await page.isEnabled('#m-h'), true, 'H on'); eq(await page.isEnabled('#m-erase'), true, 'erase on');
+      eq(await page.isHidden('#read'), true, 'read hidden'); eq(await page.isHidden('#atoms'), true, 'row hidden');
+    }
+    await page.evaluate(() => document.getElementById('m-draw').click()); // a disabled button does nothing
+    eq(await page.evaluate(() => window.__app.input.getMode()), 'arrow', 'still arrow mode');
+    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+    const box = await page.locator('#stage').boundingBox();
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.8);
+    await page.keyboard.press('o');
+    eq(await page.evaluate(() => window.__app.input.getTyped().length), 0, 'no typed atom');
+    for (const i of [2, 5, 8, 10]) {
+      await page.selectOption('#step', { index: i });
+      eq(await page.isDisabled('#m-arrow'), true, 'arrow off in task ' + i); eq(await page.isDisabled('#m-h'), true, 'H off');
+      eq(await page.isEnabled('#m-draw'), true, 'draw on'); eq(await page.isHidden('#apply'), true, 'apply hidden');
+      eq(await page.evaluate(() => window.__app.input.getMode()), 'draw', 'draw mode');
+    }
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('remarks: one per task, 500 characters at most, saved when leaving the task, replaced, removed, restored', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    eq(await page.isVisible('#remark-wrap'), true, 'box shown'); eq(await page.getAttribute('#remark', 'maxlength'), '500', 'maxlength');
+    const remarks = () => page.evaluate(() => window.__entries.filter((e) => e.kind === 'remark'));
+    await page.fill('#remark', 'x'.repeat(600));
+    await page.click('#remark-save');
+    let r = await remarks();
+    eq(r.length, 1, 'one remark'); eq(r[0].text.length, 500, 'cut at 500'); eq(r[0].step, 't1-addition', 'task');
+    await page.fill('#remark', 'The second structure is cut off.');
+    await page.click('#next'); // saved when leaving the task
+    r = await remarks();
+    eq(r.length, 1, 'replaced, not added'); eq(r[0].text, 'The second structure is cut off.', 'new text');
+    eq(await page.inputValue('#remark'), '', 'next task: empty box');
+    if ((await page.locator('#step option').nth(0).textContent()).endsWith('\u2713')) throw new Error('a remark does not finish a task');
+    await page.selectOption('#step', { index: 12 }); // also under a mechanism
+    eq(await page.isVisible('#remark-wrap'), true, 'box under a mechanism');
+    await page.fill('#remark', 'Step 2 is hard to read.');
+    await page.selectOption('#step', { index: 0 });
+    eq(await page.inputValue('#remark'), 'The second structure is cut off.', 'shown again');
+    eq((await remarks()).length, 2, 'two tasks');
+    await page.reload();
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    await page.selectOption('#level', 'graduate');
+    await page.click('#start');
+    eq(await page.inputValue('#remark'), 'The second structure is cut off.', 'restored after a reload');
+    await page.fill('#remark', '');
+    await page.click('#remark-save');
+    r = await remarks();
+    eq(r.length, 1, 'emptied remark removed'); eq(r[0].step, 't4-ester-hydroxide', 'other kept');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('remarks: no box for a tester label not listed', async () => {
+    remarkLabels = [];
+    try {
+      const { page } = await open({ width: 1100, height: 900 });
+      eq(await page.isHidden('#remark-wrap'), true, 'box hidden');
+      await page.selectOption('#step', { index: 12 });
+      eq(await page.isHidden('#remark-wrap'), true, 'box hidden under a mechanism');
+    } finally { remarkLabels = [LABEL]; }
   });
 
   await test('T4: mechanism shown with arrows; votes for every step are recorded', async () => {

@@ -134,6 +134,16 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
         <span id="mech-msg" role="status"></span>
       </div>
     </div>
+    <div id="remark-wrap" hidden>
+      <p><label for="remark">Remark on this task (optional)</label></p>
+      <p class="muted">For anything not foreseen: a fault, an unclear text, a structure that looks wrong. It is kept in your file with this task.</p>
+      <textarea id="remark" rows="3" maxlength="500" style="width:100%"></textarea>
+      <div class="row">
+        <button id="remark-save">Save remark</button>
+        <span id="remark-count" class="muted">0/500</span>
+        <span id="remark-msg" role="status"></span>
+      </div>
+    </div>
   </section>
 
   <section class="panel" id="quest" hidden>
@@ -347,13 +357,28 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     },
   });
 
+  // A task (or phase of a task) that asks for arrows has no drawing tools, and one that asks for a drawing has
+  // no arrow tools. Erase works in both (on arrows or on ink).
+  const PHASES = { arrows: ['arrow', 'h', 'erase'], draw: ['draw', 'erase'] };
+  let phase = 'arrows';
+  function setPhase(p) {
+    phase = p;
+    for (const k of ['arrow', 'draw', 'h', 'erase']) {
+      const off = !PHASES[p].includes(k);
+      $('m-' + k).disabled = off;
+      $('m-' + k).title = off ? (p === 'arrows' ? 'Not used in this task: it asks for arrows' : 'Not used in this task: it asks for a drawing') : $('m-' + k).dataset.title || '';
+    }
+    $('apply').hidden = p !== 'arrows';
+    $('read').hidden = p !== 'draw';
+    $('atoms').hidden = p !== 'draw';
+    setMode(p === 'arrows' ? 'arrow' : 'draw');
+  }
+  for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).dataset.title = $('m-' + k).title;
+
   function setMode(m) {
+    if (!PHASES[phase].includes(m === 'atom' ? 'draw' : m)) return;
     input.setMode(m);
     for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).setAttribute('aria-pressed', String(m === k));
-    const drawing = m === 'draw' || m === 'atom';
-    $('apply').hidden = drawing;
-    $('read').hidden = !drawing;
-    $('atoms').hidden = !drawing;
     if (m !== 'atom') for (const b of $('atoms').querySelectorAll('button')) b.setAttribute('aria-pressed', 'false');
     $('help').textContent = HELP[m] || '';
   }
@@ -396,16 +421,17 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('tools-wrap').hidden = step.type === 'T4';
     $('mech').hidden = step.type !== 'T4';
     $('next').textContent = i === tasks.length - 1 ? 'To the questions' : 'Next task';
+    showRemark();
     if (step.type === 'T2') {
       target.setScene(Scene.fromSpecies(R, step.target.split('.')));
       load({ atoms: [], bonds: [] });
-      setMode('draw');
+      setPhase('draw');
     } else if (step.type === 'T3') {
       load(Tasks.startScene(R, step), { right: 7, minH: 7 });
-      setMode('draw');
+      setPhase('draw');
     } else if (step.type === 'T1') {
       load(Tasks.startScene(R, step));
-      setMode('arrow');
+      setPhase('arrows');
     } else {
       $('result').hidden = true;
       $('reading').hidden = true;
@@ -474,6 +500,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   }
 
   $('next').onclick = () => {
+    saveRemark();
     if (index < tasks.length - 1) return selectStep(index + 1);
     $('work').hidden = true;
     $('result').hidden = true;
@@ -622,7 +649,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     say('msg2', 'Arrows recorded.');
   };
 
-  $('continue').onclick = () => { load(readings[shown].clean); setMode('arrow'); };
+  $('continue').onclick = () => { load(readings[shown].clean); setPhase('arrows'); };
 
   // Separate choice: the structure as an answer to the problem. It does not judge the arrows.
   $('submit').onclick = () => {
@@ -754,13 +781,46 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       cls = e.target.match ? 'ok' : 'bad';
     }
     entries.push(e);
-    if (step.type === 'T2') markDone();
     showLog();
     reading = null;
+    if (step.type === 'T2') {
+      // a copy task ends with the drawing: the frame is cleared for another attempt, arrows stay off
+      markDone();
+      load({ atoms: [], bonds: [] });
+      setPhase('draw');
+      say('msg', note + ' Press \u201cNext task\u201d, or draw it again.', cls);
+      return;
+    }
     load(scene);
-    setMode('arrow');
+    setPhase('arrows');
     say('msg', note, cls);
   };
+
+  // Remarks of the first testers (labels in data/config.json, "remarks"): one free text per task, at most 500
+  // characters, kept as an entry of kind "remark" (replaced when edited, removed when emptied).
+  const remarks = Array.isArray(cfg.remarks) && cfg.remarks.includes(tester);
+  const remarkOf = (id) => entries.find((e) => e.kind === 'remark' && e.step === id);
+  function showRemark() {
+    $('remark-wrap').hidden = !remarks;
+    if (!remarks) return;
+    const e = remarkOf(step.id);
+    $('remark').value = e ? e.text : '';
+    $('remark-count').textContent = $('remark').value.length + '/500';
+    say('remark-msg', e ? 'Saved.' : '');
+  }
+  function saveRemark() {
+    if (!remarks || !step) return;
+    const text = $('remark').value.slice(0, 500).trim();
+    const old = remarkOf(step.id);
+    if ((old ? old.text : '') === text) return;
+    if (old) entries.splice(entries.indexOf(old), 1);
+    if (text) entries.push({ kind: 'remark', tester, level, step: step.id, text });
+    showLog();
+    say('remark-msg', text ? 'Saved.' : 'Removed.', 'ok');
+  }
+  $('remark').oninput = () => { $('remark-count').textContent = $('remark').value.length + '/500'; say('remark-msg', ''); };
+  $('remark').onchange = saveRemark;
+  $('remark-save').onclick = saveRemark;
 
   $('undo').onclick = () => input.undo();
   $('clear').onclick = () => { const m = input.getMode(); load(start, startRoom); setMode(m === 'atom' ? 'draw' : m); };
@@ -772,7 +832,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     o.textContent = (i + 1) + ' \u00b7 ' + TYPE[t.type].label;
     $('step').appendChild(o);
   });
-  $('step').onchange = (e) => selectStep(Number(e.target.value));
+  $('step').onchange = (e) => { saveRemark(); selectStep(Number(e.target.value)); };
   try {
     const kept = JSON.parse(localStorage.getItem(storeKey) || '[]');
     if (Array.isArray(kept) && kept.length) {

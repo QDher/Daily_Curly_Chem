@@ -44,6 +44,16 @@ draw-and-arrows task it starts from the structures asked for, also when the conf
 drawing entry keeps what was confirmed, with `replaced: true`), so that an error of the drawing phase does not make
 the arrows or the answer unusable.
 
+Tools per task (2026-11-13, at the user's request): a task or phase that asks for arrows has the drawing tools off
+(Draw, row of atoms, typed and right-click atoms, "Read drawing"); a task or phase that asks for a drawing has the
+arrow tools off (Arrow, H, "Apply arrows"). Erase, Undo and Clear work in both. A copy task ends with the confirmed
+drawing; a draw-and-arrows task switches from drawing to arrows when the drawing is confirmed.
+
+Remarks: the testers of the first round (labels in `remarks` of `data/config.json`: the creator and five testers) see
+a box under each task for a remark of at most 500 characters on anything not foreseen. It is an entry of kind
+`remark` (`step`, `text`), one per task, replaced when edited, removed when emptied, and saved when the tester leaves
+the task. Remark text is free text: it stays in the files (and later in D1), never in this repository.
+
 ## Use
 
 ```bash
