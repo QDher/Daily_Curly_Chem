@@ -18,7 +18,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Arrow rules (deterministic) | `src/arrows.js` | 0.1.1 | stable; 8 of 8 real arrow entries accepted on the first reading |
 | Arrow reading (snapping, ranking) | `src/readings.js` | 0.1.0 | works on real input; thresholds `Readings.P` never tuned |
 | Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.3.0 | weak: 5 of 14 real drawings exact; letters are the weak part |
-| Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro with level, votes, five questions, file saved at the end |
+| Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro with level, votes, five questions, file saved at the end; atoms can be entered without handwriting in three ways (below) |
 | Task list, reference mechanisms | `data/tasks.json`, `src/tasks.js` | 1 | verified by the interpreter, not reviewed by a chemist |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
@@ -64,10 +64,20 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 | Reference mechanisms not reviewed by a chemist | Step 3 of `acrylate-aldehyde` is a direct proton transfer (a simplification) | `data/tasks.json` |
 | Only one tester so far, mouse only | All real figures come from one person; touch is untested by a person | – |
 | The share button and the row of atoms on a real touch screen | Only exercised in headless Chromium | `index.html` |
+| Right-click text box for atoms on real browsers | Only exercised in headless Chromium with a mouse right click; a two-finger tap on a trackpad or a browser that keeps its own menu is untested | `askAtom`, `parseAtom` in `src/canvas.js` |
 
-Atoms without handwriting, three ways (all give `typed` labels, snapped to a bond end, corner or atom): the row of
-atoms (click, then click the place; also by touch), pointing and typing the letters, and a right click that opens a
-text box (Br, N+, O-; Enter places, Esc closes; mouse only). Not built, by choice: drag and drop from the row.
+Atoms without handwriting, three ways. All give `typed` labels in the entry (`getTyped`), placed by `place` and
+snapped by `snap` in `src/canvas.js` to an atom, the end or a corner of a stroke (within 0.6 units), else left where
+they are; the recognizer takes them as `labels` and never marks them as uncertain.
+
+| Way | Use | Code |
+|---|---|---|
+| Row of atoms | click an element or a charge, then click the place; also by touch | `#atoms` in `index.html`, mode `atom` |
+| Point and type | in draw or atom mode, point with the mouse and type: B then r gives Br (also Cl, Si) within 0.9 s; `+` and `-` for charges; Backspace removes | `keydown` handler |
+| Right click | in draw or atom mode, a right click with a mouse opens a text box at that place: `Br`, `o`, `N+`, `O-` or a charge alone; Enter places, Esc or a click elsewhere closes; an unknown symbol turns the box red | `askAtom`, `parseAtom`; class `cc-ask` |
+
+The right click does nothing in arrow mode, and nothing for touch or pen (a long press is cancelled inside input
+frames, so it cannot open a menu while drawing). Not built, by choice: drag and drop from the row.
 
 ## Fixed issues (cause, fix, test)
 
@@ -82,6 +92,7 @@ text box (Br, N+, O-; Enter places, Esc closes; mouse only). Not built, by choic
 | A wrong structure confirmed while drawing blocked the arrow phase | arrows continued from the confirmed drawing | draw-and-arrows tasks continue from the structures asked for; entry marked `replaced` | `test_page.js` |
 | Structures not redrawn when switching to arrows | hand-drawn positions kept | clean layout (`Scene.relayout`) at the switch | `test_page.js` |
 | Entries lost when the tab is closed; file had to be saved by hand | memory only | kept in `localStorage`, restored on return; file downloaded at "Finish" | `test_page.js` |
+| Letters written with a mouse read very badly | templates do not fit mouse handwriting | not fixed in the recognizer; atoms can be entered without handwriting (three ways, above) | `test_page.js`, `test_recognize.js` |
 | No way to say a reading is wrong | only "Draw again" | "The reading is wrong" with reasons (`flagged`, `wrong`) | `test_page.js` |
 | Page scrolled over frames that only show a structure could not scroll | `touch-action: none` on every frame | none only in frames that take input | `test_page.js` |
 
