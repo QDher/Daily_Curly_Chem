@@ -43,6 +43,10 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(noCode ? url : url + '?t=' + CODE);
     await page.waitForSelector(noCode ? 'body[data-ready="gate"]' : 'body[data-ready="1"]', { timeout: 30000 });
+    if (!noCode) {
+      await page.selectOption('#level', 'graduate');
+      await page.click('#start');
+    }
     return { page, errors, ctx };
   }
   // client coordinates of points described in the page: atom lookups run in the browser
@@ -112,28 +116,27 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('rejecting a reading shows the next one or asks to redraw', async () => {
     const { page } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 2 });
     const p = await page.evaluate((h) => {
       const { sc, nb, C, mid } = eval('(' + h + ')')();
-      const Cn = sc.atoms.find((a) => a.id.startsWith('s1') && a.el === 'C');
-      const N = sc.atoms.find((a) => a.id.startsWith('s0') && a.el === 'N');
-      const Ci = nb(N)[0].atom;
-      return { Cn: C(Cn), Ci: C(Ci), m: C(mid(Ci, N)), N: C(N) };
+      const O = sc.atoms.find((a) => a.id.startsWith('s1'));
+      const Cc = sc.atoms.find((a) => a.el === 'C' && nb(a).filter((n) => n.atom.el === 'O').length === 2);
+      const Oc = nb(Cc).find((n) => n.order === 2).atom;
+      return { O: C(O), Cc: C(Cc), m: C(mid(Cc, Oc)), Oc: C(Oc) };
     }, helpers.toString());
-    await drag(page, p.Cn, p.Ci);
-    await drag(page, p.m, p.N, 8);
+    await drag(page, p.O, p.Cc);
+    await drag(page, p.m, p.Oc, 10);
     await page.click('#apply');
     await page.waitForSelector('#result:not([hidden])');
     const n = await page.evaluate(() => Number(document.getElementById('rank').textContent.match(/of (\d+)/)[1]));
     for (let i = 0; i < n; i++) await page.click('#no');
     eq(await page.isHidden('#result'), true, 'result hidden');
     const e = await page.evaluate(() => window.__entries[0]);
-    eq(e.accepted, null, 'accepted'); eq(e.rejected.length, n, 'rejected');
+    eq(e.accepted, null, 'accepted'); eq(e.rejected.length, n, 'rejected'); eq(e.level, 'graduate', 'level');
   });
 
   await test('H mode: tap an atom, then three arrows', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 4 });
+    await page.selectOption('#step', { index: 6 });
     await page.click('#m-h');
     const a = await page.evaluate((h) => {
       const { sc, nb, C } = eval('(' + h + ')')();
@@ -198,9 +201,9 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('draw task: ink is read, confirmed, compared with the structure shown, then usable for arrows', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 7 }); // bromoketone
+    await page.selectOption('#step', { index: 5 }); // bromoketone
     eq(await page.isVisible('#target-wrap'), true, 'target shown');
-    const tgt = await page.evaluate(() => window.__app.tasks[7].target);
+    const tgt = await page.evaluate(() => window.__app.tasks[5].target);
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     if (shots) await page.screenshot({ path: path.join(shots, 'draw-ink.png'), fullPage: true });
     await page.click('#read');
@@ -217,7 +220,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('real pointer strokes in draw mode; a correction is recorded', async () => {
     const { page, errors } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 5 });
+    await page.selectOption('#step', { index: 2 });
     const P = (x, y) => page.evaluate(([px, py]) => window.__app.input.toClient({ x: px, y: py }), [x, y]);
     const a = await P(5, 5), b = await P(6.3, 4.25), c = await P(7.6, 5);
     await page.mouse.move(a.x, a.y);
@@ -244,7 +247,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
 
   await test('drawing on a shown structure is merged into it', async () => {
     const { page } = await open({ width: 1100, height: 900 });
-    await page.selectOption('#step', { index: 2 });
+    await page.selectOption('#step', { index: 3 });
     await page.click('#m-draw');
     const pts = await page.evaluate(() => {
       const sc = window.__app.input.getScene();
@@ -258,7 +261,74 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#reading:not([hidden])');
     await page.click('#r-yes');
     const e = await page.evaluate(() => window.__entries[0]);
-    eq(e.smiles, 'CCC=[NH2+].[C-]#N'); eq(e.base.atoms.length, 5, 'base kept');
+    eq(e.smiles, SceneN.canonicalSmiles(RN, 'CCC(=O)[NH-].BrBr')); eq(e.base.atoms.length, 6, 'base kept');
+  });
+
+  await test('T3: a species written next to the structure, then arrows from it', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 9 });
+    eq(await page.getAttribute('#m-draw', 'aria-pressed'), 'true', 'draw mode');
+    if (!(await page.textContent('#instr')).includes('hydroxide')) throw new Error('instruction');
+    const where = await page.evaluate(() => {
+      const sc = window.__app.input.getScene();
+      return { x: Math.max(...sc.atoms.map((a) => a.x)) + 3.5, y: sc.atoms.reduce((t, a) => t + a.y, 0) / sc.atoms.length };
+    });
+    const ink = InkN.draw({ atoms: [{ id: 'o', el: 'O', q: -1, h: 1, x: where.x, y: where.y }], bonds: [] }, { level: 1, seed: 2, scale: 1 }).map((st) => st.points);
+    await page.evaluate((list) => list.forEach((pts) => window.__app.input.addInk(pts)), ink);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    if (shots) await page.screenshot({ path: path.join(shots, 't3-read.png'), fullPage: true });
+    await page.click('#r-yes');
+    let e = await page.evaluate(() => window.__entries[0]);
+    eq(e.kind, 'drawing'); eq(e.target.match, true, 'species read');
+    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+    const p = await page.evaluate((h) => {
+      const { sc, nb, C, mid } = eval('(' + h + ')')();
+      const O = sc.atoms.find((a) => a.el === 'O' && a.q === -1);
+      const Cc = sc.atoms.find((a) => a.el === 'C' && nb(a).filter((n) => n.atom.el === 'O').length === 2);
+      const Oc = nb(Cc).find((n) => n.order === 2).atom;
+      return { O: C(O), Cc: C(Cc), m: C(mid(Cc, Oc)), Oc: C(Oc) };
+    }, helpers.toString());
+    await drag(page, p.O, p.Cc);
+    await drag(page, p.m, p.Oc, 10);
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#yes');
+    await page.click('#submit');
+    e = await page.evaluate(() => window.__entries[1]);
+    eq(e.kind, 'arrows'); eq(e.submitted.match, true, 'answer');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('T4: mechanism shown with arrows; votes for every step are recorded', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 13 });
+    eq(await page.isHidden('#tools-wrap'), true, 'tools hidden');
+    eq(await page.locator('#mech-steps .mstep').count(), 5, 'four steps and the result');
+    eq(await page.locator('#mech-steps .mstep').first().locator('.cc-head').count(), 3, 'arrows of step 1');
+    if (shots) await page.screenshot({ path: path.join(shots, 't4.png'), fullPage: true });
+    await page.click('#votes');
+    if (!(await page.textContent('#mech-msg')).includes('every step')) throw new Error('message');
+    const rows = page.locator('#mech-steps .mstep [role="group"]');
+    for (let k = 0; k < 4; k++) await rows.nth(k).locator('button[data-vote="' + (k === 2 ? 'unclear' : 'correct') + '"]').click();
+    await page.click('#votes');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.kind, 'votes'); eq(e.votes.join(','), 'correct,correct,unclear,correct'); eq(e.mechanism, 'acrylate-aldehyde');
+    eq(errors.length, 0, 'page errors');
+  });
+
+  await test('after the last task: questions, then the entries can be saved as a file', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 13 });
+    await page.click('#next');
+    eq(await page.isVisible('#quest'), true, 'questions shown'); eq(await page.isHidden('#work'), true, 'work hidden');
+    await page.selectOption('#q-device', 'mouse');
+    await page.click('#finish');
+    eq(await page.isVisible('#save'), true, 'save button');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+    if (!/^curly-entries-[0-9a-f]{8}\.json$/.test(dl.suggestedFilename())) throw new Error('file name ' + dl.suggestedFilename());
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.kind, 'questionnaire'); eq(e.device, 'mouse');
   });
 
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
@@ -272,8 +342,13 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.fill('#code', ' ' + CODE.toUpperCase() + ' ');
     await page.click('#gate-form button');
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
-    eq(await page.isVisible('#work'), true, 'work shown');
+    eq(await page.isVisible('#intro'), true, 'intro shown');
     eq(await page.isHidden('#gate'), true, 'gate hidden');
+    await page.click('#start');
+    eq(await page.isHidden('#work'), true, 'no start without a level');
+    await page.selectOption('#level', 'undergraduate');
+    await page.click('#start');
+    eq(await page.isVisible('#work'), true, 'work shown');
   });
 
   await browser.close();

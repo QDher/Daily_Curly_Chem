@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "note": "Task list of the test run (plan, section F). All structures come from published problems of the two sites (none marked verified there). T1: arrows for one step. T2: copy a structure by hand. T3: draw a species next to the structure shown, then the arrows. T4: a mechanism written as arrows by Claude (component M0) and verified by src/arrows.js, shown for a vote on each step. reference: arrows written by Claude, verified by test/test_tasks.js; used for the reports, never shown before the answer and never used to judge the arrows of a tester. expected: structures of the problem after the step, used only when the tester submits a structure as an answer. Atom ids: s<species>a<index in the SMILES>; h1 is the first hydrogen drawn (drawH).",
+  "tasks": [
+    {
+      "id": "t1-addition", "type": "T1",
+      "source": { "site": "onepot", "problem": "anie2026-saponification-decarboxylation-tetraponerine", "date": "2026-11-07" },
+      "conditions": "NaOH (1 M, aq.), THF, rt",
+      "start": ["COC(=O)C1C2CCCN2C2CCCN2C1=O", "[OH-]"],
+      "reference": [
+        { "from": { "lp": "s1a0" }, "to": { "atom": "s0a2" } },
+        { "from": { "bond": ["s0a2", "s0a3"] }, "to": { "atom": "s0a3" } }
+      ],
+      "expected": ["COC([O-])(O)C1C2CCCN2C2CCCN2C1=O"]
+    },
+    {
+      "id": "t1-collapse", "type": "T1",
+      "source": { "site": "onepot", "problem": "anie2026-saponification-decarboxylation-tetraponerine", "date": "2026-11-07" },
+      "conditions": "NaOH (1 M, aq.), THF, rt (continued)",
+      "start": ["COC([O-])(O)C1C2CCCN2C2CCCN2C1=O"],
+      "reference": [
+        { "from": { "lp": "s0a3" }, "to": { "bond": ["s0a3", "s0a2"] } },
+        { "from": { "bond": ["s0a2", "s0a1"] }, "to": { "atom": "s0a1" } }
+      ],
+      "expected": ["OC(=O)C1C2CCCN2C2CCCN2C1=O.C[O-]"]
+    },
+    {
+      "id": "t2-diketone", "type": "T2",
+      "source": { "site": "namerxn", "problem": "smn-paal-knorr-pyrrole-trimethylpyrrole" },
+      "target": "CC(=O)CCC(C)=O"
+    },
+    {
+      "id": "t1-substitution", "type": "T1",
+      "source": { "site": "namerxn", "problem": "smn-hofmann-rearrangement-methylamine", "date": "2026-11-05" },
+      "conditions": "NaOH, Br2",
+      "start": ["CC(=O)[NH-]", "BrBr"],
+      "reference": [
+        { "from": { "lp": "s0a3" }, "to": { "atom": "s1a0" } },
+        { "from": { "bond": ["s1a0", "s1a1"] }, "to": { "atom": "s1a1" } }
+      ],
+      "expected": ["CC(=O)NBr.[Br-]"]
+    },
+    {
+      "id": "t1-water-loss", "type": "T1",
+      "source": { "site": "namerxn", "problem": "smn-strecker-alanine", "date": "2026-11-06" },
+      "conditions": "NH3, H+",
+      "start": ["CC(N)[OH2+]"],
+      "reference": [
+        { "from": { "lp": "s0a2" }, "to": { "bond": ["s0a2", "s0a1"] } },
+        { "from": { "bond": ["s0a1", "s0a3"] }, "to": { "atom": "s0a3" } }
+      ],
+      "expected": ["CC=[NH2+].O"]
+    },
+    {
+      "id": "t2-bromoketone", "type": "T2",
+      "source": { "site": "namerxn", "problem": "smn-favorskii-cyclohexanecarboxylic-acid" },
+      "target": "O=C1CCCCCC1Br"
+    },
+    {
+      "id": "t1-proton", "type": "T1",
+      "source": { "site": "namerxn", "problem": "smn-favorskii-cyclohexanecarboxylic-acid", "date": "2026-11-12" },
+      "conditions": "NaOH, H2O. Draw the hydrogen you need first (button H).",
+      "start": ["O=C1CCCCCC1Br", "[OH-]"],
+      "drawH": ["s0a2"],
+      "reference": [
+        { "from": { "lp": "s1a0" }, "to": { "atom": "h1" } },
+        { "from": { "bond": ["h1", "s0a2"] }, "to": { "bond": ["s0a2", "s0a1"] } },
+        { "from": { "bond": ["s0a1", "s0a0"] }, "to": { "atom": "s0a0" } }
+      ],
+      "expected": ["[O-]C1=CCCCCC1Br.O", "O=C1[CH-]CCCCC1Br.O"]
+    },
+    {
+      "id": "t1-cc-bond", "type": "T1",
+      "source": { "site": "namerxn", "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate", "date": "2026-11-09" },
+      "conditions": "acetaldehyde, NMe3 (catalytic)",
+      "start": ["C[N+](C)(C)CC=C([O-])OC", "CC=O"],
+      "reference": [
+        { "from": { "lp": "s0a7" }, "to": { "bond": ["s0a7", "s0a6"] } },
+        { "from": { "bond": ["s0a5", "s0a6"] }, "to": { "pair": ["s0a5", "s1a1"] } },
+        { "from": { "bond": ["s1a1", "s1a2"] }, "to": { "atom": "s1a2" } }
+      ],
+      "expected": ["C[N+](C)(C)CC(C(=O)OC)C(C)[O-]"]
+    },
+    {
+      "id": "t2-iminium", "type": "T2",
+      "source": { "site": "namerxn", "problem": "smn-strecker-alanine" },
+      "target": "CC=[NH2+]"
+    },
+    {
+      "id": "t3-hydroxide", "type": "T3",
+      "source": { "site": "onepot", "problem": "jacs1969-corey-saponification-iodolactonization", "date": "2026-11-06" },
+      "conditions": "NaOH (aq.), H2O",
+      "start": ["O=C1CC2C=CC(O1)C2COC"],
+      "draw": { "text": "Draw hydroxide (OH with a minus sign) next to the structure, then draw the arrows.", "smiles": "[OH-]" },
+      "reference": [
+        { "from": { "lp": "s1a0" }, "to": { "atom": "s0a1" } },
+        { "from": { "bond": ["s0a1", "s0a0"] }, "to": { "atom": "s0a0" } }
+      ],
+      "expected": ["[O-]C1(O)CC2C=CC(O1)C2COC"]
+    },
+    {
+      "id": "t2-ester", "type": "T2",
+      "source": { "site": "onepot", "problem": "jcs1904-perkin-grignard-ester-terpineol" },
+      "target": "CCOC(=O)C1CCC(C)=CC1"
+    },
+    {
+      "id": "t3-amine", "type": "T3",
+      "source": { "site": "namerxn", "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate", "date": "2026-11-09" },
+      "conditions": "NMe3 (catalytic)",
+      "start": ["C=CC(=O)OC"],
+      "draw": { "text": "Draw trimethylamine (N with three bonds) next to the structure, then draw the arrows.", "smiles": "CN(C)C" },
+      "reference": [
+        { "from": { "lp": "s1a1" }, "to": { "atom": "s0a0" } },
+        { "from": { "bond": ["s0a0", "s0a1"] }, "to": { "bond": ["s0a1", "s0a2"] } },
+        { "from": { "bond": ["s0a2", "s0a3"] }, "to": { "atom": "s0a3" } }
+      ],
+      "expected": ["C[N+](C)(C)CC=C([O-])OC", "C[N+](C)(C)C[CH-]C(=O)OC"]
+    },
+    { "id": "t4-ester-hydroxide", "type": "T4", "mechanism": "ester-hydroxide" },
+    { "id": "t4-acrylate-aldehyde", "type": "T4", "mechanism": "acrylate-aldehyde" }
+  ],
+  "mechanisms": {
+    "ester-hydroxide": {
+      "source": { "site": "onepot", "problem": "anie2026-saponification-decarboxylation-tetraponerine", "date": "2026-11-07" },
+      "conditions": "NaOH (1 M, aq.), THF, rt",
+      "start": ["COC(=O)C1C2CCCN2C2CCCN2C1=O", "[OH-]"],
+      "steps": [
+        {
+          "arrows": [
+            { "from": { "lp": "s1a0" }, "to": { "atom": "s0a2" } },
+            { "from": { "bond": ["s0a2", "s0a3"] }, "to": { "atom": "s0a3" } }
+          ],
+          "result": "COC([O-])(O)C1C2CCCN2C2CCCN2C1=O"
+        },
+        {
+          "arrows": [
+            { "from": { "lp": "s0a3" }, "to": { "bond": ["s0a3", "s0a2"] } },
+            { "from": { "bond": ["s0a2", "s0a1"] }, "to": { "atom": "s0a1" } }
+          ],
+          "result": "OC(=O)C1C2CCCN2C2CCCN2C1=O.C[O-]"
+        },
+        {
+          "drawH": ["s1a0"],
+          "arrows": [
+            { "from": { "lp": "s0a1" }, "to": { "atom": "h1" } },
+            { "from": { "bond": ["h1", "s1a0"] }, "to": { "atom": "s1a0" } }
+          ],
+          "result": "[O-]C(=O)C1C2CCCN2C2CCCN2C1=O.CO"
+        }
+      ],
+      "product": "[O-]C(=O)C1C2CCCN2C2CCCN2C1=O.CO"
+    },
+    "acrylate-aldehyde": {
+      "source": { "site": "namerxn", "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate", "date": "2026-11-09" },
+      "conditions": "acetaldehyde, NMe3 (catalytic)",
+      "start": ["C=CC(=O)OC", "CN(C)C"],
+      "steps": [
+        {
+          "arrows": [
+            { "from": { "lp": "s1a1" }, "to": { "atom": "s0a0" } },
+            { "from": { "bond": ["s0a0", "s0a1"] }, "to": { "bond": ["s0a1", "s0a2"] } },
+            { "from": { "bond": ["s0a2", "s0a3"] }, "to": { "atom": "s0a3" } }
+          ],
+          "result": "C[N+](C)(C)CC=C([O-])OC"
+        },
+        {
+          "add": ["CC=O"],
+          "arrows": [
+            { "from": { "lp": "s0a3" }, "to": { "bond": ["s0a3", "s0a2"] } },
+            { "from": { "bond": ["s0a1", "s0a2"] }, "to": { "pair": ["s0a1", "s2a1"] } },
+            { "from": { "bond": ["s2a1", "s2a2"] }, "to": { "atom": "s2a2" } }
+          ],
+          "result": "C[N+](C)(C)CC(C(=O)OC)C(C)[O-]"
+        },
+        {
+          "drawH": ["s0a1"],
+          "arrows": [
+            { "from": { "lp": "s2a2" }, "to": { "atom": "h1" } },
+            { "from": { "bond": ["h1", "s0a1"] }, "to": { "bond": ["s0a1", "s0a2"] } },
+            { "from": { "bond": ["s0a2", "s0a3"] }, "to": { "atom": "s0a3" } }
+          ],
+          "result": "C[N+](C)(C)CC(=C([O-])OC)C(C)O"
+        },
+        {
+          "arrows": [
+            { "from": { "lp": "s0a3" }, "to": { "bond": ["s0a3", "s0a2"] } },
+            { "from": { "bond": ["s0a1", "s0a2"] }, "to": { "bond": ["s0a1", "s0a0"] } },
+            { "from": { "bond": ["s0a0", "s1a1"] }, "to": { "atom": "s1a1" } }
+          ],
+          "result": "C=C(C(=O)OC)C(C)O.CN(C)C"
+        }
+      ],
+      "product": "C=C(C(=O)OC)C(C)O.CN(C)C"
+    }
+  }
+}

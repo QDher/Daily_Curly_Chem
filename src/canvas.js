@@ -31,12 +31,14 @@
     const gHi = el('g', { class: 'cc-hi' }, svg);
     const gInk = el('g', { class: 'cc-ink' }, svg);
 
-    const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], marks: [], mode: opt.mode || 'arrow', box: null };
+    const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], marks: [], shown: [], mode: opt.mode || 'arrow', box: null };
     let drawing = null;
 
-    function setScene(scene, keepBox) {
+    // room: { right, minH } in scene units, free space kept for drawing next to the structure
+    function setScene(scene, keepBox, room) {
       state.scene = scene;
       state.strokes = [];
+      state.shown = [];
       state.ink = [];
       state.marks = [];
       if (!scene.atoms.length) {
@@ -44,6 +46,13 @@
       } else if (!keepBox || !state.box) {
         const b = root.Scene.bbox(scene);
         state.box = { x: b.x0 - PAD, y: b.y0 - PAD, w: b.x1 - b.x0 + 2 * PAD, h: b.y1 - b.y0 + 2 * PAD };
+        if (room) {
+          state.box.w += room.right || 0;
+          if (room.minH && state.box.h < room.minH) {
+            state.box.y -= (room.minH - state.box.h) / 2;
+            state.box.h = room.minH;
+          }
+        }
       }
       const bx = state.box;
       svg.setAttribute('viewBox', [bx.x * UNIT, bx.y * UNIT, bx.w * UNIT, bx.h * UNIT].join(' '));
@@ -123,8 +132,44 @@
       return ex.toFixed(1) + ',' + ey.toFixed(1) + ' ' + pt(0.45) + ' ' + pt(-0.45);
     }
 
+    // Arrow given as data (src/arrows.js format) -> curve between its two ends, bulging away from the atoms.
+    function curveOf(ar) {
+      const s = state.scene;
+      const A = (id) => s.atoms.find((a) => a.id === id);
+      const mid = (p, q) => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 });
+      const bondMid = (id) => { const b = s.bonds.find((x) => x.id === id); return mid(A(b.a), A(b.b)); };
+      const p0 = ar.from.kind === 'lp' ? A(ar.from.atom) : bondMid(ar.from.bond);
+      // a new bond between two atoms is shown as an arrow to the atom that does not hold the source
+      let own = [];
+      if (ar.from.kind === 'lp') own = [ar.from.atom];
+      else { const sb = s.bonds.find((x) => x.id === ar.from.bond); own = [sb.a, sb.b]; }
+      const far = ar.to.kind === 'pair' ? [ar.to.a, ar.to.b].find((id) => !own.includes(id)) : null;
+      const p1 = ar.to.kind === 'atom' ? A(ar.to.atom) : ar.to.kind === 'bond' ? bondMid(ar.to.bond) : far ? A(far) : mid(A(ar.to.a), A(ar.to.b));
+      const d = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1e-6;
+      const nx = -(p1.y - p0.y) / d, ny = (p1.x - p0.x) / d;
+      const m = mid(p0, p1);
+      const bulge = Math.max(0.5, 0.35 * d);
+      let cx = 0, cy = 0, n = 0;
+      for (const a of s.atoms) if (Math.hypot(a.x - m.x, a.y - m.y) < 3) { cx += a.x; cy += a.y; n++; }
+      const side = n && (m.x + nx - cx / n) ** 2 + (m.y + ny - cy / n) ** 2 < (m.x - nx - cx / n) ** 2 + (m.y - ny - cy / n) ** 2 ? -1 : 1;
+      const c = { x: m.x + side * nx * bulge, y: m.y + side * ny * bulge };
+      const toward = (p, q, len) => { const l = Math.hypot(q.x - p.x, q.y - p.y) || 1e-6; return { x: p.x + ((q.x - p.x) * len) / l, y: p.y + ((q.y - p.y) * len) / l }; };
+      const a = toward(p0, c, 0.2), b = toward(p1, c, 0.24);
+      const pts = [];
+      for (let i = 0; i <= 16; i++) {
+        const t = i / 16;
+        pts.push({ x: (1 - t) * (1 - t) * a.x + 2 * t * (1 - t) * c.x + t * t * b.x, y: (1 - t) * (1 - t) * a.y + 2 * t * (1 - t) * c.y + t * t * b.y });
+      }
+      return pts;
+    }
+
     function renderInk() {
       gInk.textContent = '';
+      for (const ar of state.shown) {
+        const pts = curveOf(ar);
+        el('path', { d: pathOf(pts), class: 'cc-arrow' }, gInk);
+        el('polygon', { points: headOf(pts), class: 'cc-head' }, gInk);
+      }
       for (const id of state.marks) {
         const a = state.scene.atoms.find((x) => x.id === id);
         if (a) el('circle', { cx: a.x * UNIT, cy: a.y * UNIT, r: 15, class: 'cc-mark' }, gInk);
@@ -270,6 +315,8 @@
       undo: () => { if (state.mode === 'draw' || (!state.strokes.length && state.ink.length)) state.ink.pop(); else state.strokes.pop(); renderInk(); },
       clear: () => { state.strokes = []; state.ink = []; renderInk(); },
       getInk: () => state.ink,
+      // shows arrows given as data (a mechanism step)
+      setArrows: (arrows) => { state.shown = arrows || []; renderInk(); },
       getMode: () => state.mode,
       setMarks: (ids) => { state.marks = ids || []; renderInk(); },
       // adds an ink stroke given in scene coordinates (tests, replay)

@@ -50,6 +50,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 .cc-mark { fill: none; stroke: var(--hl); stroke-width: 2.5; stroke-dasharray: 4 3; }
 .palette button { min-width: 44px; padding: 8px; }
 #target-wrap .stage { max-width: 420px; }
+textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.mstep { border-top: 1px solid var(--line); padding: 10px 0; }
+.mstep h3 { font-size: 0.95rem; margin: 0 0 6px; }
+#instr { font-weight: 600; }
 #msg { min-height: 1.5em; }
 .ok { color: var(--ok); } .bad { color: var(--bad); }
 pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 320px; }
@@ -59,7 +63,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 <body>
 <main>
   <h1>Daily Curly Chem</h1>
-  <p class="muted">Development page: arrows and structures drawn by hand. Nothing is sent or stored.</p>
+  <p class="muted">Test run: arrows and structures drawn by hand. Nothing is sent.</p>
 
   <section class="panel" id="gate" hidden>
     <h2>Tester code</h2>
@@ -71,12 +75,32 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <p id="gate-msg" role="status"></p>
   </section>
 
+  <section class="panel" id="intro" hidden>
+    <h2>Test run</h2>
+    <p>14 short tasks, about 20 minutes: drawing curly arrows on structures, copying structures by hand, and judging two mechanisms. You can skip a task with “Next task”.</p>
+    <p class="muted">This version sends nothing. Your entries (strokes with their timing, structures, answers) stay in this page; at the end you can save them as a file and send it back.</p>
+    <div class="row">
+      <label for="level">Your level</label>
+      <select id="level">
+        <option value="">choose</option>
+        <option value="undergraduate">undergraduate</option>
+        <option value="graduate">graduate</option>
+        <option value="postgraduate">postgraduate</option>
+      </select>
+      <button id="start" class="primary">Start</button>
+    </div>
+    <p id="intro-msg" role="status"></p>
+  </section>
+
   <section class="panel" id="work" hidden>
     <div class="row">
       <label for="step">Task</label>
       <select id="step"></select>
-      <span id="cond" class="muted"></span>
+      <button id="next">Next task</button>
     </div>
+    <p id="instr"></p>
+    <p id="cond" class="muted"></p>
+  <div id="tools-wrap">
     <div id="target-wrap" hidden>
       <p class="muted">Copy this structure by hand in the frame below, then press “Read drawing”.</p>
       <div class="stage" id="target"></div>
@@ -94,6 +118,33 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <div class="stage" id="stage"></div>
     <p class="muted" id="help"></p>
     <p id="msg" role="status"></p>
+  </div>
+    <div id="mech" hidden>
+      <div id="mech-steps"></div>
+      <div class="row">
+        <button id="votes" class="primary">Record my votes</button>
+        <span id="mech-msg" role="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="quest" hidden>
+    <h2>Five questions</h2>
+    <div class="row"><label for="q-device">Input used</label>
+      <select id="q-device"><option value="">choose</option><option>mouse</option><option>trackpad</option><option>finger</option><option>stylus</option></select></div>
+    <div class="row"><label for="q-arrows">Drawing arrows was</label>
+      <select id="q-arrows"><option value="">choose</option><option>easy</option><option>acceptable</option><option>difficult</option></select></div>
+    <div class="row"><label for="q-draw">Drawing structures was</label>
+      <select id="q-draw"><option value="">choose</option><option>easy</option><option>acceptable</option><option>difficult</option></select></div>
+    <div class="row"><label for="q-rules">The rules for arrows were clear</label>
+      <select id="q-rules"><option value="">choose</option><option>yes</option><option>partly</option><option>no</option></select></div>
+    <p><label for="q-block">Anything that blocked you or gave a wrong result</label></p>
+    <textarea id="q-block" rows="4" style="width:100%"></textarea>
+    <div class="row">
+      <button id="finish" class="primary">Finish</button>
+      <button id="save" hidden>Save my entries as a file</button>
+    </div>
+    <p id="quest-msg" role="status"></p>
   </section>
 
   <section class="panel" id="reading" hidden>
@@ -125,6 +176,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   <details class="panel" id="entries" hidden>
     <summary>Entries of this session</summary>
+    <div class="row"><button id="save2">Save entries as a file</button></div>
     <pre id="log">[]</pre>
   </details>
 </main>
@@ -135,6 +187,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 <script src="src/readings.js"></script>
 <script src="src/glyphs.js"></script>
 <script src="src/recognize.js"></script>
+<script src="src/tasks.js"></script>
 <script src="src/canvas.js"></script>
 <script>
 (async function () {
@@ -167,16 +220,25 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     });
     $('gate').hidden = true;
   }
-  $('work').hidden = false;
-  $('entries').hidden = false;
+  $('intro').hidden = false;
+  let level = '';
+  try { level = localStorage.getItem('puzzles:level') || ''; } catch (e) { /* storage unavailable */ }
+  if (['undergraduate', 'graduate', 'postgraduate'].includes(level)) $('level').value = level;
 
   const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
-  const data = await (await fetch('data/steps.json')).json();
-  const tasks = data.steps.concat(data.drawings);
+  const data = await (await fetch('data/tasks.json')).json();
+  const tasks = data.tasks;
+  const TYPE = {
+    T1: { label: 'Arrows', text: 'Draw the arrows for this step, then press \u201cApply arrows\u201d.' },
+    T2: { label: 'Copy', text: 'Copy the structure by hand.' },
+    T3: { label: 'Draw and arrows', text: '' },
+    T4: { label: 'Mechanism', text: 'This mechanism was written by an AI. For each step, say whether the arrows are correct.' },
+  };
+  const done = new Set();
 
   const entries = [];
   window.__entries = entries;
-  let step = null, start = null, readings = [], shown = 0, rejected = [], t0 = 0;
+  let step = null, start = null, startRoom = null, readings = [], shown = 0, rejected = [], t0 = 0;
 
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.',
@@ -215,28 +277,138 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('help').textContent = HELP[m] || '';
   }
 
-  function load(scene) {
+  function load(scene, room) {
     start = scene;
-    input.setScene(scene);
+    startRoom = room || null;
+    input.setScene(scene, false, room);
     $('result').hidden = true;
     $('reading').hidden = true;
     say('msg', ''); say('msg2', ''); say('msg3', '');
     t0 = performance.now();
   }
 
+  let index = 0;
   function selectStep(i) {
+    index = i;
     step = tasks[i];
-    $('cond').textContent = step.conditions || '';
-    $('target-wrap').hidden = !step.target;
-    if (step.target) {
+    $('step').value = String(i);
+    $('quest').hidden = true;
+    $('work').hidden = false;
+    const mech = step.type === 'T4' ? data.mechanisms[step.mechanism] : null;
+    $('instr').textContent = step.draw ? step.draw.text : TYPE[step.type].text;
+    $('cond').textContent = (mech ? mech.conditions : step.conditions) || '';
+    $('target-wrap').hidden = step.type !== 'T2';
+    $('tools-wrap').hidden = step.type === 'T4';
+    $('mech').hidden = step.type !== 'T4';
+    $('next').textContent = i === tasks.length - 1 ? 'To the questions' : 'Next task';
+    if (step.type === 'T2') {
       target.setScene(Scene.fromSpecies(R, step.target.split('.')));
       load({ atoms: [], bonds: [] });
       setMode('draw');
-    } else {
-      load(Scene.fromSpecies(R, step.start));
+    } else if (step.type === 'T3') {
+      load(Tasks.startScene(R, step), { right: 7, minH: 7 });
+      setMode('draw');
+    } else if (step.type === 'T1') {
+      load(Tasks.startScene(R, step));
       setMode('arrow');
+    } else {
+      $('result').hidden = true;
+      $('reading').hidden = true;
+      showMechanism(step, mech);
     }
   }
+
+  // T4: each step of a mechanism with its arrows, and a vote per step.
+  let votes = [];
+  function showMechanism(task, mech) {
+    const box = $('mech-steps');
+    box.textContent = '';
+    say('mech-msg', '');
+    const steps = Tasks.runMechanism(R, mech);
+    votes = steps.map(() => null);
+    const stage = (parent) => { const d = document.createElement('div'); d.className = 'stage'; parent.appendChild(d); return d; };
+    steps.forEach((st, k) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'mstep';
+      const h = document.createElement('h3');
+      h.textContent = 'Step ' + (k + 1) + ' of ' + steps.length;
+      wrap.appendChild(h);
+      const cv = CurlyCanvas.create(stage(wrap), { mode: 'view' });
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'Vote for step ' + (k + 1));
+      for (const v of ['correct', 'wrong', 'unclear']) {
+        const b = document.createElement('button');
+        b.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+        b.dataset.vote = v;
+        b.setAttribute('aria-pressed', 'false');
+        b.onclick = () => {
+          votes[k] = v;
+          for (const o of row.querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
+        };
+        row.appendChild(b);
+      }
+      wrap.appendChild(row);
+      box.appendChild(wrap);
+      cv.setScene(st.before);
+      cv.setArrows(st.arrows);
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'mstep';
+    const h = document.createElement('h3');
+    h.textContent = 'Result';
+    wrap.appendChild(h);
+    CurlyCanvas.create(stage(wrap), { mode: 'view' }).setScene(steps[steps.length - 1].after);
+    box.appendChild(wrap);
+  }
+  $('votes').onclick = () => {
+    if (votes.some((v) => !v)) return say('mech-msg', 'Vote for every step first.', 'bad');
+    const old = entries.findIndex((e) => e.kind === 'votes' && e.step === step.id);
+    if (old >= 0) entries.splice(old, 1);
+    entries.push({ kind: 'votes', tester, level, step: step.id, mechanism: step.mechanism, votes: votes.slice() });
+    markDone();
+    showLog();
+    say('mech-msg', 'Votes recorded.', 'ok');
+  };
+
+  function markDone() {
+    done.add(step.id);
+    const o = $('step').options[index];
+    if (o && !o.textContent.endsWith('✓')) o.textContent += ' ✓';
+  }
+
+  $('next').onclick = () => {
+    if (index < tasks.length - 1) return selectStep(index + 1);
+    $('work').hidden = true;
+    $('result').hidden = true;
+    $('reading').hidden = true;
+    $('quest').hidden = false;
+  };
+
+  function saveFile() {
+    const blob = new Blob([JSON.stringify({ tester, level, saved: new Date().toISOString(), entries }, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'curly-entries-' + tester + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  $('save').onclick = saveFile;
+  $('save2').onclick = saveFile;
+  $('finish').onclick = () => {
+    const old = entries.findIndex((e) => e.kind === 'questionnaire');
+    if (old >= 0) entries.splice(old, 1);
+    entries.push({
+      kind: 'questionnaire', tester, level, tasksDone: Array.from(done),
+      device: $('q-device').value, arrows: $('q-arrows').value, drawing: $('q-draw').value, rules: $('q-rules').value,
+      remark: $('q-block').value,
+    });
+    showLog();
+    $('save').hidden = false;
+    say('quest-msg', 'Thank you. Save your entries as a file and send it back.', 'ok');
+  };
 
   const WHY = {
     octet: 'An arrow ends on an atom that has no room for two more electrons. Add the arrow that breaks one of its bonds, or end the arrow elsewhere.',
@@ -261,7 +433,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   function showLog() {
     $('log').textContent = JSON.stringify(entries.map((e) => Object.assign({}, e, {
       scene: e.scene ? '(' + e.scene.atoms.length + ' atoms)' : undefined,
-      strokes: e.strokes.length + ' stroke(s)',
+      strokes: e.strokes ? e.strokes.length + ' stroke(s)' : undefined,
       recognized: e.recognized ? '(' + e.recognized.atoms.length + ' atoms)' : undefined,
       final: e.final ? '(' + e.final.atoms.length + ' atoms)' : undefined,
     })), null, 1);
@@ -272,6 +444,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       kind: 'arrows',
       versions: { arrows: Arrows.VERSION, readings: Readings.VERSION },
       tester,
+      level,
       step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       scene: input.getScene(),
@@ -313,6 +486,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   let lastEntry = null;
   $('yes').onclick = () => {
     lastEntry = record(shown);
+    markDone();
     $('confirm').hidden = true;
     $('after').hidden = false;
     say('msg2', 'Arrows recorded.');
@@ -384,7 +558,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('pal-bond').appendChild(b);
   }
   $('r-no').onclick = () => {
-    entries.push({ kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, step: step.id, strokes: reading.strokes, recognized: reading.recognized, unknown: reading.unknown, corrections: reading.corrections, final: null, accepted: false });
+    entries.push({ kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, level, step: step.id, strokes: reading.strokes, recognized: reading.recognized, unknown: reading.unknown, corrections: reading.corrections, final: null, accepted: false });
     showLog();
     reading = null;
     $('reading').hidden = true;
@@ -398,6 +572,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       kind: 'drawing',
       versions: { recognize: Recognize.VERSION },
       tester,
+      level,
       step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       strokes: reading.strokes,
@@ -409,8 +584,13 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       smiles,
       accepted: true,
     };
+    if (step.draw) {
+      const want = Scene.canonicalSmiles(R, step.start.concat([step.draw.smiles]).join('.'));
+      e.target = { smiles: want, match: want === smiles };
+    }
     if (step.target) e.target = { smiles: Scene.canonicalSmiles(R, step.target), match: Scene.canonicalSmiles(R, step.target) === smiles };
     entries.push(e);
+    if (step.type === 'T2') markDone();
     showLog();
     const scene = reading.scene;
     reading = null;
@@ -420,18 +600,25 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   };
 
   $('undo').onclick = () => input.undo();
-  $('clear').onclick = () => { const m = input.getMode(); load(start); setMode(m); };
+  $('clear').onclick = () => { const m = input.getMode(); load(start, startRoom); setMode(m); };
   for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).onclick = () => setMode(k);
 
-  tasks.forEach((s, i) => {
+  tasks.forEach((t, i) => {
     const o = document.createElement('option');
     o.value = i;
-    o.textContent = s.target ? 'Draw ' + (i - data.steps.length + 1) : 'Arrows ' + (i + 1);
+    o.textContent = (i + 1) + ' \u00b7 ' + TYPE[t.type].label;
     $('step').appendChild(o);
   });
   $('step').onchange = (e) => selectStep(Number(e.target.value));
+  $('start').onclick = () => {
+    level = $('level').value;
+    if (!level) return say('intro-msg', 'Choose your level first.', 'bad');
+    try { localStorage.setItem('puzzles:level', level); } catch (e) { /* storage unavailable */ }
+    $('intro').hidden = true;
+    $('entries').hidden = false;
+    selectStep(0);
+  };
   window.__app = { R, input, output, fixer, tasks, selectStep, getReading: () => reading };
-  selectStep(0);
   document.body.dataset.ready = '1';
 })();
 </script>

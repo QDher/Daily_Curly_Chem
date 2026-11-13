@@ -14,7 +14,7 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 | 2 | Canvas (`src/canvas.js`, `index.html`): structure from RDKit with atom ids (`src/scene.js`), pointer input (mouse, touch, pen), raw strokes kept, drawn hydrogens, clean re-layout of the result | done (2026-11-13) |
 | 3 | Candidate readings and fixed ranking I0 (`src/readings.js`), accept / reject of each reading | done (2026-11-13); thresholds in `Readings.P` not tuned on real drawings |
 | 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); 82 % exact on neat synthetic ink, 65 % on ordinary (`docs/RECOGNITION.md`); not measured on real handwriting |
-| 5 | Tasks T1 to T4 with reference mechanisms verified by C1 | to do |
+| 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with level, votes, five questions and a file of the entries | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
 | 6 | Worker table and site key `mechpilot` (in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles), replay script | to do |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
 
@@ -25,6 +25,9 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 2. Answer: the user may submit a structure as an answer to the problem. Only then is it compared with the problem's
    structures. Arrows do not have to lead to an intermediate of the problem.
 
+Until the Worker table exists (work package 6), nothing is sent: the tester saves the entries as a JSON file at the
+end and sends it back.
+
 Hand-drawn structures give a third kind of entry: strokes, structure read, corrections made by the user, structure
 confirmed (or the drawing discarded).
 
@@ -33,13 +36,13 @@ confirmed (or the drawing discarded).
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
-npm test           # interpreter (19), readings (12), recognizer with its benchmark (11)
-npm run test:page  # index.html in headless Chromium with simulated pointer input (9); needs Playwright
+npm test           # interpreter (19), readings (12), recognizer with its benchmark (11), task list (17)
+npm run test:page  # index.html in headless Chromium with simulated pointer input (12); needs Playwright
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```
 
-`data/steps.json`: sample steps and structures to copy, from published problems of both sites (development only,
-not the task list of the test run). `data/structures.json`: benchmark set of the recognizer. `src/arrows.js` has no dependency; the other modules need RDKit (`@rdkit/rdkit` 2026.9.1).
+`data/tasks.json`: the task list of the test run, from published problems of both sites. `data/steps.json`: earlier
+sample steps, kept as a fixture of `test/test_readings.js` and `test/test_recognize.js`. `data/structures.json`: benchmark set of the recognizer. `src/arrows.js` has no dependency; the other modules need RDKit (`@rdkit/rdkit` 2026.9.1).
 
 Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml` (Settings → Pages →
 Source: GitHub Actions must be selected once), not linked from the daily sites, `noindex`, and opened with a tester

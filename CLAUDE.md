@@ -15,6 +15,9 @@
   or of the rules increases `Recognize.VERSION` and the figures are updated from `node test/test_recognize.js`. The
   benchmark uses synthetic ink made from the recognizer's own letter templates: do not tune thresholds further on
   it; tune on drawings from the test run.
+- `data/tasks.json`: every reference and mechanism step must pass `node test/test_tasks.js` (valid for
+  `src/arrows.js`, stated result, no names or mechanism words in the texts shown). References are never shown before
+  the answer and never judge a tester's arrows.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
   against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)
