@@ -1,15 +1,20 @@
 name: Deploy GitHub Pages
+# On a push to main: tests, then the site. Every day at 03:30 UTC (22:30 or 23:30 in New York, after the two daily
+# sites have published) and on a manual run: the daily set is built first (tools/make_daily.js, from the problems
+# of the two sites), committed to main when it changed, then tests and the site.
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '30 3 * * *'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,6 +27,21 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Build the daily set
+        if: github.event_name != 'push'
+        run: |
+          mkdir -p _in
+          curl -fsSL https://raw.githubusercontent.com/QDher/Daily-organic-chemistry-puzzles/main/data/problems.json -o _in/onepot.json
+          curl -fsSL https://raw.githubusercontent.com/QDher/Daily-name-reaction-puzzle/main/data/problems.json -o _in/namerxn.json
+          node tools/make_daily.js --onepot _in/onepot.json --namerxn _in/namerxn.json --date "$(TZ=America/New_York date +%F)"
+          rm -rf _in
+          if [ -n "$(git status --porcelain data/daily)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/daily
+            git commit -m "Daily set $(TZ=America/New_York date +%F)"
+            git push
+          fi
       - run: npm test
       - name: Assemble site
         run: |

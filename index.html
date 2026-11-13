@@ -83,12 +83,14 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   </section>
 
   <section class="panel" id="intro" hidden>
-    <h2>Test run</h2>
-    <p>14 short tasks, about 20 minutes: drawing curly arrows on structures, copying structures by hand, and judging two mechanisms. You can skip a task with “Next task”.</p>
-    <p class="muted" id="intro-data"></p>
+    <h2>Tasks</h2>
+    <p id="daily-info"></p>
     <div class="row">
-      <button id="start" class="primary">Start</button>
+      <button id="start-daily" class="primary" hidden>Start today&rsquo;s tasks</button>
+      <button id="start">Start the standard set</button>
     </div>
+    <p class="muted">Today&rsquo;s tasks: 5 arrow tasks and 10 structures to copy, new each day when enough are available. Standard set: 14 tasks, about 20 minutes (arrows, structures to copy, drawing a species then arrows, and two mechanisms to judge). You can skip a task with &ldquo;Next task&rdquo;.</p>
+    <p class="muted" id="intro-data"></p>
     <p id="intro-msg" role="status"></p>
   </section>
 
@@ -270,7 +272,14 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
   const data = await (await fetch('data/tasks.json')).json();
-  const tasks = data.tasks;
+  let tasks = data.tasks;
+  // Daily set (data/daily/latest.json, built by tools/make_daily.js): empty or absent means no new task.
+  let daily = null;
+  try {
+    const r = await fetch('data/daily/latest.json', { cache: 'no-store' });
+    if (r.ok) daily = await r.json();
+  } catch (e) { /* no daily set */ }
+  const hasDaily = !!(daily && Array.isArray(daily.tasks) && daily.tasks.length);
   const TYPE = {
     T1: { label: 'Arrows', text: 'Draw the arrows for this step, then press \u201cApply arrows\u201d.' },
     T2: { label: 'Copy', text: 'Copy the structure by hand.' },
@@ -650,7 +659,10 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   $('submit').onclick = () => {
     if (!step.expected) return say('msg2', 'This task has no answer to compare with.');
     const got = Scene.canonical(R, readings[shown].scene);
-    const match = step.expected.some((e) => Scene.canonicalSmiles(R, e) === got);
+    // an expected structure is found when all its species are among the species of the result (a by-product
+    // that the problem does not list does not count against it)
+    const have = got ? got.split('.') : [];
+    const match = step.expected.some((e) => { const c = Scene.canonicalSmiles(R, e); return !!c && c.split('.').every((f) => have.includes(f)); });
     lastEntry.submitted = { smiles: got, match };
     sync(lastEntry);
     showLog();
@@ -821,37 +833,55 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   $('clear').onclick = () => { const m = input.getMode(); load(start, startRoom); setMode(m === 'atom' ? 'draw' : m); };
   for (const k of ['arrow', 'draw', 'h', 'erase']) $('m-' + k).onclick = () => setMode(k);
 
-  tasks.forEach((t, i) => {
-    const o = document.createElement('option');
-    o.value = i;
-    o.textContent = (i + 1) + ' \u00b7 ' + TYPE[t.type].label;
-    $('step').appendChild(o);
-  });
+  // The task list in use (standard set or daily set): options of the selector and marks of finished tasks.
+  let kept = [];
+  function useTasks(list) {
+    tasks = list;
+    $('step').textContent = '';
+    tasks.forEach((t, i) => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = (i + 1) + ' · ' + TYPE[t.type].label;
+      $('step').appendChild(o);
+    });
+    for (const e of entries) {
+      const i = tasks.findIndex((t) => t.id === e.step);
+      const finished = (e.kind === 'arrows' && Number.isInteger(e.accepted)) || e.kind === 'votes' || (e.kind === 'drawing' && e.accepted && i >= 0 && tasks[i].type === 'T2');
+      if (i >= 0 && finished) {
+        done.add(e.step);
+        const o = $('step').options[i];
+        if (!o.textContent.endsWith('✓')) o.textContent += ' ✓';
+      }
+    }
+  }
   $('step').onchange = (e) => { saveRemark(); selectStep(Number(e.target.value)); };
   try {
-    const kept = JSON.parse(localStorage.getItem(storeKey) || '[]');
+    kept = JSON.parse(localStorage.getItem(storeKey) || '[]');
     if (Array.isArray(kept) && kept.length) {
       for (const e of kept) Array.prototype.push.call(entries, e);
       seqNext = Math.max(...kept.map((e) => (Number.isInteger(e.seq) ? e.seq : 0))) + 1;
-      for (const e of kept) {
-        const i = tasks.findIndex((t) => t.id === e.step);
-        const finished = (e.kind === 'arrows' && Number.isInteger(e.accepted)) || e.kind === 'votes' || (e.kind === 'drawing' && e.accepted && i >= 0 && tasks[i].type === 'T2');
-        if (i >= 0 && finished) {
-          done.add(e.step);
-          const o = $('step').options[i];
-          if (!o.textContent.endsWith('\u2713')) o.textContent += ' \u2713';
-        }
-      }
       say('intro-msg', kept.length + ' entries from an earlier visit in this browser were kept; they are included in the file.');
       $('log').textContent = '(' + kept.length + ' entries kept from an earlier visit)';
     }
   } catch (e) { /* storage unavailable */ }
-  $('start').onclick = () => {
+  useTasks(data.tasks);
+  const begin = (list) => {
+    useTasks(list);
     $('intro').hidden = true;
     $('entries').hidden = false;
     selectStep(0);
   };
-  window.__app = { R, input, output, fixer, tasks, selectStep, getReading: () => reading, flush, unsent };
+  $('start').onclick = () => begin(data.tasks);
+  if (hasDaily) {
+    $('daily-info').textContent = 'Today’s tasks (' + daily.date + '): ' + daily.tasks.filter((t) => t.type === 'T1').length + ' arrow tasks and ' + daily.tasks.filter((t) => t.type === 'T2').length + ' structures to copy.';
+    $('start-daily').hidden = false;
+    $('start-daily').onclick = () => begin(daily.tasks);
+    $('start').classList.remove('primary');
+  } else {
+    $('daily-info').textContent = 'No new task today.';
+    $('start').classList.add('primary');
+  }
+  window.__app = { R, input, output, fixer, get tasks() { return tasks; }, daily, selectStep, getReading: () => reading, flush, unsent };
   document.body.dataset.ready = '1';
 })();
 </script>

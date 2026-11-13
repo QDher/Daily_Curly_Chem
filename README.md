@@ -18,6 +18,7 @@ For a new working session: `docs/CONTEXT.md` (state, decisions, known issues and
 | 4 | Hand-drawn structures R0 (`src/recognize.js`, `src/glyphs.js`): draw mode on an empty frame or on a shown structure, reading, correction by tapping atoms and bonds, confirmation or flag; atoms and charges can be entered without handwriting (row of atoms, pointing and typing with a mouse and keyboard, or a right click that opens a text box), snapped to bond ends; synthetic ink (`src/ink.js`) and benchmark | done (2026-11-13); version 0.3.0 after the first real drawings: 5 of 14 read exactly (1 of 14 before), 81 % on neat synthetic ink (`docs/RECOGNITION.md`); handwritten letters remain the weak part |
 | 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with votes, five questions and a file of the entries (the level is not asked) | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
 | 6 | Storage and replay: the page can post each entry to the feedback Worker (table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles); `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13). Sending is switched off (`data/config.json`, `worker: null`): the Worker part stays on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is merged after the training and ML work (decision of 2026-11-13). Until then entries are collected as files saved by the testers |
+| 8 | Daily set: 5 arrow tasks and 10 structures to copy from the problems of the two sites (`tools/make_daily.js`, `src/solver.js`, `data/daily/`), built by the workflow every day; "No new task today" when too few good tasks are left | done (2026-11-13); first set made in a session, the scheduled run not yet observed; tasks not reviewed by a chemist |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
 
 ## Two separate choices
@@ -59,8 +60,8 @@ the task. Remark text is free text: it stays in the files (and later in D1), nev
 ```bash
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
-npm test           # interpreter (19), readings (12), recognizer with its benchmark and the first real drawings (14), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (27); needs Playwright
+npm test           # interpreter (19), readings (12), recognizer (14), task list (17), solver and daily set (8); about 4 minutes
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending, replay and daily set (29); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```

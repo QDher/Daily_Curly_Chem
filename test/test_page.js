@@ -18,7 +18,14 @@ const posts = []; // bodies received by the stand-in for the feedback Worker
 let failPosts = false;
 const collected = []; // entries of the page tests, replayed at the end
 
+let dailyMode = 'file'; // 'file': data/daily/latest.json as it is; 'none': an empty set; 'missing': no file
+
 const server = http.createServer((req, res) => {
+  if (req.url.split('?')[0] === '/data/daily/latest.json' && dailyMode !== 'file') {
+    if (dailyMode === 'missing') { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ date: '2026-01-01', tasks: [], found: { arrows: 2, copies: 4 } }));
+  }
   if (req.url.split('?')[0] === '/data/config.json') {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify({ worker: 'http://localhost:' + server.address().port, site: 'mechpilot', remarks: remarkLabels }));
@@ -755,6 +762,61 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#votes');
     eq(await page.evaluate(() => window.__entries[0].level), 'postgraduate', 'level recorded');
     await ctx.close();
+  });
+
+  await test('daily set: 5 arrow tasks and 10 structures; an arrow task is answered although the problem lists no by-product', async () => {
+    const daily = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'latest.json'), 'utf8'));
+    if (!daily.tasks.length) throw new Error('no daily set in the repository to test with');
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    const page = await ctx.newPage();
+    pages.push(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(url + '#t=' + CODE);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    if (!(await page.textContent('#daily-info')).includes(daily.date)) throw new Error('date not shown');
+    await page.click('#start-daily');
+    eq(await page.locator('#step option').count(), 15, 'tasks');
+    eq(await page.evaluate(() => window.__app.tasks.filter((t) => t.type === 'T1').length), 5, 'arrow tasks');
+    // the first arrow task whose reference is a lone pair to an atom, then a double bond to its own atom
+    const k = daily.tasks.findIndex((t) => t.type === 'T1' && !t.drawH && t.reference.length === 2 && t.reference[0].from.lp && t.reference[0].to.atom && t.reference[1].to.atom);
+    if (k < 0) throw new Error('no such task in this set');
+    await page.selectOption('#step', { index: k });
+    const ref = daily.tasks[k].reference;
+    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+    const q = await page.evaluate((r) => {
+      const app = window.__app, sc = app.input.getScene();
+      const A = (id) => sc.atoms.find((a) => a.id === id);
+      const C = (x) => app.input.toClient(x);
+      const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      return { a: C(A(r[0].from.lp)), b: C(A(r[0].to.atom)), c: C(mid(A(r[1].from.bond[0]), A(r[1].from.bond[1]))), d: C(A(r[1].to.atom)) };
+    }, ref);
+    await drag(page, q.a, q.b);
+    await drag(page, q.c, q.d, 10);
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#yes');
+    await page.click('#submit');
+    const e = await page.evaluate(() => window.__entries[0]);
+    eq(e.step, daily.tasks[k].id, 'task id'); eq(e.submitted.match, true, 'answer');
+    eq(errors.length, 0, 'page errors');
+    await ctx.close();
+  });
+
+  await test('no daily set (empty or missing): "No new task today", the standard set still starts', async () => {
+    for (const mode of ['none', 'missing']) {
+      dailyMode = mode;
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(url + '#t=' + CODE);
+      await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+      eq(await page.textContent('#daily-info'), 'No new task today.', mode);
+      eq(await page.isHidden('#start-daily'), true, mode + ': no daily button');
+      await page.click('#start');
+      eq(await page.locator('#step option').count(), 14, mode + ': standard set');
+      await ctx.close();
+    }
+    dailyMode = 'file';
   });
 
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {

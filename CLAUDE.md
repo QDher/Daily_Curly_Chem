@@ -25,6 +25,8 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
 - `data/tasks.json`: every reference and mechanism step must pass `node test/test_tasks.js` (valid for
   `src/arrows.js`, stated result, no names or mechanism words in the texts shown). References are never shown before
   the answer and never judge a tester's arrows.
+- Daily set (`tools/make_daily.js`, `src/solver.js`, `data/daily/`): built by the workflow, never by hand. A change
+  of the solver rules increases `Solver.VERSION`; `node test/test_daily.js` must pass. Do not edit `data/daily/`.
 - Entries: collected as files saved by the testers. Sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
   switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does after the
   training and ML work (decision of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table

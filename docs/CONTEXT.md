@@ -68,6 +68,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.3.0 | weak: 5 of 14 real drawings exact; letters are the weak part |
 | Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro, votes, five questions, file saved at the end; the level is not asked (taken from the daily sites' setting `puzzles:level` when present, else empty); atoms can be entered without handwriting in three ways (below); tools per task phase and a remark box for the first testers (below) |
 | Task list, reference mechanisms | `data/tasks.json`, `src/tasks.js` | 1 | verified by the interpreter, not reviewed by a chemist |
+| Daily set (5 arrow tasks, 10 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; the scheduled run itself is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
 
@@ -79,8 +80,8 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
-npm test                         # arrows 19, readings 12, recognizer 14, tasks 17: each ends with N/N passed
-npm run test:page                # 27 browser tests (Playwright, already installed in cloud sessions)
+npm test                         # arrows 19, readings 12, recognizer 14, tasks 17, daily 8: each ends with N/N passed (about 4 min)
+npm run test:page                # 29 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
 python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_TESTER_CODE
@@ -88,6 +89,31 @@ python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_T
 
 Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml` runs `npm test` first). Check with
 `curl -s -o /dev/null -w "%{http_code}" https://qdher.github.io/Daily_Curly_Chem/src/recognize.js`.
+
+## Daily set (user request of 2026-11-13)
+
+- Each day: 5 arrow tasks and 10 structures to copy, from the problems of the two sites: One-Pot undergraduate and
+  graduate problems only, all Name Reaction problems, the newest first, then older ones still in their
+  `data/problems.json` (about 32 days). A task is never given twice (`data/daily/used.json`; the structures of the
+  standard set are excluded too). At most 2 arrow tasks and 3 structures per problem.
+- Nothing is written by hand or by a model. An arrow task is kept only when `src/solver.js` finds one entry of at
+  most three arrows from its start to the next structure listed by the problem; a structure only when the
+  recognizer reads a clean synthetic drawing of it (4 to 20 heavy atoms, at most three rings, supported elements).
+- Rules of the solver that keep unsound steps out: an atom with a double bond takes new electrons by opening it
+  (no substitution at C=O in one entry); a drawn hydrogen must be taken by another species; no doubly charged atom
+  and at most two new charges in the result. The solver says a step can be drawn with the rules, not that it is the
+  accepted mechanism: the tasks are not reviewed by a chemist.
+- If fewer than 5 + 10 good tasks are left, `data/daily/latest.json` has no task and the page shows "No new task
+  today". Supply measured on 2026-11-13 over 49 eligible problems: about 4 arrow steps and 10 structures per day
+  of new problems, and 68 and 177 in the backlog, so empty days are expected now and then.
+- Where it runs: `.github/workflows/pages.yml`, on schedule (03:30 UTC) and on manual run: downloads both
+  `data/problems.json` from `main` of the sites, runs `tools/make_daily.js` with the New York date, commits
+  `data/daily/` when it changed, then tests and deploys. No Claude session and no secret is involved. Local run:
+  `node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--dry]` (about 1 minute).
+- Page: the intro offers "Start today's tasks" (when the set has tasks) and "Start the standard set" (the 14 fixed
+  tasks). Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
+  of an expected structure (by-products not listed by the problem do not count against it).
+- A daily task uses problems up to its own date, so it can show an intermediate of that day's puzzle.
 
 ## Decisions of the user (do not reopen)
 

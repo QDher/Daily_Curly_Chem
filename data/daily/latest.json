@@ -1,0 +1,310 @@
+{
+ "date": "2026-11-13",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 10
+ },
+ "versions": {
+  "solver": "0.1.0",
+  "recognize": "0.3.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261113-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
+   },
+   "conditions": "NaOMe (about 1.1 equiv); Et2O, reflux, 2 h; then H2O",
+   "start": [
+    "O=C1C2CCCC12",
+    "C[O-]"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a1"
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "COC1([O-])C2CCCC12",
+    "COC1(O)C2CCCC12",
+    "COC1([O-])C2CCCC21"
+   ]
+  },
+  {
+   "id": "d20261113-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
+   },
+   "target": "O=C1CCCCC1Cl"
+  },
+  {
+   "id": "d20261113-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
+   },
+   "target": "COC(=O)C1CCCC1"
+  },
+  {
+   "id": "d20261113-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "conditions": "benzene (solvent, excess), AlCl3 (about 2.2 equiv); benzene, reflux, 30 min; then H2O and conc. HCl",
+   "start": [
+    "O=C1CCC(=O)O1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "[O+]#CCCC(=O)O",
+    "[O+]#CCCC(=O)[O-]",
+    "O=[C+]CCC(=O)O",
+    "O=[C+]CCC(=O)[O-]"
+   ]
+  },
+  {
+   "id": "d20261113-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
+   },
+   "target": "COC1([O-])C2CCCC21"
+  },
+  {
+   "id": "d20261113-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "target": "O=C1CCC(=O)O1"
+  },
+  {
+   "id": "d20261113-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "conditions": "benzene (solvent, excess), AlCl3 (about 2.2 equiv); benzene, reflux, 30 min; then H2O and conc. HCl",
+   "start": [
+    "[O+]#CCCC(=O)O",
+    "c1ccccc1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s0a1",
+      "via": "s1a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "OC(=O)CCC(=O)C1C=CC=C[CH+]1",
+    "OC(=O)CCC(=O)C1C=C[CH+]C=C1",
+    "[O-]C(=O)CCC(=O)C1C=CC=C[CH+]1",
+    "[O-]C(=O)CCC(=O)C1C=C[CH+]C=C1",
+    "O=C(O)CCC(=O)C1C=CC=C[CH+]1"
+   ]
+  },
+  {
+   "id": "d20261113-c5",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "target": "O=C(O)CCC(=O)c1ccccc1"
+  },
+  {
+   "id": "d20261113-c6",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "target": "c1ccccc1"
+  },
+  {
+   "id": "d20261113-a4",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
+    "date": "2026-11-12"
+   },
+   "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
+   "start": [
+    "CC(=O)OC1CC2OC(=O)CC2C1C=O",
+    "CCCCCC(=O)[CH-]P(=O)(OC)OC"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a7"
+     },
+     "to": {
+      "atom": "s0a13"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a13",
+       "s0a14"
+      ]
+     },
+     "to": {
+      "atom": "s0a14"
+     }
+    }
+   ],
+   "expected": [
+    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC",
+    "CCCCCC(=O)C(C(O)C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC",
+    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC21)P(=O)(OC)OC"
+   ]
+  },
+  {
+   "id": "d20261113-c7",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-stobbe-condensation-ethoxycarbonyl-methylpentenoic-acid",
+    "date": "2026-11-13"
+   },
+   "target": "CCOC(=O)CCC(=O)OCC"
+  },
+  {
+   "id": "d20261113-c8",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-stobbe-condensation-ethoxycarbonyl-methylpentenoic-acid",
+    "date": "2026-11-13"
+   },
+   "target": "CCOC(=O)C(CC(=O)O)=C(C)C"
+  },
+  {
+   "id": "d20261113-a5",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
+    "date": "2026-11-12"
+   },
+   "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
+   "start": [
+    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a9"
+     },
+     "to": {
+      "atom": "s0a23"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a23",
+       "s0a24"
+      ]
+     },
+     "to": {
+      "atom": "s0a24"
+     }
+    }
+   ],
+   "expected": [
+    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC23)OP1([O-])(OC)OC",
+    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC32)OP1([O-])(OC)OC"
+   ]
+  },
+  {
+   "id": "d20261113-c9",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-stobbe-condensation-ethoxycarbonyl-methylpentenoic-acid",
+    "date": "2026-11-13"
+   },
+   "target": "CC(C)=O"
+  },
+  {
+   "id": "d20261113-c10",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
+    "date": "2026-11-12"
+   },
+   "target": "CC(=O)OC1CC2OC(=O)CC2C1C=O"
+  }
+ ]
+}
