@@ -481,8 +481,17 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('quest').hidden = false;
   };
 
-  const fileName = () => 'curly-entries-' + tester + '.json';
-  const fileText = () => JSON.stringify({ tester, level, saved: new Date().toISOString(), entries }, null, 1);
+  // Device tag: four random characters made once per browser, so that the files a tester saves on two devices
+  // have different names. It says nothing about the device.
+  let device = null;
+  try { device = localStorage.getItem('curly:device'); } catch (e) { /* storage unavailable */ }
+  if (!/^[a-z0-9]{4}$/.test(device || '')) {
+    const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+    device = Array.from(crypto.getRandomValues(new Uint8Array(4)), (v) => abc[v % abc.length]).join('');
+    try { localStorage.setItem('curly:device', device); } catch (e) { /* ignore */ }
+  }
+  const fileName = () => 'curly-entries-' + tester + '-' + device + '.json';
+  const fileText = () => JSON.stringify({ tester, device, level, saved: new Date().toISOString(), entries }, null, 1);
   function saveFile() {
     const blob = new Blob([fileText()], { type: 'application/json' });
     const a = document.createElement('a');

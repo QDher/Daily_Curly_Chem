@@ -32,6 +32,9 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
   visits to the plain address open directly. The same link works on any device; entries and finished-task marks are
   kept per browser, so a tester who uses two devices sends back one file from each. `?t=CODE` is still accepted, and
   the code can be typed in the form.
+- The saved file is named `curly-entries-<label>-<device tag>.json`. The device tag is four random characters made
+  once per browser (`localStorage`, key `curly:device`; also in the file as `device`), so that the files of one
+  tester from two devices have different names. It is not sent with entries and is not removed by "Forget me".
 - "Forget me on this device" (bottom of the page) removes the code and the entries kept in that browser.
 - The label in entries is the first 8 hex digits of the SHA-256 of the code. New codes: put their SHA-256 in
   `data/testers.json` and their labels in `MECH_TESTERS` (`feedback-worker/wrangler.toml` on the One-Pot branch).

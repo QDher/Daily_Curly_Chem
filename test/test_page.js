@@ -548,11 +548,20 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     failPosts = true; // as when no database answers: the file is saved without asking
     const [auto] = await Promise.all([page.waitForEvent('download'), page.click('#finish')]);
     failPosts = false;
-    if (!/^curly-entries-[0-9a-f]{8}\.json$/.test(auto.suggestedFilename())) throw new Error('file name ' + auto.suggestedFilename());
+    if (!/^curly-entries-[0-9a-f]{8}-[a-z0-9]{4}\.json$/.test(auto.suggestedFilename())) throw new Error('file name ' + auto.suggestedFilename());
     await page.waitForFunction(() => document.getElementById('quest-msg').textContent.includes('was saved in your downloads'));
     eq(await page.isVisible('#save'), true, 'save button');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
-    if (!/^curly-entries-[0-9a-f]{8}\.json$/.test(dl.suggestedFilename())) throw new Error('file name ' + dl.suggestedFilename());
+    eq(dl.suggestedFilename(), auto.suggestedFilename(), 'same name for the same browser');
+    const saved = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
+    eq('curly-entries-' + saved.tester + '-' + saved.device + '.json', dl.suggestedFilename(), 'tag in the file');
+    // the tag is kept by the browser: same after a reload; another browser gets another one
+    await page.reload();
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.evaluate(() => localStorage.getItem('curly:device')), saved.device, 'tag kept');
+    const other = await open({ width: 1100, height: 900 });
+    const tag2 = await other.page.evaluate(() => localStorage.getItem('curly:device'));
+    if (!/^[a-z0-9]{4}$/.test(tag2) || tag2 === saved.device) throw new Error('second browser tag ' + tag2);
     const e = await page.evaluate(() => window.__entries[0]);
     eq(e.kind, 'questionnaire'); eq(e.device, 'mouse');
   });
@@ -641,11 +650,11 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     const rows = page.locator('#mech-steps .mstep [role="group"]');
     for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
     await page.click('#votes');
-    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).length), 2, 'code and entries kept');
+    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).sort().map((k) => k.split(':')[1]).join(',')), 'code,device,entries', 'code, device tag and entries kept');
     page.once('dialog', (d) => d.accept());
     await page.click('#forget');
     await page.waitForSelector('body[data-ready="gate"]', { timeout: 30000 });
-    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).length), 0, 'nothing kept');
+    eq(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('curly:')).join(',')), 'curly:device', 'only the device tag is left');
     // a link with a wrong code says so; the old ?t= form still works
     await page.goto(url + '#t=not-a-code');
     await page.reload();
