@@ -187,6 +187,8 @@ async function main() {
   const R = await initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rdkit')), f) });
   const out = o.out || path.join(__dirname, '..', 'data', 'daily');
   const date = o.date || new Date().toISOString().slice(0, 10);
+  // one set per date: a second run on the same day changes nothing
+  if (!o.dry && fs.existsSync(path.join(out, date + '.json'))) { console.log(date + ': already built, nothing changed'); return; }
   const usedFile = path.join(out, 'used.json');
   const used = fs.existsSync(usedFile) ? JSON.parse(fs.readFileSync(usedFile, 'utf8')) : { arrows: [], copies: [] };
   // the tasks of the fixed set are not used again
