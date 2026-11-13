@@ -538,6 +538,44 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(await page.evaluate(() => window.__entries[1].seq), 1, 'seq continues');
   });
 
+  await test('touch inside a frame that takes input draws and does not scroll; a frame that only shows keeps scrolling', async () => {
+    const { page, ctx } = await open({ width: 390, height: 600 }, true);
+    await page.selectOption('#step', { index: 2 });
+    const cdp = await ctx.newCDPSession(page);
+    const swipe = async (x, y0, y1) => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: y0, id: 1 }] });
+      for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y0 + ((y1 - y0) * i) / 10, id: 1 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(300);
+    };
+    const box = async (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x + r.width / 2, top: r.top, bottom: r.bottom }; }, sel);
+    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+    const y0 = await page.evaluate(() => window.scrollY);
+    const b = await box('#stage');
+    await swipe(b.x, b.bottom - 20, b.top + 20);
+    eq(await page.evaluate(() => window.scrollY), y0, 'no scroll while drawing');
+    eq(await page.evaluate(() => window.__app.input.getInk().length), 1, 'stroke drawn');
+    eq(await page.evaluate(() => getComputedStyle(document.querySelector('#stage svg')).touchAction), 'none', 'touch-action of the input frame');
+    // touch events that can be cancelled are cancelled in the input frame (browsers that scroll from touch events)
+    const prevented = await page.evaluate(() => {
+      const ev = new Event('touchmove', { bubbles: true, cancelable: true });
+      document.querySelector('#stage svg').dispatchEvent(ev);
+      const ev2 = new Event('contextmenu', { bubbles: true, cancelable: true });
+      document.querySelector('#stage svg').dispatchEvent(ev2);
+      const ev3 = new Event('touchmove', { bubbles: true, cancelable: true });
+      document.querySelector('#target svg').dispatchEvent(ev3);
+      return [ev.defaultPrevented, ev2.defaultPrevented, ev3.defaultPrevented];
+    });
+    eq(prevented.join(','), 'true,true,false', 'cancelled in the input frame only');
+    // the frame that shows the structure to copy scrolls the page
+    await page.evaluate(() => document.getElementById('target').scrollIntoView({ block: 'center' }));
+    const y1 = await page.evaluate(() => window.scrollY);
+    const t = await box('#target');
+    await swipe(t.x, t.bottom - 10, t.top + 10);
+    if (!((await page.evaluate(() => window.scrollY)) > y1)) throw new Error('the showing frame does not scroll');
+    eq(await page.evaluate(() => getComputedStyle(document.querySelector('#target svg')).touchAction), 'auto', 'touch-action of the showing frame');
+  });
+
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
     const { page } = await open({ width: 1100, height: 900 }, false, true);
     eq(await page.isHidden('#work'), true, 'work hidden');

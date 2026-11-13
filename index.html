@@ -35,7 +35,8 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 button:disabled { opacity: 0.45; cursor: default; }
 .stage { border: 1px dashed var(--line); border-radius: 8px; overflow: hidden; display: flex; justify-content: center; }
-.cc-svg { width: 100%; display: block; user-select: none; -webkit-user-select: none; }
+.cc-svg { width: 100%; display: block; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.cc-svg.cc-input { overscroll-behavior: contain; cursor: crosshair; }
 .cc-bond { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
 .cc-atom { fill: var(--ink); font: 16px system-ui, sans-serif; }
 .cc-sub { font-size: 11px; } .cc-sup { font-size: 12px; }

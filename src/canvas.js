@@ -27,13 +27,27 @@
   function create(container, options) {
     const opt = options || {};
     const svg = el('svg', { class: 'cc-svg', role: 'img' }, container);
-    svg.style.touchAction = 'none';
+    // Inside a frame that takes input, touch and pen must draw, never scroll, zoom, select or open a menu.
+    // touch-action covers browsers with pointer events; the touch listeners (not passive) cover those that
+    // still start a scroll from touch events; frames that only show a structure keep the normal scrolling.
+    const takesInput = () => state.mode !== 'view' && state.mode !== 'pick';
+    const applyTouch = () => {
+      const v = takesInput() ? 'none' : 'auto';
+      svg.style.touchAction = v;
+      container.style.touchAction = v;
+      svg.classList.toggle('cc-input', takesInput());
+    };
+    const block = (ev) => { if (takesInput() && ev.cancelable) ev.preventDefault(); };
+    for (const type of ['touchstart', 'touchmove', 'touchend', 'gesturestart', 'gesturechange', 'contextmenu', 'dragstart', 'selectstart']) {
+      svg.addEventListener(type, block, { passive: false });
+    }
     const gBonds = el('g', { class: 'cc-bonds' }, svg);
     const gAtoms = el('g', { class: 'cc-atoms' }, svg);
     const gHi = el('g', { class: 'cc-hi' }, svg);
     const gInk = el('g', { class: 'cc-ink' }, svg);
 
     const state = { scene: { atoms: [], bonds: [] }, strokes: [], ink: [], typed: [], marks: [], shown: [], hover: null, inside: false, tool: null, order: 0, mode: opt.mode || 'arrow', box: null };
+    applyTouch();
     let drawing = null;
 
     // room: { right, minH } in scene units, free space kept for drawing next to the structure
@@ -393,7 +407,7 @@
       getStrokes: () => state.strokes,
       getBox: () => state.box,
       setBox: (b) => { state.box = b; },
-      setMode: (m) => { state.mode = m; },
+      setMode: (m) => { state.mode = m; applyTouch(); },
       undo: () => {
         const drawn = state.ink.concat(state.typed);
         if (state.mode === 'draw' || state.mode === 'atom' || (!state.strokes.length && drawn.length)) {
