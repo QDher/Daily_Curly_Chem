@@ -54,15 +54,19 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(Scene.canonical(R, run.raw), can('CC(N)C#N'));
   });
 
-  const base = { onepot, namerxn, date: '2026-11-13', used: { arrows: [], copies: [] } };
+  const base = { onepot, namerxn, date: '2026-11-14', used: { arrows: [], copies: [] } };
 
-  test('daily set: only undergraduate and graduate One-Pot problems, all Name Reaction problems, none after the date', () => {
-    const all = Daily.eligible(onepot, namerxn, '2026-11-13');
+  test('daily set: undergraduate and graduate One-Pot problems, all Name Reaction problems, only from before the day of the set', () => {
+    const all = Daily.eligible(onepot, namerxn, '2026-11-14');
     eq(all.some((e) => e.problem.level === 'advanced'), false, 'advanced left out');
     eq(all.filter((e) => e.site === 'namerxn').length, 4, 'name reaction problems');
     eq(all.filter((e) => e.site === 'onepot').length, 4, 'one-pot problems');
     for (let i = 1; i < all.length; i++) if (all[i - 1].date < all[i].date) throw new Error('not newest first');
-    eq(Daily.eligible(onepot, namerxn, '2026-11-05').every((e) => e.date <= '2026-11-05'), true, 'date limit');
+    // the fixtures have problems dated 2026-11-13: a set of that day does not use them
+    const day = Daily.eligible(onepot, namerxn, '2026-11-13');
+    eq(day.some((e) => e.date >= '2026-11-13'), false, 'the puzzle of the day is not used');
+    eq(day.length, all.length - 3, 'the three problems of that day are left out');
+    eq(Daily.eligible(onepot, namerxn, '2026-10-28').length, 0, 'nothing before the first problem');
   });
 
   let first = null;

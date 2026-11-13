@@ -1,7 +1,7 @@
 name: Deploy GitHub Pages
 # On a push to main: tests, then the site. Every day at 03:30 UTC (22:30 or 23:30 in New York, after the two daily
 # sites have published) and on a manual run: the daily set is built first (tools/make_daily.js, from the problems
-# of the two sites), committed to main when it changed, then tests and the site.
+# of the two sites dated before that day), committed to main when it changed, then tests and the site.
 on:
   push:
     branches: [main]

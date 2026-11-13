@@ -1,5 +1,6 @@
 // Builds the daily set: 5 arrow tasks and 10 structures to copy, from the problems of the two daily sites
-// (One-Pot: undergraduate and graduate problems only; Name Reaction Daily: all), the newest first, then older ones.
+// (One-Pot: undergraduate and graduate problems only; Name Reaction Daily: all), from the day before the set and
+// older, the newest first.
 // Nothing is written by hand or by a model: an arrow task is kept only when src/solver.js finds one entry of arrows
 // from its start to the next structure of the problem; a structure to copy is kept only when the recognizer reads a
 // clean drawing of it. Tasks already used (earlier daily sets, data/tasks.json) are not used again.
@@ -38,13 +39,14 @@ function setsOf(file) {
   return Array.isArray(d) ? d : d.sets || [];
 }
 
-// Problems that may be used, newest first: { site, date, problem }.
+// Problems that may be used, newest first: { site, date, problem }. Only problems dated before the day of the set:
+// the puzzle of the day itself is never used, so that a task does not show one of its intermediates.
 function eligible(onepot, namerxn, date) {
   const out = [];
   for (const s of onepot) for (const p of s.problems) {
-    if (s.date <= date && (p.level === 'undergraduate' || p.level === 'graduate')) out.push({ site: 'onepot', date: s.date, problem: p });
+    if (s.date < date && (p.level === 'undergraduate' || p.level === 'graduate')) out.push({ site: 'onepot', date: s.date, problem: p });
   }
-  for (const s of namerxn) for (const p of s.problems) if (s.date <= date) out.push({ site: 'namerxn', date: s.date, problem: p });
+  for (const s of namerxn) for (const p of s.problems) if (s.date < date) out.push({ site: 'namerxn', date: s.date, problem: p });
   return out.sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : x.site < y.site ? 1 : -1));
 }
 

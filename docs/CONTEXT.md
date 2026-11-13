@@ -93,7 +93,8 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 ## Daily set (user request of 2026-11-13)
 
 - Each day: 5 arrow tasks and 10 structures to copy, from the problems of the two sites: One-Pot undergraduate and
-  graduate problems only, all Name Reaction problems, the newest first, then older ones still in their
+  graduate problems only, all Name Reaction problems, from the day before the set and older, the newest first, as
+  long as they are still in their
   `data/problems.json` (about 32 days). A task is never given twice (`data/daily/used.json`; the structures of the
   standard set are excluded too). At most 2 arrow tasks and 3 structures per problem.
 - Nothing is written by hand or by a model. An arrow task is kept only when `src/solver.js` finds one entry of at
@@ -113,7 +114,8 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Page: the intro offers "Start today's tasks" (when the set has tasks) and "Start the standard set" (the 14 fixed
   tasks). Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
   of an expected structure (by-products not listed by the problem do not count against it).
-- A daily task uses problems up to its own date, so it can show an intermediate of that day's puzzle.
+- A set uses only problems dated before its own day (user request of 2026-11-13): the puzzle of the day is
+  never used, so no task shows one of its intermediates. The set of 2026-11-13 was rebuilt under this rule.
 
 ## Decisions of the user (do not reopen)
 
