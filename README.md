@@ -25,8 +25,11 @@ Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future dev
 2. Answer: the user may submit a structure as an answer to the problem. Only then is it compared with the problem's
    structures. Arrows do not have to lead to an intermediate of the problem.
 
-Entries are collected as files for now: at the end the tester saves them as a JSON file and sends it back; the files
-are checked with `tools/replay.js`. When `worker` is set in `data/config.json`, each entry is also posted to the Worker
+Entries are collected as files for now. They are kept in the tester's browser as they are recorded (restored after a
+reload or a later visit with the same code), and at the end the file is saved in the downloads without asking; the
+tester sends it back. Where the device offers it, a "Send the file" button opens the share sheet with the file
+attached; `contact` in `data/config.json` (null now) adds a link that opens an e-mail to that address. The files are
+checked with `tools/replay.js`. When `worker` is set in `data/config.json`, each entry is also posted to the Worker
 when it is recorded and again when it is completed; an entry that cannot be sent is kept and tried again.
 
 Hand-drawn structures give a third kind of entry: strokes, structure read, corrections made by the user, and one of
@@ -44,7 +47,7 @@ the arrows or the answer unusable.
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer with its benchmark (12), task list (17)
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (17); needs Playwright
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending and replay (18); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```

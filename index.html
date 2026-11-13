@@ -144,7 +144,9 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <textarea id="q-block" rows="4" style="width:100%"></textarea>
     <div class="row">
       <button id="finish" class="primary">Finish</button>
-      <button id="save" hidden>Save my entries as a file</button>
+      <button id="save" hidden>Save the file again</button>
+      <button id="share" hidden>Send the file…</button>
+      <a id="mail" hidden>Write the e-mail</a>
     </div>
     <p id="quest-msg" role="status"></p>
   </section>
@@ -258,8 +260,8 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   const unsent = new Set();
   let seqNext = 0, flushing = Promise.resolve();
   $('intro-data').textContent = cfg.worker
-    ? 'Your entries (strokes with their timing, structures, answers) are stored in the project\u2019s database under your tester label, without your name. If sending fails, you can save them as a file at the end and send it back.'
-    : 'This version sends nothing. Your entries (strokes with their timing, structures, answers) stay in this page; at the end you can save them as a file and send it back.';
+    ? 'Your entries (strokes with their timing, structures, answers) are stored in the project\u2019s database under your tester label, without your name. If sending fails, they are saved as a file at the end, to send back.'
+    : 'This version sends nothing by itself. Your entries (strokes with their timing, structures, answers) are kept in this browser and saved as a file at the end, to send back.';
   async function post(e) {
     const r = await fetch(cfg.worker.replace(/\/+$/, '') + '/mech_entries', {
       method: 'POST',
@@ -438,15 +440,24 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('quest').hidden = false;
   };
 
+  const fileName = () => 'curly-entries-' + tester + '.json';
+  const fileText = () => JSON.stringify({ tester, level, saved: new Date().toISOString(), entries }, null, 1);
   function saveFile() {
-    const blob = new Blob([JSON.stringify({ tester, level, saved: new Date().toISOString(), entries }, null, 1)], { type: 'application/json' });
+    const blob = new Blob([fileText()], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'curly-entries-' + tester + '.json';
+    a.download = fileName();
     document.body.appendChild(a);
     a.click();
     a.remove();
   }
+  // Sending the file from the device: the share sheet (phones, tablets, some desktops) can attach it to a
+  // message; where it is not available, the file saved in the downloads is attached by hand.
+  const shareFile = () => new File([fileText()], fileName(), { type: 'application/json' });
+  const canShare = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [shareFile()] })); } catch (e) { return false; } };
+  $('share').onclick = async () => {
+    try { await navigator.share({ files: [shareFile()], title: 'Daily Curly Chem entries' }); } catch (e) { /* cancelled */ }
+  };
   $('save').onclick = saveFile;
   $('save2').onclick = saveFile;
   $('finish').onclick = () => {
@@ -459,10 +470,17 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     });
     showLog();
     $('save').hidden = false;
+    $('share').hidden = !canShare();
+    if (cfg.contact) {
+      $('mail').hidden = false;
+      $('mail').href = 'mailto:' + cfg.contact + '?subject=' + encodeURIComponent('Daily Curly Chem entries ' + tester) + '&body=' + encodeURIComponent('The file ' + fileName() + ' is attached.');
+    }
     say('quest-msg', 'Sending\u2026');
     flush().then(() => {
-      if (cfg.worker && !unsent.size) say('quest-msg', 'Thank you. Your entries were sent.', 'ok');
-      else say('quest-msg', 'Thank you. ' + (cfg.worker ? unsent.size + ' entries could not be sent. ' : '') + 'Save your entries as a file and send it back.', cfg.worker ? 'bad' : 'ok');
+      if (cfg.worker && !unsent.size) return say('quest-msg', 'Thank you. Your entries were sent.', 'ok');
+      // no database, or sending failed: the file is saved without asking
+      saveFile();
+      say('quest-msg', 'Thank you. ' + (cfg.worker ? unsent.size + ' entries could not be sent. ' : '') + 'The file ' + fileName() + ' was saved in your downloads; please send it back.', cfg.worker ? 'bad' : 'ok');
     });
   };
 
@@ -486,7 +504,13 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   }
 
   const strokeData = (list) => list.map((s) => ({ points: s.points, times: s.times, pressure: s.pressure, pointerType: s.pointerType }));
+  // Entries are also kept in this browser, so that closing the page does not lose them.
+  const storeKey = 'curly:entries:' + tester;
+  function keep() {
+    try { localStorage.setItem(storeKey, JSON.stringify(entries)); } catch (e) { /* storage full or unavailable */ }
+  }
   function showLog() {
+    keep();
     $('log').textContent = JSON.stringify(entries.map((e) => Object.assign({}, e, {
       scene: e.scene ? '(' + e.scene.atoms.length + ' atoms)' : undefined,
       strokes: e.strokes ? e.strokes.length + ' stroke(s)' : undefined,
@@ -697,6 +721,24 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     $('step').appendChild(o);
   });
   $('step').onchange = (e) => selectStep(Number(e.target.value));
+  try {
+    const kept = JSON.parse(localStorage.getItem(storeKey) || '[]');
+    if (Array.isArray(kept) && kept.length) {
+      for (const e of kept) Array.prototype.push.call(entries, e);
+      seqNext = Math.max(...kept.map((e) => (Number.isInteger(e.seq) ? e.seq : 0))) + 1;
+      for (const e of kept) {
+        const i = tasks.findIndex((t) => t.id === e.step);
+        const finished = (e.kind === 'arrows' && Number.isInteger(e.accepted)) || e.kind === 'votes' || (e.kind === 'drawing' && e.accepted && i >= 0 && tasks[i].type === 'T2');
+        if (i >= 0 && finished) {
+          done.add(e.step);
+          const o = $('step').options[i];
+          if (!o.textContent.endsWith('\u2713')) o.textContent += ' \u2713';
+        }
+      }
+      say('intro-msg', kept.length + ' entries from an earlier visit in this browser were kept; they are included in the file.');
+      $('log').textContent = '(' + kept.length + ' entries kept from an earlier visit)';
+    }
+  } catch (e) { /* storage unavailable */ }
   $('start').onclick = () => {
     level = $('level').value;
     if (!level) return say('intro-msg', 'Choose your level first.', 'bad');

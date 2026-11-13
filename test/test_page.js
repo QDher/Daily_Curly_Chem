@@ -440,12 +440,38 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#next');
     eq(await page.isVisible('#quest'), true, 'questions shown'); eq(await page.isHidden('#work'), true, 'work hidden');
     await page.selectOption('#q-device', 'mouse');
-    await page.click('#finish');
+    failPosts = true; // as when no database answers: the file is saved without asking
+    const [auto] = await Promise.all([page.waitForEvent('download'), page.click('#finish')]);
+    failPosts = false;
+    if (!/^curly-entries-[0-9a-f]{8}\.json$/.test(auto.suggestedFilename())) throw new Error('file name ' + auto.suggestedFilename());
+    await page.waitForFunction(() => document.getElementById('quest-msg').textContent.includes('was saved in your downloads'));
     eq(await page.isVisible('#save'), true, 'save button');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
     if (!/^curly-entries-[0-9a-f]{8}\.json$/.test(dl.suggestedFilename())) throw new Error('file name ' + dl.suggestedFilename());
     const e = await page.evaluate(() => window.__entries[0]);
     eq(e.kind, 'questionnaire'); eq(e.device, 'mouse');
+  });
+
+  await test('entries are kept in the browser: after a reload they are restored and the task is marked done', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 12 });
+    const rows = page.locator('#mech-steps .mstep [role="group"]');
+    for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
+    await page.click('#votes');
+    await page.reload();
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    if (!(await page.textContent('#intro-msg')).includes('1 entries from an earlier visit')) throw new Error('intro message');
+    await page.selectOption('#level', 'graduate');
+    await page.click('#start');
+    const e = await page.evaluate(() => window.__entries);
+    eq(e.length, 1, 'restored'); eq(e[0].kind, 'votes');
+    if (!(await page.locator('#step option').nth(12).textContent()).endsWith('\u2713')) throw new Error('done mark');
+    // a new entry continues the numbering
+    await page.selectOption('#step', { index: 13 });
+    const rows2 = page.locator('#mech-steps .mstep [role="group"]');
+    for (let k = 0; k < 4; k++) await rows2.nth(k).locator('button[data-vote="unclear"]').click();
+    await page.click('#votes');
+    eq(await page.evaluate(() => window.__entries[1].seq), 1, 'seq continues');
   });
 
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
