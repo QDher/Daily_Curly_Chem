@@ -80,7 +80,7 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17: each ends with N/N passed
-npm run test:page                # 26 browser tests (Playwright, already installed in cloud sessions)
+npm run test:page                # 27 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
 python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_TESTER_CODE
