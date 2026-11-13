@@ -66,7 +66,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Arrow rules (deterministic) | `src/arrows.js` | 0.1.1 | stable; 8 of 8 real arrow entries accepted on the first reading |
 | Arrow reading (snapping, ranking) | `src/readings.js` | 0.1.0 | works on real input; thresholds `Readings.P` never tuned |
 | Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.3.0 | weak: 5 of 14 real drawings exact; letters are the weak part |
-| Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro with level, votes, five questions, file saved at the end; atoms can be entered without handwriting in three ways (below); tools per task phase and a remark box for the first testers (below) |
+| Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro, votes, five questions, file saved at the end; the level is not asked (taken from the daily sites' setting `puzzles:level` when present, else empty); atoms can be entered without handwriting in three ways (below); tools per task phase and a remark box for the first testers (below) |
 | Task list, reference mechanisms | `data/tasks.json`, `src/tasks.js` | 1 | verified by the interpreter, not reviewed by a chemist |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
@@ -96,6 +96,8 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Confirming the structure given by arrows and submitting a structure as an answer are two separate choices.
 - Real strokes go into the repository only with the agreement of the person who drew them, as points only.
 - The page is unlisted on GitHub Pages; the repository is public.
+- The page does not ask the tester's level (2026-11-13); tasks come from undergraduate and graduate problems
+  of One-Pot and from Name Reaction Daily (no levels), not from advanced problems.
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 

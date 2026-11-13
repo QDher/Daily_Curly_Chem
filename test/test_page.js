@@ -73,7 +73,6 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.goto(noCode ? url : url + '#t=' + CODE);
     await page.waitForSelector(noCode ? 'body[data-ready="gate"]' : 'body[data-ready="1"]', { timeout: 30000 });
     if (!noCode) {
-      await page.selectOption('#level', 'graduate');
       await page.click('#start');
     }
     return { page, errors, ctx };
@@ -160,7 +159,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     for (let i = 0; i < n; i++) await page.click('#no');
     eq(await page.isHidden('#result'), true, 'result hidden');
     const e = await page.evaluate(() => window.__entries[0]);
-    eq(e.accepted, null, 'accepted'); eq(e.rejected.length, n, 'rejected'); eq(e.level, 'graduate', 'level');
+    eq(e.accepted, null, 'accepted'); eq(e.rejected.length, n, 'rejected'); eq(e.level, '', 'no level asked');
   });
 
   await test('H mode: tap an atom, then three arrows', async () => {
@@ -580,7 +579,6 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq((await remarks()).length, 2, 'two tasks');
     await page.reload();
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
-    await page.selectOption('#level', 'graduate');
     await page.click('#start');
     eq(await page.inputValue('#remark'), 'The second structure is cut off.', 'restored after a reload');
     await page.fill('#remark', '');
@@ -653,7 +651,6 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.reload();
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     if (!(await page.textContent('#intro-msg')).includes('1 entries from an earlier visit')) throw new Error('intro message');
-    await page.selectOption('#level', 'graduate');
     await page.click('#start');
     const e = await page.evaluate(() => window.__entries);
     eq(e.length, 1, 'restored'); eq(e[0].kind, 'votes');
@@ -722,7 +719,6 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page2.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     await page2.close();
     // an entry, then forget: code and entries are removed, the gate comes back
-    await page.selectOption('#level', 'graduate');
     await page.click('#start');
     await page.selectOption('#step', { index: 12 });
     const rows = page.locator('#mech-steps .mstep [role="group"]');
@@ -743,6 +739,24 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await ctx.close();
   });
 
+  await test('a level declared on a daily site (same browser) is recorded without asking', async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    const page = await ctx.newPage();
+    pages.push(page);
+    await page.goto(url + '#t=' + CODE);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    await page.evaluate(() => localStorage.setItem('puzzles:level', 'postgraduate'));
+    await page.reload();
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    await page.click('#start');
+    await page.selectOption('#step', { index: 12 });
+    const rows = page.locator('#mech-steps .mstep [role="group"]');
+    for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
+    await page.click('#votes');
+    eq(await page.evaluate(() => window.__entries[0].level), 'postgraduate', 'level recorded');
+    await ctx.close();
+  });
+
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
     const { page } = await open({ width: 1100, height: 900 }, false, true);
     eq(await page.isHidden('#work'), true, 'work hidden');
@@ -756,9 +770,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     eq(await page.isVisible('#intro'), true, 'intro shown');
     eq(await page.isHidden('#gate'), true, 'gate hidden');
-    await page.click('#start');
-    eq(await page.isHidden('#work'), true, 'no start without a level');
-    await page.selectOption('#level', 'undergraduate');
+    eq(await page.locator('#level').count(), 0, 'no level prompt');
     await page.click('#start');
     eq(await page.isVisible('#work'), true, 'work shown');
   });
@@ -781,7 +793,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.evaluate(() => window.__app.flush());
     eq(posts.length, 1, 'posts after confirmation');
     const b = posts[0];
-    eq(b.site, 'mechpilot'); eq(b.kind, 'arrows'); eq(b.task, 't1-addition'); eq(b.seq, 0); eq(b.user_level, 'graduate');
+    eq(b.site, 'mechpilot'); eq(b.kind, 'arrows'); eq(b.task, 't1-addition'); eq(b.seq, 0); eq(b.user_level, undefined, 'no level sent');
     if (!/^[0-9a-f]{8}$/.test(b.visitor)) throw new Error('visitor'); if (!/^[0-9a-f-]{36}$/.test(b.session)) throw new Error('session');
     eq(b.payload.accepted, 0); eq(b.payload.submitted, null); eq(b.payload.strokes.length, 2);
     if (JSON.stringify(b).length > 250000) throw new Error('payload size ' + JSON.stringify(b).length);

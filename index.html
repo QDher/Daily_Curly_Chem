@@ -87,13 +87,6 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <p>14 short tasks, about 20 minutes: drawing curly arrows on structures, copying structures by hand, and judging two mechanisms. You can skip a task with “Next task”.</p>
     <p class="muted" id="intro-data"></p>
     <div class="row">
-      <label for="level">Your level</label>
-      <select id="level">
-        <option value="">choose</option>
-        <option value="undergraduate">undergraduate</option>
-        <option value="graduate">graduate</option>
-        <option value="postgraduate">postgraduate</option>
-      </select>
       <button id="start" class="primary">Start</button>
     </div>
     <p id="intro-msg" role="status"></p>
@@ -269,9 +262,11 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     location.replace(location.pathname);
   };
   $('intro').hidden = false;
+  // The level is not asked here. If the visitor declared one on a daily site (same browser, shared setting), it is
+  // recorded with the entries; otherwise none is.
   let level = '';
   try { level = localStorage.getItem('puzzles:level') || ''; } catch (e) { /* storage unavailable */ }
-  if (['undergraduate', 'graduate', 'postgraduate'].includes(level)) $('level').value = level;
+  if (!['undergraduate', 'graduate', 'postgraduate'].includes(level)) level = '';
 
   const R = await initRDKitModule({ locateFile: (f) => 'rdkit/' + f });
   const data = await (await fetch('data/tasks.json')).json();
@@ -852,9 +847,6 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     }
   } catch (e) { /* storage unavailable */ }
   $('start').onclick = () => {
-    level = $('level').value;
-    if (!level) return say('intro-msg', 'Choose your level first.', 'bad');
-    try { localStorage.setItem('puzzles:level', level); } catch (e) { /* storage unavailable */ }
     $('intro').hidden = true;
     $('entries').hidden = false;
     selectStep(0);
