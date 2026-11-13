@@ -1,0 +1,7 @@
+{
+  "name": "daily-curly-chem",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Curly-arrow mechanisms: test run and shared modules for One-Pot Puzzles and Name Reaction Daily",
+  "scripts": { "test": "node test/test_arrows.js" }
+}
