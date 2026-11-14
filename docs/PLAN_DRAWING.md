@@ -28,9 +28,11 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 7 | A hydrogen written right next to a heteroatom is bonded to it (OH as O–H) | `src/recognize.js` | – | readings of existing drawings can change | `Recognize.VERSION` |
 | 8 | Subscripts read correctly (NH2, NH3+, OH2+) | `src/recognize.js`, `src/glyphs.js`, `src/canvas.js` (typed input) | 7 | readings of existing drawings can change; typed labels may carry a count | `Recognize.VERSION` |
 | 9 | Arrows smoothed and drawn in a clean style once both ends snap | `src/canvas.js` (display), `src/readings.js` (candidates of one stroke) | – | display only; raw strokes kept; new field `snapShown` | `versions.page` |
+| 10 | Fishhook (one-electron) arrows for radical mechanisms | `src/arrows.js`, `docs/SCENE.md`, `src/readings.js`, `src/scene.js`, `src/canvas.js`, `src/recognize.js` | 3, 9 | scene format (unpaired electrons), arrow format (`e`), new tasks | `Arrows.VERSION`, `Readings.VERSION`, `Recognize.VERSION`, `versions.page` |
 
 Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 and 8 (recognizer rules, no interface), then 9 and 1
-(instant feedback on arrows and bonds), then 2, 4, 5. Item 6 also
+(instant feedback on arrows and bonds), then 2, 4, 5, then 10 (a new kind of mechanism; needs its own tasks and a
+second test run). Item 6 also
 applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
@@ -348,7 +350,7 @@ from the atoms, used for the mechanisms to vote on).
 - Same behaviour for mouse, touch and pen. Undo and Erase act on the stylized arrow as on its stroke.
 - Recorded per stroke: `snapShown: { from, to }` (what the display showed), to measure later how often testers
   accepted, redrew or erased after seeing it.
-- Fishhook (one-electron) arrows are not covered; they are not in the scene format yet (`docs/SCENE.md`).
+- Fishhook (one-electron) arrows are item 10.
 
 **Evidence needed.** First-run arrow entries: how often the first reading was rejected (`rejected`), arrows with an
 end not attached (`unattached` messages), and remarks on arrows taken from the wrong atom or bond. Readings of the
@@ -363,6 +365,57 @@ the same readings as before the change on the replayed first-run entries (`tools
 **Risks.** The display may suggest one target while the joint reading picks another (handled by showing the
 reading's arrows in the result panel). A stylized arrow hides how the tester actually drew it: the raw stroke stays
 available under a "show my strokes" toggle for checking.
+
+---
+
+## 10. Fishhook arrows for radical mechanisms
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** Radical steps can be drawn and checked: homolysis, radical addition to a π bond, atom abstraction,
+fragmentation, combination, written with fishhook arrows (half head, one electron each), alone or mixed with ordinary
+arrows in later tasks.
+
+**Current state.** Not supported anywhere. `docs/SCENE.md`: "Not in this version: one-electron (radical) arrows".
+The scene has no unpaired electrons: nonbonding electrons follow from valence, charge, hydrogens and bonds, and are
+assumed paired. The recognizer does not read radical dots (`docs/RECOGNITION.md`, known limits); RDKit can hold
+radical electrons (`NumRadicalElectrons`), which `Scene.fromSmiles` and `Scene.canonical` do not pass on today.
+
+**Design.**
+- Scene format: an optional field `rad` per atom (number of unpaired electrons, 0 when absent). Lone pairs = (nonbonding
+  electrons − `rad`) / 2. Read from and written to RDKit (`[CH3]` with radical electrons in SMILES, e.g. `[CH3]`,
+  `[Br]`), so canonical comparison and layout keep radicals. `docs/SCENE.md` and its version updated.
+- Arrow format: field `e` (2 by default, 1 for a fishhook). Sources: a bond (one of its two electrons), a lone pair
+  (one electron), an unpaired electron (`{ kind: 'rad', atom }`). Sinks: an atom, or the space between two atoms (new
+  bond, made from two fishhooks meeting there, one from each side).
+- Interpreter rules (`src/arrows.js`), deterministic as now: each fishhook moves one electron; electron counts per
+  atom and per bond are balanced after all arrows of the step; a bond loses one order per two fishhooks leaving it
+  (homolysis is two fishhooks from one bond to its two atoms); a new bond needs one electron from each partner;
+  `rad` is recomputed from the balance. Mixing fishhooks and full arrows in one step is allowed only where the
+  electron balance closes. New error codes (`unpaired`, `odd-electrons`); shell limits as now, item 3 for third-row
+  atoms. Every rule documented in `docs/SCENE.md` and covered in `test/test_arrows.js`.
+- Drawing: a tool switch "Full arrow / Fishhook" in arrow mode (a drawn half head is not reliable to recognize from
+  mouse strokes; head recognition can come later from the test data). Display: half head on the outer side of the
+  curve, in the style of item 9.
+- Readings (`src/readings.js`): candidates include unpaired electrons as sources; pairing of two fishhooks to a new
+  bond is a reading, not a guess; an arrow with more than one reading stays an `ambiguous` error.
+- Recognizer: a radical dot next to an atom (a small closed stroke or a tap) read as `rad` = 1, and typed input
+  (right click) accepting `C.` or a "•" button in the row of atoms; checked against valence like charges.
+- Tasks: a few radical steps from published problems of the two sites (radical halogenation, tin hydride
+  reduction, radical cyclization), as T1 tasks with references verified by `test/test_tasks.js`; texts follow the
+  content rules (no reaction names, no mechanism words such as "radical" or "homolysis" before the answer; the tool
+  switch is labelled by its drawing, not by a mechanism word).
+
+**Evidence needed.** None from the first run (no radical task). A second test run with radical tasks gives the data:
+how often testers pick the wrong arrow type, and how they draw the pairing of two fishhooks.
+
+**Tests.** Unit: homolysis, addition to an alkene, abstraction of H, β-fragmentation, combination; refused cases (odd
+electron count left, one fishhook forming a bond alone); all current arrow tests unchanged with `e` absent. RDKit
+round trip of `rad`. Page: switch to fishhook, draw two fishhooks from a Br–Br bond, result shows two Br radicals.
+
+**Risks.** The format change touches every module and the entry format (replay and the Worker's `mech_entries`
+payload must accept `e` and `rad`; older entries replay unchanged since both fields default). Display of a radical
+dot must stay distinct from a lone pair mark (item 9) and from a charge.
 
 ---
 
