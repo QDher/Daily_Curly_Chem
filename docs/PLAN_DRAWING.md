@@ -24,8 +24,10 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 3 | Rule for third-row atoms that can exceed the octet | `src/arrows.js`, `src/recognize.js` | – | readings of existing entries can change | `Arrows.VERSION`, `Recognize.VERSION` |
 | 4 | Select, move and rotate a fragment drawn separately | `src/canvas.js`, `index.html` | – | new field `moves` | `versions.page` |
 | 5 | Fragments snap together, within valence rules | `src/canvas.js`, `src/recognize.js` | 3, 4 | new field `snaps` | `versions.page`, `Recognize.VERSION` |
+| 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` |
 
-Proposed order: 3 (rules only, no interface), then 1, 2, 4, 5.
+Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 1, 2, 4, 5. Item 6 also
+applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
 
@@ -183,6 +185,52 @@ refused.
 
 **Risks.** Unwanted snaps when fragments are meant to stay apart (a reagent next to a substrate): snapping only while
 a move is in progress, never while drawing, and a tester can undo.
+
+---
+
+## 6. Overlapping bonds
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** No two bonds of a structure shown on the page cross or lie on top of each other in a way that can be read
+as a bond meeting at an atom. In order of preference: (a) a layout with correct bond lengths and angles that has no
+overlap; (b) if none is found, bond angles and lengths distorted within set limits; (c) if overlap remains, the bond
+behind is drawn with a gap where the other crosses it (a "bridge"), so that the crossing cannot be read as an atom.
+
+**Current state.** Shown structures take RDKit coordinates (`mol.set_new_coords()` in `Scene.fromSmiles`,
+`Scene.relayout`); species are placed side by side by `Scene.compose`. Nothing checks for crossing bonds, between
+or within species. Bonds are drawn as plain lines (`src/canvas.js`). Crossings are most likely in bridged and fused
+polycycles, macrocycles, crowded substituents, and after arrows join two species. Hand-drawn ink is shown as drawn
+and is not covered here; the reading panel and the arrow phase show laid-out structures and are covered.
+
+**Design.**
+- Detection, after every layout (`fromSmiles`, `relayout`, `compose`, and later the item 2 preview and item 4/5
+  results): pairs of bonds with no shared atom whose segments intersect, or come closer than 0.15 L; also an atom
+  closer than 0.25 L to a bond it is not part of (looks like a junction).
+- (a) Avoid: ask RDKit again with its other depiction options (CoordGen on and off, ring templates), and, for a
+  species with rotatable bonds, try flipping substituents about single bonds (mirror a branch across the bond);
+  keep the first layout without overlap.
+- (b) Distort: a small relaxation that moves atoms to remove the remaining crossings, with each bond angle allowed
+  to change by at most 15° (target 10°) and each bond length by at most 15 %; ring bonds of aromatic rings kept
+  regular. Accept the result only if every angle and length stays within the limits.
+- (c) Bridge: if a crossing remains, choose the bond drawn behind (the one outside a ring, or the longer one) and
+  cut it on both sides of the crossing with a gap of about 0.15 L, drawn in the background colour, so the front
+  bond passes over it. No atom label or dot at the crossing.
+- The coordinates change only the display: atom and bond ids, arrows, readings and entries' structures are not
+  affected, apart from the coordinates stored in `scene` fields.
+- Arrow input: a crossing point is never a target; an arrow ending there snaps to the front bond only.
+
+**Evidence needed.** Count of structures in `data/tasks.json` and in the daily sets (`data/daily/`) that have a
+crossing today (a script over all of them, run once, gives the size of the problem without changing the page);
+remarks or flags about structures that looked wrong.
+
+**Tests.** Unit: detection on constructed crossings and on known difficult structures (bridged bicycles, a
+macrocycle, a crowded quaternary centre); each step (a), (b), (c) reached by a test case; after (b), all angles
+within 15° and lengths within 15 %. Page: a structure with a remaining crossing is drawn with the gap; arrows still
+attach to both bonds.
+
+**Risks.** The relaxation may make a structure look less familiar than RDKit's layout with a crossing; the limits
+(10 to 15°, 15 %) are to be checked on screenshots with the user before they are fixed.
 
 ---
 
