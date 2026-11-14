@@ -72,8 +72,8 @@ resources and setup).
      bond added, bond order, letter, charge) and drawn again once.
 3. The page saves the entries file as for a tester; the script replays it (`tools/replay.js`) and writes the run
    record `run-<date>-<tester>.json`: tester, label, traits, habits, commit, tool versions, and for each attempt
-   the seed, the habits used, the intended answer, the readings, the outcome, the entries recorded and the
-   screenshot. Exit code 1 if the page reported an error or an entry does not replay.
+   the seed, the habits used, the intended answer, the strokes as the page recorded them (and, for arrows,
+   the structure they were drawn on), the readings, the outcome, the entries recorded and the screenshot. Exit code 1 if the page reported an error or an entry does not replay.
 4. The Console agent replays the file, opens the screenshots of the attempts that did not end as intended (at
    most 12), reviews the reference steps of the daily set (sound, doubtful or wrong) and writes `report.md`.
 

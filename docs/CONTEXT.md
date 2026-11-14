@@ -78,7 +78,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
-| Agent testers (synthetic, one per day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `console/` | ink 0.1.0, script 0.1.0 | built and run locally on 2026-11-14 (4 testers, all entries replay); Console resources written, not applied (the user applies them with `ant apply`, `console/README.md`) |
+| Agent testers (synthetic, one per day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `console/` | ink 0.1.0, script 0.1.1 | built and run locally on 2026-11-14 (4 testers, all entries replay); Console resources written, not applied (the user applies them with `ant apply`, `console/README.md`) |
 
 Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink for the benchmark), `console/` (Claude
 Console resources of the agent testers),

@@ -13,9 +13,10 @@
 //
 // Outputs in --out: the entries file saved by the page (curly-entries-<label>-<device>.json), the run record
 // run-<date>-<tester>.json (intended answers, seeds, habits, outcome of each attempt, replay result) and a
-// screenshot of each reading (shots/). The page is served locally with its own tester list: the code of a tester
-// ('agent-' + name) opens this local page only, not the live site. Entries carry the label of that code and are
-// never tester data.
+// screenshot of each reading (shots/). The record also keeps, per attempt, the strokes as the page recorded them
+// and, for arrows, the structure they were drawn on. The page is served locally with its own tester list: the
+// code of a tester ('agent-' + name) opens this local page only, not the live site. Entries carry the label of
+// that code and are never tester data.
 //
 // Run: node tools/agent_tester.js [--agent john0002|...|auto] [--date YYYY-MM-DD] [--sets standard,daily]
 //                                 [--out DIR] [--tasks N] [--chromium PATH]
@@ -30,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -212,6 +213,15 @@ async function main() {
       await page.click('#m-arrow');
       await drawStrokes(strokes, d.style.speed);
       rec.strokes = strokes.length;
+      // what the page holds before applying: the structure (with drawn hydrogens) and the strokes as recorded
+      Object.assign(rec, await page.evaluate(() => {
+        const app = window.__app, sc = app.input.getScene();
+        const r3 = (v) => Math.round(v * 1000) / 1000;
+        return {
+          scene: { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, x: r3(a.x), y: r3(a.y) })), bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })) },
+          ink: app.input.getStrokes().map((st) => st.points.map((p) => [r3(p.x), r3(p.y)])),
+        };
+      }));
       await page.click('#apply');
       if (!(await page.isVisible('#result'))) {
         rec.outcome = 'no-reading';
@@ -271,7 +281,15 @@ async function main() {
         await page.mouse.click(c.x, c.y);
       }
       rec.strokes = ink.strokes.length;
-      rec.typed = ink.typed.length;
+      // the ink and typed atoms as the page holds them (frame units)
+      Object.assign(rec, await page.evaluate(() => {
+        const app = window.__app;
+        const r3 = (v) => Math.round(v * 1000) / 1000;
+        return {
+          ink: app.input.getInk().map((st) => st.points.map((p) => [r3(p.x), r3(p.y)])),
+          typed: app.input.getTyped().map((t) => ({ el: t.el || null, q: t.q || 0, x: r3(t.x), y: r3(t.y) })),
+        };
+      }));
       await page.click('#read');
       if (!(await page.isVisible('#reading'))) {
         rec.outcome = 'no-reading';
