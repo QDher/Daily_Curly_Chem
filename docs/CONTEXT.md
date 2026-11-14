@@ -144,6 +144,12 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 
+## Planned fixes and features (not started)
+
+`docs/PLAN_DRAWING.md` (2026-11-14): line straightening while drawing, clean-up preview after a 1 s pause, a valence
+rule for third-row atoms, moving and rotating fragments, snapping fragments together. The page is not changed for
+them while the first test run collects data; the plan and its evidence log are updated as entries come in.
+
 ## Open issues, by priority
 
 | Issue | What is known | Where |
