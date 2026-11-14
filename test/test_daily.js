@@ -105,12 +105,12 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(r.keys.arrows.length + r.keys.copies.length, 0, 'nothing marked as used');
   });
 
-  test('the published daily set, when there is one: 5 arrow tasks and 10 structures, references verified', () => {
+  test('the published daily set, when there is one: 5 arrow tasks and 5 structures (10 in the set of 2026-11-13), references verified', () => {
     const file = path.join(__dirname, '..', 'data', 'daily', 'latest.json');
     if (!fs.existsSync(file)) return;
     const d = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (!d.tasks.length) return;
-    eq(d.tasks.filter((t) => t.type === 'T1').length, 5); eq(d.tasks.filter((t) => t.type === 'T2').length, 10);
+    eq(d.tasks.filter((t) => t.type === 'T1').length, 5); eq(d.tasks.filter((t) => t.type === 'T2').length, d.date <= '2026-11-13' ? 10 : 5);
     for (const t of d.tasks.filter((x) => x.type === 'T1')) {
       const s = Tasks.runStep(R, Tasks.startScene(R, t), { drawH: t.drawH, arrows: t.reference });
       const got = Solver.species(R, s.raw);

@@ -1,10 +1,10 @@
-// Builds the daily set: 5 arrow tasks and 10 structures to copy, from the problems of the two daily sites
+// Builds the daily set: 5 arrow tasks and 5 structures to copy, from the problems of the two daily sites
 // (One-Pot: undergraduate and graduate problems only; Name Reaction Daily: all), from the day before the set and
 // older, the newest first.
 // Nothing is written by hand or by a model: an arrow task is kept only when src/solver.js finds one entry of arrows
 // from its start to the next structure of the problem; a structure to copy is kept only when the recognizer reads a
 // clean drawing of it. Tasks already used (earlier daily sets, data/tasks.json) are not used again.
-// When fewer than 5 + 10 good tasks are left, the set of the day is empty ("no new task").
+// When fewer than 5 + 5 good tasks are left, the set of the day is empty ("no new task").
 //
 //   node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--out data/daily] [--dry]
 //
@@ -18,7 +18,7 @@ const Recognize = require('../src/recognize.js');
 const Ink = require('../src/ink.js');
 const Tasks = require('../src/tasks.js');
 
-const N_ARROWS = 5, N_COPIES = 10;
+const N_ARROWS = 5, N_COPIES = 5;
 const PER_PROBLEM = { arrows: 2, copies: 3 };
 const ELEMENTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'I', 'B', 'Si'];
 const SPECTATORS = ['[Na+]', '[K+]', '[Li+]', '[Cs+]'];
@@ -159,13 +159,14 @@ function make(R, opt) {
   }
   const found = { arrows: arrows.length, copies: copies.length };
   if (arrows.length < nArrows || copies.length < nCopies) return { tasks: [], found, keys: { arrows: [], copies: [] } };
-  // order: one arrow task, then two structures to copy
+  // order: arrow tasks and structures to copy alternate (PER = structures after each arrow task)
+  const PER = Math.ceil(nCopies / nArrows);
   const tasks = [];
   const tag = opt.date.replace(/-/g, '');
   for (let k = 0; k < nArrows; k++) {
     const a = arrows[k];
     tasks.push({ id: 'd' + tag + '-a' + (k + 1), type: 'T1', source: a.source, conditions: a.conditions, start: a.start, drawH: a.drawH.length ? a.drawH : undefined, reference: a.reference, expected: a.expected });
-    for (const c of copies.slice(2 * k, 2 * k + 2)) tasks.push({ id: 'd' + tag + '-c' + (copies.indexOf(c) + 1), type: 'T2', source: c.source, target: c.target });
+    for (const c of copies.slice(PER * k, Math.min(PER * k + PER, nCopies))) tasks.push({ id: 'd' + tag + '-c' + (copies.indexOf(c) + 1), type: 'T2', source: c.source, target: c.target });
   }
   // each reference must pass the interpreter from a fresh start scene, as test/test_tasks.js checks
   for (const t of tasks.filter((x) => x.type === 'T1')) {

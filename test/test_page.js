@@ -779,7 +779,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await ctx.close();
   });
 
-  await test('daily set: 5 arrow tasks and 10 structures; an arrow task is answered although the problem lists no by-product', async () => {
+  await test('daily set: 5 arrow tasks and the structures to copy; an arrow task is answered although the problem lists no by-product', async () => {
     const daily = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'latest.json'), 'utf8'));
     if (!daily.tasks.length) throw new Error('no daily set in the repository to test with');
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
@@ -791,7 +791,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     if (!(await page.textContent('#daily-info')).includes(daily.date)) throw new Error('date not shown');
     await page.click('#start-daily');
-    eq(await page.locator('#step option').count(), 15, 'tasks');
+    eq(await page.locator('#step option').count(), daily.tasks.length, 'tasks');
     eq(await page.evaluate(() => window.__app.tasks.filter((t) => t.type === 'T1').length), 5, 'arrow tasks');
     // the first arrow task whose reference is a lone pair to an atom, then a double bond to its own atom
     const k = daily.tasks.findIndex((t) => t.type === 'T1' && !t.drawH && t.reference.length === 2 && t.reference[0].from.lp && t.reference[0].to.atom && t.reference[1].to.atom);

@@ -74,7 +74,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.3.0 | weak: 5 of 14 real drawings exact; letters are the weak part |
 | Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro, votes, five questions, file saved at the end; the level is not asked (taken from the daily sites' setting `puzzles:level` when present, else empty); atoms can be entered without handwriting in three ways (below); tools per task phase and a remark box for the first testers (below) |
 | Task list, reference mechanisms | `data/tasks.json`, `src/tasks.js` | 1 | verified by the interpreter, not reviewed by a chemist |
-| Daily set (5 arrow tasks, 10 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; the scheduled run itself is not yet observed |
+| Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
 
@@ -98,7 +98,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 
 ## Daily set (user request of 2026-11-13)
 
-- Each day: 5 arrow tasks and 10 structures to copy, from the problems of the two sites: One-Pot undergraduate and
+- Each day: 5 arrow tasks and 5 structures to copy (10 in the set of 2026-11-13; changed by the user on 2026-11-14), from the problems of the two sites: One-Pot undergraduate and
   graduate problems only, all Name Reaction problems.
 - Date rule (user request of 2026-11-13): a set dated D uses only problems dated before D, the newest first, as
   long as they are still in the sites' `data/problems.json` (about 32 days). The puzzle of the day is never used,
@@ -114,7 +114,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   (no substitution at C=O in one entry); a drawn hydrogen must be taken by another species; no doubly charged atom
   and at most two new charges in the result. The solver says a step can be drawn with the rules, not that it is the
   accepted mechanism: the tasks are not reviewed by a chemist.
-- If fewer than 5 + 10 good tasks are left, `data/daily/latest.json` has no task and the page shows "No new task
+- If fewer than 5 + 5 good tasks are left, `data/daily/latest.json` has no task and the page shows "No new task
   today". Supply measured on 2026-11-13 over 49 eligible problems: about 4 arrow steps and 10 structures per day
   of new problems, and 68 and 177 in the backlog, so empty days are expected now and then.
 - Where it runs: `.github/workflows/pages.yml`, on schedule (03:30 UTC) and on manual run: downloads both
@@ -138,7 +138,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - The page is unlisted on GitHub Pages; the repository is public.
 - The page does not ask the tester's level (2026-11-13); tasks come from undergraduate and graduate problems
   of One-Pot and from Name Reaction Daily (no levels), not from advanced problems.
-- Daily tasks: 5 arrow tasks and 10 structures; One-Pot undergraduate and graduate problems and Name Reaction
+- Daily tasks: 5 arrow tasks and 5 structures (decision of 2026-11-14, before: 10 structures); One-Pot undergraduate and graduate problems and Name Reaction
   problems; past problems when needed; "No new task today" when too few good tasks are left; never the puzzle
   of the day itself (section "Daily set").
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
@@ -204,6 +204,7 @@ frames, so it cannot open a menu while drawing). Not built, by choice: drag and 
 | A wrong structure confirmed while drawing blocked the arrow phase | arrows continued from the confirmed drawing | draw-and-arrows tasks continue from the structures asked for; entry marked `replaced` | `test_page.js` |
 | Structures not redrawn when switching to arrows | hand-drawn positions kept | clean layout (`Scene.relayout`) at the switch | `test_page.js` |
 | Entries lost when the tab is closed; file had to be saved by hand | memory only | kept in `localStorage`, restored on return; file downloaded at "Finish" | `test_page.js` |
+| Right click in the drawing frame also opened the menu of the browser (user, 2026-11-14) | on Windows the menu event comes on button release, when the atom box already lies under the pointer; only the svg cancelled it | `contextmenu` is also cancelled on the container (`src/canvas.js`); not confirmed on the user's computer | `test_page.js` (menu cancelled on the atom box) |
 | Letters written with a mouse read very badly | templates do not fit mouse handwriting | not fixed in the recognizer; atoms can be entered without handwriting (three ways, above) | `test_page.js`, `test_recognize.js` |
 | A refused code gave only "not valid"; the page stopped silently in browsers before about 2022 | no distinction for replaced codes; `crypto.randomUUID` used without a fallback; no error display | replaced codes named (`retired` in `data/testers.json`), pasted codes cleaned (case, spaces, punctuation), fallback for `randomUUID`, panel "The page could not start" with the error text and the browser | `test_page.js` |
 | No way to say a reading is wrong | only "Draw again" | "The reading is wrong" with reasons (`flagged`, `wrong`) | `test_page.js` |
