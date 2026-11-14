@@ -256,8 +256,8 @@ or a misread label), and written labels with several letters (OH, NH, SH) are no
 - The attached H counts as an explicit hydrogen of that atom: the atom's hydrogen count is checked against valence
   and charge (item 3 table for S and P). If the count does not fit (O with two bonds plus an H), the H is not attached
   and the atom is marked uncertain, so the tester sees it in the reading panel.
-- Carbon is excluded by default (CH3 written as a label is a separate case: abbreviations and subscripts are in the
-  open issues); to be decided with the user whether CH, CH2, CH3 labels follow the same rule later.
+- Carbon is excluded (user decision, 2026-11-14): hydrogens on carbon follow from the implicit-hydrogen rule
+  (`implicitH`), and a written H next to a carbon is not attached by this rule.
 - A subscript after the H (NH2, NH3+) is part of the open issue on subscripts; this item covers a single H first,
   then H with a small digit if the subscript reading exists.
 - The H is not turned into a separate atom in the scene: it folds into the atom's hydrogen count, as drawn hydrogens
