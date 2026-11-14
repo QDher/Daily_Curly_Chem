@@ -137,7 +137,8 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 ## Decisions of the user (do not reopen)
 
 - Entries are collected as files; the Worker part (table `mech_entries`, on the One-Pot branch above) is merged
-  after the training and ML work. Do not switch sending on, do not ask for the merge.
+  at the start of stage 3 of `ML_PLAN.md` (2026-11-14; before: after the training and ML work). Do not switch
+  sending on, do not ask for the merge before that.
 - Confirming the structure given by arrows and submitting a structure as an answer are two separate choices.
 - Real strokes go into the repository only with the agreement of the person who drew them, as points only.
 - The page is unlisted on GitHub Pages; the repository is public.
@@ -150,6 +151,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   and so on; they know the answer and test only the drawing (traits precision and consistency). Their entries are
   synthetic: never counted in the readiness criteria, the phase-4 start conditions or the visitor rules, never
   used to evaluate a model, never committed (`docs/AGENT_TESTER.md`).
+  Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 

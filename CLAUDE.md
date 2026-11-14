@@ -7,7 +7,8 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   if a push is rejected, rebase on `origin/main`; never force-push.
 - Setup in a new session: `npm ci && npm run setup`, then `npm test` and `npm run test:page` before any change.
 
-- Purpose: test-run page and single source of the shared curly-arrow modules for the two puzzle sites. The plan is
+- Purpose: test-run page and single source of the shared curly-arrow modules for the two puzzle sites; stage 1 of
+  the six stages of `ML_PLAN.md` ("Overall plan in six stages", 2026-11-14). The plan is
   `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles (section "Future development: curly-arrow mechanisms"); update
   it there when a decision changes, and the status table in `README.md` here.
 - The two site repositories are not changed from here before the test run is evaluated. Deployment is a versioned
@@ -28,8 +29,8 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
 - Daily set (`tools/make_daily.js`, `src/solver.js`, `data/daily/`): built by the workflow, never by hand. A change
   of the solver rules increases `Solver.VERSION`; `node test/test_daily.js` must pass. Do not edit `data/daily/`.
 - Entries: collected as files saved by the testers. Sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
-  switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does after the
-  training and ML work (decision of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
+  switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does at the
+  start of stage 3 of `ML_PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
   rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
   `MECH_EXPORT_KEY` (never in a repository).
 - Open with the user: the contact e-mail for the "Write the e-mail" link at the end of the test run (`contact` in
@@ -53,5 +54,6 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   never tester data, never counted with entries of people, never committed. Never reuse a name or change the seed
   or traits of a tester that has run; a change of `tools/agent_ink.js` increases its `VERSION`;
   `npm run test:agent` must end with N/N passed. The Console resources (`console/`) are applied by the user.
+  Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
 - Remarks of testers stay in D1; never copy them into the repository.
 - Reporting: brief, neutral and objective; state what was verified and what was not.

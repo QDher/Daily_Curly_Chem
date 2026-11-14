@@ -20,8 +20,9 @@ resources and setup).
   entries file and the replay; feedback on the page and on the reference steps.
 - **Not tester data.** Agent entries are never counted in the readiness criteria of the test run (ML_PLAN.md,
   section F), in the start conditions of phase 4 (drawings, visitors) or in the "at least 3 different visitors"
-  rule. Fine-tuning and every evaluation of a model use entries of people only. The gap between models trained on
+  rule. Every evaluation of a model and every frequency figure use entries of people only. The gap between models trained on
   synthetic ink and their results on human drawings is measured on the human entries.
+- **Judged agent entries and replacement (2026-11-14).** Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
 - **Letters are typed**, not handwritten: the only letter shapes available are the recognizer's own templates
   (`src/glyphs.js`), so handwritten letters from them would test the recognizer against itself. Atoms other than
   carbon and charges are placed with the row of atoms, as testers may do. Letter recognition needs letters from
