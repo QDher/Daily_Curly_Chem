@@ -36,6 +36,8 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
   of the cloud environment, so that no session has to ask; on 2026-11-13 it was not yet confirmed as set). If the variable is empty, ask the user once for the session
   code and do not write it into any file. Use it only to open the live or local page; entries recorded with it
   carry the label `93cd24ee` and are not tester data.
+- The creator's current link ends with a 20-character code (label `4f7c82a3`); the 10-character code used on
+  2026-11-13 is among the retired ones. If the creator reports that "my code" fails, check first which one was used.
 - The creator's earlier entries (file of 2026-11-13) carry the label `bad7de23`, from a code that was public and
   was retired on 2026-11-13. The codes used before that date are in the git history; none of them works any more.
 - A tester receives the link `https://qdher.github.io/Daily_Curly_Chem/#t=CODE`. On the first visit the page checks
@@ -149,6 +151,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 | Handwritten letters are read badly (Br as B or O, small N as P) | Templates do not fit mouse handwriting; avoided by typed atoms (row of atoms, or point and type). This is the part meant for a trained model | `readLabel`, `readChar` in `src/recognize.js`; fixture drawings 8, 11, 12 |
 | "NH2+" with a subscript, "Me" and other abbreviations | Not supported; the label is misread | fixture drawings 7, 9, 10 |
 | Two bonds in one stroke at an angle wider than about 155° are one line | Cut in two only when about two bond lengths long. No real example yet | `corners`, `isStraight` |
+| Error when the creator used their code on another computer (2026-11-14) | Cause not established: the private code opens the live page in headless Chromium. Most likely the earlier code, retired on 2026-11-13, was used. Ask for the exact message, whether the link was opened or the code typed, and the browser; since 2026-11-14 the page names a replaced code and shows a failure panel with the error text | code check and `showFailure` in `index.html`; case 11 in `docs/WEAKNESSES.md` |
 | Scroll instead of drawing with a stylus | Fixed in code and in an emulated test, not confirmed on the user's device. If it persists, ask for device, browser, stylus or finger | `applyTouch`, `block` in `src/canvas.js` |
 | Keys typed right after choosing a task go to the dropdown | Focus stays on the `select` until a click elsewhere | `keydown` handler in `src/canvas.js` |
 | Drawings whose bonds all run between two letters (Br–Br) | The bond length cannot be estimated | `estimateL` |
@@ -196,6 +199,7 @@ frames, so it cannot open a menu while drawing). Not built, by choice: drag and 
 | Structures not redrawn when switching to arrows | hand-drawn positions kept | clean layout (`Scene.relayout`) at the switch | `test_page.js` |
 | Entries lost when the tab is closed; file had to be saved by hand | memory only | kept in `localStorage`, restored on return; file downloaded at "Finish" | `test_page.js` |
 | Letters written with a mouse read very badly | templates do not fit mouse handwriting | not fixed in the recognizer; atoms can be entered without handwriting (three ways, above) | `test_page.js`, `test_recognize.js` |
+| A refused code gave only "not valid"; the page stopped silently in browsers before about 2022 | no distinction for replaced codes; `crypto.randomUUID` used without a fallback; no error display | replaced codes named (`retired` in `data/testers.json`), pasted codes cleaned (case, spaces, punctuation), fallback for `randomUUID`, panel "The page could not start" with the error text and the browser | `test_page.js` |
 | No way to say a reading is wrong | only "Draw again" | "The reading is wrong" with reasons (`flagged`, `wrong`) | `test_page.js` |
 | Page scrolled over frames that only show a structure could not scroll | `touch-action: none` on every frame | none only in frames that take input | `test_page.js` |
 
