@@ -6,6 +6,9 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   pushed there with the user's agreement. Start with `git fetch origin main && git checkout -B main origin/main`;
   if a push is rejected, rebase on `origin/main`; never force-push.
 - Setup in a new session: `npm ci && npm run setup`, then `npm test` and `npm run test:page` before any change.
+- Several sessions may change the page (decision of 2026-11-14). Before every push that touches `index.html`,
+  `src/`, `data/` or `tools/`: rebase on `origin/main`, then `npm run check` (unit, page and agent-driver tests)
+  must end with N/N passed for every set.
 
 - Purpose: test-run page and single source of the shared curly-arrow modules for the two puzzle sites; stage 1 of
   the six stages of `ML_PLAN.md` ("Overall plan in six stages", 2026-11-14). The plan is

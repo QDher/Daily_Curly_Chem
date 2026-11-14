@@ -7,6 +7,7 @@
     "setup": "mkdir -p rdkit && cp node_modules/@rdkit/rdkit/dist/RDKit_minimal.js node_modules/@rdkit/rdkit/dist/RDKit_minimal.wasm rdkit/",
     "test": "node test/test_arrows.js && node test/test_readings.js && node test/test_recognize.js && node test/test_tasks.js && node test/test_daily.js",
     "test:page": "node test/test_page.js",
+    "check": "npm test && npm run test:page && npm run test:agent",
     "replay": "node tools/replay.js",
     "test:agent": "node test/test_agent.js",
     "agent": "node tools/agent_tester.js"
