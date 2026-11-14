@@ -25,8 +25,10 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 4 | Select, move and rotate a fragment drawn separately | `src/canvas.js`, `index.html` | – | new field `moves` | `versions.page` |
 | 5 | Fragments snap together, within valence rules | `src/canvas.js`, `src/recognize.js` | 3, 4 | new field `snaps` | `versions.page`, `Recognize.VERSION` |
 | 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` |
+| 7 | A hydrogen written right next to a heteroatom is bonded to it (OH as O–H) | `src/recognize.js` | – | readings of existing drawings can change | `Recognize.VERSION` |
 
-Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 1, 2, 4, 5. Item 6 also
+Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 (recognizer rule, no interface), then 1, 2, 4,
+5. Item 6 also
 applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
@@ -231,6 +233,45 @@ attach to both bonds.
 
 **Risks.** The relaxation may make a structure look less familiar than RDKit's layout with a crossing; the limits
 (10 to 15°, 15 %) are to be checked on screenshots with the user before they are fixed.
+
+---
+
+## 7. Hydrogen written next to a heteroatom
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** A hydrogen written right next to a heteroatom, at a distance clearly shorter than a bond, is read as bonded
+to it without a drawn line: H3C–OH is read as H3C–O–H, as a chemist reads it.
+
+**Current state.** `docs/RECOGNITION.md`: hydrogens are not read; they follow from valence, charge and bonds
+(`implicitH`). A handwritten H can be recognized as a letter (`readLabel`, template `H`), and a typed H is placed by
+`place` / `snap` in `src/canvas.js`, but an H with no line to the O is left as a separate atom (a separate species,
+or a misread label), and written labels with several letters (OH, NH, SH) are not supported (open issue "NH2+ …" in
+`docs/CONTEXT.md`).
+
+**Design.**
+- After letters are grouped into labels, an H (handwritten or typed) whose box lies within about 0.5 L of a
+  heteroatom label (N, O, S, P, halogen not included; edge to edge, to be tuned on real drawings) and that has no bond
+  of its own is attached to that atom: the label becomes OH, NH, SH, PH. Side does not matter (HO– and –OH both).
+- The attached H counts as an explicit hydrogen of that atom: the atom's hydrogen count is checked against valence
+  and charge (item 3 table for S and P). If the count does not fit (O with two bonds plus an H), the H is not attached
+  and the atom is marked uncertain, so the tester sees it in the reading panel.
+- Carbon is excluded by default (CH3 written as a label is a separate case: abbreviations and subscripts are in the
+  open issues); to be decided with the user whether CH, CH2, CH3 labels follow the same rule later.
+- A subscript after the H (NH2, NH3+) is part of the open issue on subscripts; this item covers a single H first,
+  then H with a small digit if the subscript reading exists.
+- The H is not turned into a separate atom in the scene: it folds into the atom's hydrogen count, as drawn hydrogens
+  are folded today (`Scene.foldHydrogens`), so arrows to and from that H work as with an H drawn with the H tool.
+
+**Evidence needed.** Drawings of the first run with an H written next to O or N (confirmed, corrected or flagged),
+and the gap between the letters in those drawings, in units of L; fixture drawings 7, 9, 10 (labels with H).
+
+**Tests.** Unit: OH, HO, NH, SH written or typed at 0.2 to 0.5 L from the heteroatom are attached; an H at 1 L or more
+is not; an H that breaks valence is not attached and the atom is uncertain; real fixture drawings re-read
+(`node tools/update_fixture.js`), count reported. Page: methanol drawn as a line and "OH" reads as CO.
+
+**Risks.** An H meant as a separate species (H+, a hydride source written as H⁻) placed close to an O would be
+attached; a charge on the H, or a distance above the threshold, keeps it separate.
 
 ---
 

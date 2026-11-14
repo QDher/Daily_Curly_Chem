@@ -20,7 +20,7 @@ For a new working session: `docs/CONTEXT.md` (state, decisions, known issues and
 | 6 | Storage and replay: the page can post each entry to the feedback Worker (table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles); `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13). Sending is switched off (`data/config.json`, `worker: null`): the Worker part stays on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is merged after the training and ML work (decision of 2026-11-13). Until then entries are collected as files saved by the testers |
 | 8 | Daily set: 5 arrow tasks and 10 structures to copy from the problems of the two sites (`tools/make_daily.js`, `src/solver.js`, `data/daily/`), built by the workflow every day; "No new task today" when too few good tasks are left | done (2026-11-13); first set made in a session, the scheduled run not yet observed; tasks not reviewed by a chemist |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
-| 8 | Drawing fixes and features after the first run (`docs/PLAN_DRAWING.md`): straightening, pause preview, third-row valence, move and rotate, snapping, overlapping bonds | planned (2026-11-14); no page change during the first run |
+| 8 | Drawing fixes and features after the first run (`docs/PLAN_DRAWING.md`): straightening, pause preview, third-row valence, move and rotate, snapping, overlapping bonds, H next to a heteroatom | planned (2026-11-14); no page change during the first run |
 
 ## Two separate choices
 
