@@ -41,6 +41,9 @@
     for (const type of ['touchstart', 'touchmove', 'touchend', 'gesturestart', 'gesturechange', 'contextmenu', 'dragstart', 'selectstart']) {
       svg.addEventListener(type, block, { passive: false });
     }
+    // The menu of the browser is also blocked on the container: on Windows the menu event comes when the button
+    // is released, and by then the atom box opened by the right click lies under the pointer, not the svg.
+    container.addEventListener('contextmenu', block);
     const gBonds = el('g', { class: 'cc-bonds' }, svg);
     const gAtoms = el('g', { class: 'cc-atoms' }, svg);
     const gHi = el('g', { class: 'cc-hi' }, svg);

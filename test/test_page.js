@@ -700,6 +700,20 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       return [ev.defaultPrevented, ev2.defaultPrevented, ev3.defaultPrevented];
     });
     eq(prevented.join(','), 'true,true,false', 'cancelled in the input frame only');
+    // right click: the atom box opens under the pointer; the menu event that follows on it is cancelled too
+    const r = await page.evaluate(() => { const q = document.querySelector('#stage svg').getBoundingClientRect(); return { x: q.x + q.width / 2, y: q.y + q.height / 2 }; });
+    await page.mouse.move(r.x, r.y);
+    await page.mouse.down({ button: 'right' });
+    const onBox = await page.evaluate(() => {
+      const b = document.querySelector('#stage .cc-ask');
+      if (!b) return 'no box';
+      const ev = new Event('contextmenu', { bubbles: true, cancelable: true });
+      b.dispatchEvent(ev);
+      return String(ev.defaultPrevented);
+    });
+    await page.mouse.up({ button: 'right' });
+    await page.keyboard.press('Escape');
+    eq(onBox, 'true', 'menu cancelled on the atom box');
     // the frame that shows the structure to copy scrolls the page
     await page.evaluate(() => document.getElementById('target').scrollIntoView({ block: 'center' }));
     const y1 = await page.evaluate(() => window.scrollY);
