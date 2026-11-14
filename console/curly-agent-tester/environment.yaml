@@ -1,0 +1,11 @@
+# Container of the daily agent tester (Claude Console, Managed Agents). Plan: docs/AGENT_TESTER.md.
+# limited networking: only the package registries and code hosts that allow_package_managers opens (github.com
+# for the clone, registry.npmjs.org for npm ci). The page is served inside the container; no other host is needed.
+# The cloud container already has Node.js 22, Playwright for Node.js and Chromium.
+name: curly-agent-tester
+config:
+  type: cloud
+  networking:
+    type: limited
+    allow_package_managers: true
+    allow_mcp_servers: false

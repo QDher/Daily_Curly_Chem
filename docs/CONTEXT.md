@@ -30,6 +30,7 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
   | Tester 4 | `cb9ecc7f` | |
   | Tester 5 | `6527e5a7` | |
   | Claude Code sessions | `93cd24ee` | never tester data; leave such entries out of any count |
+  | Agent testers john0002, john0003, john0004, john0005 | `cf87ec24`, `55a54912`, `4f85c0b1`, `cdf81363` | synthetic (`docs/AGENT_TESTER.md`); code `agent-<name>`, valid only on the page served by `tools/agent_tester.js`, not in `data/testers.json`; never tester data |
 
   The same seven labels are in `MECH_TESTERS` on the Worker branch of the One-Pot repository.
 - Session code: read it from the environment variable `CURLY_TESTER_CODE` (to be set by the user in the settings
@@ -77,8 +78,10 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
+| Agent testers (synthetic, one per day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `console/` | ink 0.1.0, script 0.1.0 | built and run locally on 2026-11-14 (4 testers, all entries replay); Console resources written, not applied (the user applies them with `ant apply`, `console/README.md`) |
 
-Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink for the benchmark),
+Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink for the benchmark), `console/` (Claude
+Console resources of the agent testers),
 `tools/update_fixture.js` (re-reads the real drawings), `data/steps.json` (fixture of older tests),
 `data/structures.json` (benchmark set), `data/testers.json` (hashes of the tester codes).
 
@@ -88,6 +91,8 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17, daily 8: each ends with N/N passed (about 4 min)
 npm run test:page                # 30 browser tests (Playwright, already installed in cloud sessions)
+npm run test:agent               # 11 tests of the agent testers, one run of john0002 on the standard set (about 20 s)
+npm run agent -- --agent john0002 --date 2026-11-15   # one agent tester run; outputs in agent-runs/<date>/ (ignored)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
 python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_TESTER_CODE
@@ -141,6 +146,10 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Daily tasks: 5 arrow tasks and 5 structures (decision of 2026-11-14, before: 10 structures); One-Pot undergraduate and graduate problems and Name Reaction
   problems; past problems when needed; "No new task today" when too few good tasks are left; never the puzzle
   of the day itself (section "Daily set").
+- Agent testers (2026-11-14): one per day to start with, run from the Claude Console, named john0002, john0003,
+  and so on; they know the answer and test only the drawing (traits precision and consistency). Their entries are
+  synthetic: never counted in the readiness criteria, the phase-4 start conditions or the visitor rules, never
+  used to evaluate a model, never committed (`docs/AGENT_TESTER.md`).
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 
@@ -161,6 +170,8 @@ them while the first test run collects data; the plan and its evidence log are u
 | Scroll instead of drawing with a stylus | Fixed in code and in an emulated test, not confirmed on the user's device. If it persists, ask for device, browser, stylus or finger | `applyTouch`, `block` in `src/canvas.js` |
 | Keys typed right after choosing a task go to the dropdown | Focus stays on the `select` until a click elsewhere | `keydown` handler in `src/canvas.js` |
 | Drawings whose bonds all run between two letters (Br–Br) | The bond length cannot be estimated | `estimateL` |
+| Arrow to the space between two atoms more than 4.5 units apart is not read (seen with agent testers, 2026-11-14) | In `t1-cc-bond` the two atoms are 5.1 units apart, above `pairReach`; ending near the receiving atom works. Synthetic evidence only: not changed | `P.pairReach` in `src/readings.js`; `docs/AGENT_TESTER.md` |
+| A stroke shorter than 0.5 units in arrow mode is dropped without a message (seen with agent testers) | A short arrow from a lone pair to its own bond can vanish; the result then lacks that arrow | `len >= 0.5` in `src/canvas.js` |
 | Reference mechanisms not reviewed by a chemist | Step 3 of `acrylate-aldehyde` is a direct proton transfer (a simplification) | `data/tasks.json` |
 | Only one tester so far, mouse only | All real figures come from one person; touch is untested by a person | – |
 | The share button and the row of atoms on a real touch screen | Only exercised in headless Chromium | `index.html` |

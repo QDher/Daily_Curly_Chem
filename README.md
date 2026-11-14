@@ -19,6 +19,7 @@ For a new working session: `docs/CONTEXT.md` (state, decisions, known issues and
 | 5 | Task list of the test run (`data/tasks.json`, `src/tasks.js`): 6 arrow tasks, 4 structures to copy, 2 draw-and-arrow tasks, 2 mechanisms for a vote; reference arrows and mechanisms written by Claude and verified by `src/arrows.js` (`test/test_tasks.js`); page sequence with votes, five questions and a file of the entries (the level is not asked) | done (2026-11-13); the chemistry of the references is not reviewed by a chemist |
 | 6 | Storage and replay: the page can post each entry to the feedback Worker (table `mech_entries`, site key `mechpilot`, in `feedback-worker/` of QDher/Daily-organic-chemistry-puzzles); `tools/replay.js` re-runs readings and recognition on stored entries | page and replay done (2026-11-13). Sending is switched off (`data/config.json`, `worker: null`): the Worker part stays on branch `claude/beautiful-pasteur-7tg1k3` of that repository and is merged after the training and ML work (decision of 2026-11-13). Until then entries are collected as files saved by the testers |
 | 8 | Daily set: 5 arrow tasks and 5 structures to copy (10 in the set of 2026-11-13) from the problems of the two sites (`tools/make_daily.js`, `src/solver.js`, `data/daily/`), built by the workflow every day; "No new task today" when too few good tasks are left | done (2026-11-13); first set made in a session, the scheduled run not yet observed; tasks not reviewed by a chemist |
+| 9 | Agent testers (`docs/AGENT_TESTER.md`): john0002, john0003, ... draw the arrow and copy tasks with real mouse events and ink made from two traits (precision, consistency), one per day from the Claude Console (`console/`); synthetic entries, never tester data | built and run locally (2026-11-14); Console resources not applied yet |
 | 7 | Test run with 3 to 5 testers, `REPORT.md` | to do |
 | 8 | Drawing fixes and features after the first run (`docs/PLAN_DRAWING.md`): straightening, pause preview, third-row valence, move and rotate, snapping, overlapping bonds, H next to a heteroatom, subscripts, stylized arrows, fishhook arrows, wedge and hash bonds | planned (2026-11-14); no page change during the first run |
 
@@ -64,6 +65,8 @@ npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer (14), task list (17), solver and daily set (8); about 4 minutes
 npm run test:page  # index.html in headless Chromium with simulated pointer input, sending, replay and daily set (30); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
+npm run test:agent # agent testers (11); one run of john0002 on the standard set
+npm run agent -- --agent john0002   # one agent tester run (docs/AGENT_TESTER.md); outputs in agent-runs/ (not committed)
 python3 -m http.server 8000   # then open http://localhost:8000/
 ```
 
@@ -73,7 +76,8 @@ sample steps, kept as a fixture of `test/test_readings.js` and `test/test_recogn
 Site: GitHub Pages, unlisted (decided 2026-11-13): deployed by `.github/workflows/pages.yml`, not linked from the
 daily sites, `noindex`. Each tester has a personal link (`#t=CODE`); the browser remembers the code after the first
 visit and removes it from the address bar ("Forget me on this device" clears it). `data/testers.json` holds the
-SHA-256 of the codes; no code is in the repository. The check runs in the page: it identifies testers (entries carry
+SHA-256 of the codes; no code of a person is in the repository (the agent testers' codes, `agent-<name>`, open
+only the page served locally by `tools/agent_tester.js` and are not in `data/testers.json`). The check runs in the page: it identifies testers (entries carry
 the first 8 hex digits of the hash) and keeps the page unlisted; it is not access control, since the repository is
 public. Details: `docs/CONTEXT.md`, "Tester access".
 

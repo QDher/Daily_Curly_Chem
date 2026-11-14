@@ -49,5 +49,9 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   that lists the options; choosing between readings belongs to the ranking component (C3).
 - Text shown to testers before they answer follows the content rules of the site repositories (no reaction names,
   no mechanism words).
+- Agent testers (john0002, john0003, ...; `docs/AGENT_TESTER.md`, `tools/agent_testers.json`): synthetic entries,
+  never tester data, never counted with entries of people, never committed. Never reuse a name or change the seed
+  or traits of a tester that has run; a change of `tools/agent_ink.js` increases its `VERSION`;
+  `npm run test:agent` must end with N/N passed. The Console resources (`console/`) are applied by the user.
 - Remarks of testers stay in D1; never copy them into the repository.
 - Reporting: brief, neutral and objective; state what was verified and what was not.

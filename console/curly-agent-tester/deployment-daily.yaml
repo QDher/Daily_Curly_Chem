@@ -1,0 +1,54 @@
+# One agent tester per day (user decision of 2026-11-14): john0002, john0003, john0004, john0005 in turn
+# (rotation in tools/agent_testers.json, chosen by the script from the date). Plan: docs/AGENT_TESTER.md.
+# 06:17 New York: after the daily set of the day before is built (workflow at 03:30 UTC) and outside the
+# 1-3 AM window where a change of daylight saving time skips or repeats a run.
+# Budget: hard cap per run at list prices, 500 = 5.00 USD (estimate 1 to 4 USD per run, not measured).
+name: curly-agent-tester-daily
+agent: ./agent.md
+environment_id: ./environment.yaml
+schedule:
+  type: cron
+  expression: "17 6 * * *"
+  timezone: America/New_York
+budget:
+  type: limit
+  max_list_cost: {amount: "500", currency: USD}
+initial_events:
+  - type: user.define_outcome
+    max_iterations: 2
+    description: |
+      Run today's agent tester of Daily Curly Chem (john0002, john0003, ... in turn) and write the report.
+      1. git clone --depth 1 https://github.com/QDher/Daily_Curly_Chem.git /workspace/Daily_Curly_Chem
+      2. cd /workspace/Daily_Curly_Chem && npm ci && npm run setup
+      3. node tools/agent_tester.js --out /mnt/session/outputs
+         (the tester of the day and the date are chosen by the script; it prints a summary and writes the
+         entries file, the run record run-<date>-<tester>.json and screenshots in shots/; exit code 1 means a
+         page error or an entry that does not replay, 2 a failure of the script)
+      4. node tools/replay.js /mnt/session/outputs/curly-entries-*.json --verbose
+      5. Read the run record. Open the screenshots of attempts that did not end as intended (at most 12).
+      6. Write /mnt/session/outputs/report.md with these sections: Run (date, tester name and traits, commit,
+         date of the daily set, label, device tag); Figures (the summary of the run record, and the replay line of
+         step 4); Errors (page and script errors verbatim, or "none"); Attempts not as intended (one line each: set,
+         task, attempt, outcome, the cause you see in the screenshot: recognition, snapping, convention, page, or
+         ink of the agent, and the screenshot file); Reference steps of the daily set (one line per arrow task:
+         sound, doubtful or wrong, and why); Page observations (layout, messages, anything a tester would stumble
+         on, each with its screenshot file, or "none"); Not verified (what you could not check).
+    rubric:
+      type: text
+      content: |
+        Starter rubric (tune after the first runs).
+        1. /mnt/session/outputs/ holds the entries file curly-entries-<label>-*.json, the run record
+           run-<date>-<tester>.json and shots/, all written by tools/agent_tester.js in this session; the label
+           and tester name in report.md are those of the run record.
+        2. report.md exists and has the sections Run, Figures, Errors, Attempts not as intended, Reference steps of
+           the daily set, Page observations, Not verified.
+        3. The figures in report.md equal those of the run record's summary and of the replay command output.
+        4. Every attempt of the run record whose outcome is not "accepted" or "confirmed" (and is not "not-done")
+           has one line with a cause from the list and a screenshot file name, or is stated as not looked at
+           because of the limit of 12.
+        5. Every arrow task of the daily set has a line in "Reference steps of the daily set" with a verdict and a
+           reason; if there was no daily set, the section says so.
+        6. Errors are quoted verbatim or the section says "none"; a failed command is reported with its exit code.
+        7. No file of the repository clone was changed (git status shows no change) and nothing was pushed or sent.
+        8. The report is brief and neutral, and contains no figure that is not in the run record or a command
+           output.

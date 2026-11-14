@@ -1,0 +1,11 @@
+{
+  "note": "Agent testers (docs/AGENT_TESTER.md), named john0002, john0003, and so on (user decision of 2026-11-14). Each is one synthetic writer: fixed habits drawn from its seed, and two traits. precision: high = ink close to the ideal geometry, low = careless. consistency: high = habits nearly the same at every drawing, low = habits drawn anew at every drawing. The label in its entries is the first 8 hex digits of the SHA-256 of 'agent-' + name; that code opens only the page served locally by tools/agent_tester.js, not the live site. rotation: one tester per day, in this order, counted from epoch. To add a tester: a new name and seed here and in the rotation. Never reuse a name, and never change the seed or traits of a tester that has run (its entries would no longer match its record).",
+  "epoch": "2026-11-15",
+  "rotation": ["john0002", "john0003", "john0004", "john0005"],
+  "testers": {
+    "john0002": { "precision": "high", "consistency": "high", "seed": 1101 },
+    "john0003": { "precision": "high", "consistency": "low", "seed": 2203 },
+    "john0004": { "precision": "low", "consistency": "high", "seed": 3307 },
+    "john0005": { "precision": "low", "consistency": "low", "seed": 4409 }
+  }
+}
