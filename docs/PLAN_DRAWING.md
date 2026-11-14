@@ -26,9 +26,10 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 5 | Fragments snap together, within valence rules | `src/canvas.js`, `src/recognize.js` | 3, 4 | new field `snaps` | `versions.page`, `Recognize.VERSION` |
 | 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` |
 | 7 | A hydrogen written right next to a heteroatom is bonded to it (OH as O–H) | `src/recognize.js` | – | readings of existing drawings can change | `Recognize.VERSION` |
+| 8 | Subscripts read correctly (NH2, NH3+, OH2+) | `src/recognize.js`, `src/glyphs.js`, `src/canvas.js` (typed input) | 7 | readings of existing drawings can change; typed labels may carry a count | `Recognize.VERSION` |
 
-Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 (recognizer rule, no interface), then 1, 2, 4,
-5. Item 6 also
+Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 and 8 (recognizer rules, no interface), then 1, 2,
+4, 5. Item 6 also
 applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
@@ -258,8 +259,7 @@ or a misread label), and written labels with several letters (OH, NH, SH) are no
   and the atom is marked uncertain, so the tester sees it in the reading panel.
 - Carbon is excluded (user decision, 2026-11-14): hydrogens on carbon follow from the implicit-hydrogen rule
   (`implicitH`), and a written H next to a carbon is not attached by this rule.
-- A subscript after the H (NH2, NH3+) is part of the open issue on subscripts; this item covers a single H first,
-  then H with a small digit if the subscript reading exists.
+- A subscript after the H (NH2, NH3+) is item 8; this item covers a single H.
 - The H is not turned into a separate atom in the scene: it folds into the atom's hydrogen count, as drawn hydrogens
   are folded today (`Scene.foldHydrogens`), so arrows to and from that H work as with an H drawn with the H tool.
 
@@ -272,6 +272,49 @@ is not; an H that breaks valence is not attached and the atom is uncertain; real
 
 **Risks.** An H meant as a separate species (H+, a hydride source written as H⁻) placed close to an O would be
 attached; a charge on the H, or a distance above the threshold, keeps it separate.
+
+---
+
+## 8. Subscripts (NH2, NH3+, OH2+)
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** A label written with a hydrogen count as a subscript is read correctly: NH2 as an N with two hydrogens,
+NH3+ as N with three hydrogens and a positive charge, OH2+ likewise, whether the digit is written small and low or,
+as often by hand, nearly full size.
+
+**Current state.** No digit is read: the letter templates are C, N, O, S, F, P, B, H, I (`TEMPLATE_LETTERS` in
+`src/recognize.js`, shapes in `src/glyphs.js`), plus rules for Br, Cl, Si. A "2" after NH is taken as a stroke or a
+wrong letter (`docs/RECOGNITION.md`, known limits; `docs/WEAKNESSES.md`, case 9; fixture drawings 7, 9, 10, where two
+of the drawers wrote "NH2+"). Typed input (row of atoms, point and type, right click) accepts an element and a charge,
+not a hydrogen count.
+
+**Design.**
+- Digits 2 and 3 (1 is never written; 4 only for NH4+, rarely drawn in a structure) added as templates and rules in
+  `src/glyphs.js` and `readChar`; a digit is accepted only right after an H of the same label (to the right, or to
+  the left in H2N / H3N+ written before the atom), never alone, so a stray digit cannot become an atom.
+- Size and position: a subscript is expected lower than the letters and smaller (about 0.5 to 0.8 of the letter
+  height), but a digit of full size directly after the H is also accepted, since mouse handwriting rarely makes it
+  small. The decision uses the position after the H, not the size.
+- The charge sign may follow the digit (NH3+) or sit above it; both are read as the charge of the atom, as charges
+  are today.
+- The count becomes the atom's explicit hydrogen count and is checked against valence and charge (as in item 7): N
+  with one bond and H2 is accepted; N with two bonds and H2 without a charge is not, and the atom is marked uncertain.
+- Typed input: the right-click text box accepts NH2, NH3+, OH2+, SH (and the same with H before the atom); the row of
+  atoms gets no new buttons. The typed label carries `h` with the count.
+- Replay: entries recorded before this change keep their readings under the older `Recognize.VERSION` and are
+  skipped as "other tool versions", as now.
+
+**Evidence needed.** First-run drawings with a written count (how the digit is drawn: size, height, gap to the H),
+corrections made by testers on such labels, and fixture drawings 7, 9, 10. Abbreviations (Me, Et, Ph, OMe) are a
+separate open issue and not part of this item.
+
+**Tests.** Unit: synthetic and real labels NH2, H2N, NH3+, OH2+ with small and full-size digits, on both sides of the
+atom; a lone digit is not an atom; a count that breaks valence leaves the atom uncertain. Fixture re-read
+(`node tools/update_fixture.js`), count reported. Page: a right-click "NH2" on a bond end reads as an amino group.
+
+**Risks.** A digit confused with a letter (2 with Z or a bowed bond, 3 with a curved stroke read as r in Br): the rule
+"only after an H of the same label" limits this; to be checked on the real drawings first.
 
 ---
 

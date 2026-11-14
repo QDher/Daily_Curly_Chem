@@ -147,7 +147,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 ## Planned fixes and features (not started)
 
 `docs/PLAN_DRAWING.md` (2026-11-14): line straightening while drawing, clean-up preview after a 1 s pause, a valence
-rule for third-row atoms, moving and rotating fragments, snapping fragments together, overlapping bonds in shown structures, hydrogens written next to a heteroatom. The page is not changed for
+rule for third-row atoms, moving and rotating fragments, snapping fragments together, overlapping bonds in shown structures, hydrogens written next to a heteroatom, subscripts (NH2). The page is not changed for
 them while the first test run collects data; the plan and its evidence log are updated as entries come in.
 
 ## Open issues, by priority
