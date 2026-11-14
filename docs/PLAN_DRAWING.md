@@ -29,10 +29,11 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 8 | Subscripts read correctly (NH2, NH3+, OH2+) | `src/recognize.js`, `src/glyphs.js`, `src/canvas.js` (typed input) | 7 | readings of existing drawings can change; typed labels may carry a count | `Recognize.VERSION` |
 | 9 | Arrows smoothed and drawn in a clean style once both ends snap | `src/canvas.js` (display), `src/readings.js` (candidates of one stroke) | – | display only; raw strokes kept; new field `snapShown` | `versions.page` |
 | 10 | Fishhook (one-electron) arrows for radical mechanisms | `src/arrows.js`, `docs/SCENE.md`, `src/readings.js`, `src/scene.js`, `src/canvas.js`, `src/recognize.js` | 3, 9 | scene format (unpaired electrons), arrow format (`e`), new tasks | `Arrows.VERSION`, `Readings.VERSION`, `Recognize.VERSION`, `versions.page` |
+| 11 | Wedge and hash bonds for stereochemistry | `docs/SCENE.md`, `src/scene.js`, `src/arrows.js`, `src/canvas.js`, `src/recognize.js`, `src/readings.js` | 6, 9 | scene format (bond `stereo`, atom and double-bond configuration), new tasks | `Arrows.VERSION`, `Recognize.VERSION`, `versions.page` |
 
 Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 and 8 (recognizer rules, no interface), then 9 and 1
-(instant feedback on arrows and bonds), then 2, 4, 5, then 10 (a new kind of mechanism; needs its own tasks and a
-second test run). Item 6 also
+(instant feedback on arrows and bonds), then 2, 4, 5, then 10 and 11 (radical arrows, stereochemistry: format
+changes that need their own tasks and a second test run). Item 6 also
 applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
@@ -416,6 +417,59 @@ round trip of `rad`. Page: switch to fishhook, draw two fishhooks from a Br–Br
 **Risks.** The format change touches every module and the entry format (replay and the Worker's `mech_entries`
 payload must accept `e` and `rad`; older entries replay unchanged since both fields default). Display of a radical
 dot must stay distinct from a lone pair mark (item 9) and from a charge.
+
+---
+
+## 11. Wedge and hash bonds for stereochemistry
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** Structures carry stereochemistry: wedge (bold) and hash bonds at stereocentres, and E/Z double bonds. They
+are shown on the structures of the page, can be drawn by hand, are kept or changed correctly by arrows, and count
+when a structure is compared with the answer (an enantiomer or a diastereomer is a different answer).
+
+**Current state.** Not supported. `docs/SCENE.md`: "Not in this version: … stereochemistry". Bonds have only
+`order`; `Arrows.toSmiles` writes no stereo, so `Scene.canonical` of a scene never has stereo, while
+`Scene.canonicalSmiles` of an `expected` SMILES keeps any `@` or `/` it contains: an expected structure written with
+stereo could never be matched (no task uses stereo today, 0 `@` in `data/tasks.json`). The recognizer does not read
+wedges (`docs/RECOGNITION.md`, known limits).
+
+**Design.**
+- Scene format: bond field `stereo` (`wedge`, `hash`, `wavy`, absent = plain), with the narrow end at `a`; atom field
+  `cfg` (`@`, `@@`, absent) and double-bond field `ez` (`E`, `Z`, absent) as the stored configuration, derived from
+  the drawing and the coordinates through RDKit (molblock with wedge flags in, CIP-independent parity out).
+  `docs/SCENE.md` and its version updated.
+- SMILES round trip: `Arrows.toSmiles` writes `@`/`@@` and `/`/`\`; `Scene.fromSmiles` reads them and asks RDKit for
+  wedge flags (`WedgeMolBonds`) so that shown structures have wedges where needed; canonical comparison includes
+  stereo. A structure drawn without stereo compared with a stereo answer: reported as "same constitution, stereo not
+  given", not as wrong.
+- Arrows: atoms keep `cfg` when none of their bonds change. When a bond to a stereocentre is made or broken, the
+  interpreter does not guess the outcome (it stays deterministic): the result centre is marked "configuration to
+  give", and the tester sets it in the result panel (tap the bond: wedge / hash / plain), or a step rule fixes it
+  where it is unambiguous (inversion for a backside attack is a mechanism claim, so it is left to the tester and to
+  the reference arrows, not built into the interpreter). Double bonds formed by arrows get `ez` from the drawn
+  geometry when the tester sets it, else "not given".
+- Drawing by hand (`src/recognize.js`): a wedge as a filled or outlined triangle (a closed stroke tapering from a
+  point), a hash as a row of three or more short parallel strokes of growing length along one direction; both read as
+  a bond with `stereo` and the narrow end at the stereocentre. Typed alternative: in the reading panel and in draw
+  mode, tapping a bond cycles plain → wedge → hash (the palette `pal-bond` gets two buttons).
+- Display: wedge as a filled triangle, hash as tapered dashes, in the ink colour; item 6 (overlaps) treats a wedge
+  as a bond of its full width.
+- Readings (`src/readings.js`): arrows from a wedge or hash bond read like arrows from a plain bond.
+
+**Evidence needed.** None from the first run (no stereo task). Tasks with a stereocentre or an E/Z bond taken from
+published problems of the two sites (substitution with inversion, addition to a cyclic alkene, elimination giving an
+E alkene) for a second run; the daily sets (`data/daily/`) to count how many structures carry stereo.
+
+**Tests.** Unit: SMILES round trip of `@`, `@@`, `/`, `\` through the scene; wedge flags from RDKit; arrows that do
+not touch a centre keep it; arrows that do mark it "to give"; comparison distinguishes enantiomers and E/Z and
+reports "stereo not given". Recognizer: synthetic and, later, real wedges and hashes. Page: a wedge drawn by hand is
+read; a tap cycles the bond type; a stereo answer is matched only with the right configuration.
+
+**Risks.** Hash bonds drawn as several short strokes can be read as several bonds or as letters (the recognizer
+already merges short strokes into letters): the tap-to-cycle alternative avoids handwriting for testers who prefer
+it. The format change touches the replay and the Worker payload; older entries replay unchanged since all new
+fields default to absent.
 
 ---
 
