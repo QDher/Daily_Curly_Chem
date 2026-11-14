@@ -27,9 +27,10 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` |
 | 7 | A hydrogen written right next to a heteroatom is bonded to it (OH as O–H) | `src/recognize.js` | – | readings of existing drawings can change | `Recognize.VERSION` |
 | 8 | Subscripts read correctly (NH2, NH3+, OH2+) | `src/recognize.js`, `src/glyphs.js`, `src/canvas.js` (typed input) | 7 | readings of existing drawings can change; typed labels may carry a count | `Recognize.VERSION` |
+| 9 | Arrows smoothed and drawn in a clean style once both ends snap | `src/canvas.js` (display), `src/readings.js` (candidates of one stroke) | – | display only; raw strokes kept; new field `snapShown` | `versions.page` |
 
-Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 and 8 (recognizer rules, no interface), then 1, 2,
-4, 5. Item 6 also
+Proposed order: 3 (rules only, no interface), then 6 (affects every structure shown), then 7 and 8 (recognizer rules, no interface), then 9 and 1
+(instant feedback on arrows and bonds), then 2, 4, 5. Item 6 also
 applies to the previews of item 2 and to the results of moves and snaps (items 4, 5).
 
 ---
@@ -315,6 +316,53 @@ atom; a lone digit is not an atom; a count that breaks valence leaves the atom u
 
 **Risks.** A digit confused with a letter (2 with Z or a bowed bond, 3 with a curved stroke read as r in Br): the rule
 "only after an H of the same label" limits this; to be checked on the real drawings first.
+
+---
+
+## 9. Arrows smoothed and stylized after snapping
+
+Added 2026-11-14 at the user's request.
+
+**Goal.** An arrow drawn with a mouse, a finger or a pen is replaced on screen, as soon as it is finished, by a
+smooth curved arrow of the page's own style from the lone pair or bond where it starts to the atom, bond or pair of
+atoms where it ends. The tester sees at once what each end was snapped to.
+
+**Current state.** Arrows being drawn are shown as the raw stroke with a head (`renderInk` in `src/canvas.js`).
+Snapping happens only when "Apply arrows" is pressed (`Readings.read`, distances in `Readings.P`: radius 1.1, bond
+zone 0.25, pair reach 4.5), for all arrows together, and the result is shown as a structure, not as arrows. A clean
+arrow style exists already for arrows given as data (`curveOf`: quadratic curve between the two ends, bulging away
+from the atoms, used for the mechanisms to vote on).
+
+**Design.**
+- On `pointerup` in arrow mode, compute the candidates of that stroke alone (the same candidate functions as
+  `Readings.read`, one stroke). If the start and the end each have a best candidate within `Readings.P.radius`,
+  replace the display of the stroke by `curveOf` of that arrow; the bulge goes to the side on which the tester
+  curved the stroke (sign of the stroke's area against its chord), not only away from the atoms.
+- The source and the sink are marked briefly: a pair of dots on the atom for a lone pair, a highlight on the bond for
+  a bond, the two atoms for a new bond (pair). An end that does not snap leaves the raw stroke, drawn fainter, so the
+  tester knows to redraw it.
+- Raw strokes stay in `strokes` and are what `Readings.read` uses on "Apply arrows"; the display never decides the
+  reading. If the joint reading of all arrows differs from what was shown for one arrow (another candidate gives a
+  valid structure), the arrows of the reading are shown over the structure in the result panel, so the difference
+  is visible.
+- Same behaviour for mouse, touch and pen. Undo and Erase act on the stylized arrow as on its stroke.
+- Recorded per stroke: `snapShown: { from, to }` (what the display showed), to measure later how often testers
+  accepted, redrew or erased after seeing it.
+- Fishhook (one-electron) arrows are not covered; they are not in the scene format yet (`docs/SCENE.md`).
+
+**Evidence needed.** First-run arrow entries: how often the first reading was rejected (`rejected`), arrows with an
+end not attached (`unattached` messages), and remarks on arrows taken from the wrong atom or bond. Readings of the
+first run are kept under the current `Readings.VERSION` and stay comparable, since this item changes the display
+only.
+
+**Tests.** Unit: candidates of one stroke equal the candidates `Readings.read` uses for that stroke; bulge side
+follows the drawn curvature. Page: a drawn arrow is replaced by a curve with its ends on the snapped targets (mouse
+and touch); an arrow ending in empty space stays raw and faint; the entry keeps the raw points; "Apply arrows" gives
+the same readings as before the change on the replayed first-run entries (`tools/replay.js`).
+
+**Risks.** The display may suggest one target while the joint reading picks another (handled by showing the
+reading's arrows in the result panel). A stylized arrow hides how the tester actually drew it: the raw stroke stays
+available under a "show my strokes" toggle for checking.
 
 ---
 
