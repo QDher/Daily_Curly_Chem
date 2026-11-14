@@ -46,6 +46,10 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 - The saved file is named `curly-entries-<label>-<device tag>.json`. The device tag is four random characters made
   once per browser (`localStorage`, key `curly:device`; also in the file as `device`), so that the files of one
   tester from two devices have different names. It is not sent with entries and is not removed by "Forget me".
+- When a code does not open the page, the form says why: a code that was public until 2026-11-13 (`retired` in
+  `data/testers.json`) gives "This code was replaced ..."; any other gives "This code is not valid ...". Case,
+  spaces and punctuation around a pasted code are ignored. If the page itself fails (old browser, blocked file), a
+  panel "The page could not start" shows the error text and the browser, to be sent back (`showFailure`).
 - "Forget me on this device" (bottom of the page) removes the code and the entries kept in that browser.
 - The label in entries is the first 8 hex digits of the SHA-256 of the code. New codes: put their SHA-256 in
   `data/testers.json` and their labels in `MECH_TESTERS` (`feedback-worker/wrangler.toml` on the One-Pot branch).
@@ -81,7 +85,7 @@ Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink 
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17, daily 8: each ends with N/N passed (about 4 min)
-npm run test:page                # 29 browser tests (Playwright, already installed in cloud sessions)
+npm run test:page                # 30 browser tests (Playwright, already installed in cloud sessions)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
 node tools/replay.js FILE --verbose   # an entries file saved from the page
 python3 -m http.server 8000      # local page: http://localhost:8000/#t=$CURLY_TESTER_CODE

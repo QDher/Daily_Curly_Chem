@@ -72,6 +72,12 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   <h1>Daily Curly Chem</h1>
   <p class="muted">Test run: arrows and structures drawn by hand.</p>
 
+  <section class="panel" id="fatal" hidden>
+    <h2>The page could not start</h2>
+    <p>Something failed in this browser. Please send the text below to the person who invited you; trying another browser (a recent Chrome, Edge, Firefox or Safari) may also help.</p>
+    <pre id="fatal-text"></pre>
+  </section>
+
   <section class="panel" id="gate" hidden>
     <h2>Tester code</h2>
     <p class="muted">This page is a test run for invited testers. Open the personal link you received, or enter its code here. This browser will remember you.</p>
@@ -217,6 +223,16 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 <script src="src/tasks.js"></script>
 <script src="src/canvas.js"></script>
 <script>
+// Any failure of the page is shown, with the text to send back, instead of leaving a page that does nothing.
+function showFailure(what) {
+  const box = document.getElementById('fatal');
+  if (!box || !box.hidden) return;
+  box.hidden = false;
+  document.getElementById('fatal-text').textContent = String(what) + '\n' + navigator.userAgent;
+  document.body.dataset.ready = 'failed';
+}
+window.addEventListener('error', (e) => showFailure(e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')));
+window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.reason.message ? e.reason.message : e.reason));
 (async function () {
   const $ = (id) => document.getElementById(id);
   const say = (id, text, cls) => { const e = $(id); e.textContent = text; e.className = cls || ''; };
@@ -225,33 +241,43 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
   }
-  const allowed = (await (await fetch('data/testers.json')).json()).sha256;
+  const testers = await (await fetch('data/testers.json', { cache: 'no-store' })).json();
+  const allowed = testers.sha256;
+  // a code as typed or pasted: case, spaces and punctuation around it do not matter
+  const clean = (code) => String(code || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  let retiredUsed = false;
   async function testerOf(code) {
-    if (!code) return null;
-    const h = await sha256(code.trim().toLowerCase());
+    if (!clean(code)) return null;
+    const h = await sha256(clean(code));
+    retiredUsed = (testers.retired || []).includes(h);
     return allowed.includes(h) ? h.slice(0, 8) : null;
   }
+  const whyNot = () => (retiredUsed
+    ? 'This code was replaced on 13 November 2026 and no longer works. Use the personal link you received since then.'
+    : 'This code is not valid. Check that the whole link or code was copied.');
   // Personal link: .../#t=CODE (the part after # is not sent to the server). The code is checked, kept in this
   // browser and removed from the address bar; later visits need no code. ?t=CODE is still accepted.
   const CODE_KEY = 'curly:code';
   const fromLink = new URLSearchParams(location.hash.replace(/^#/, '')).get('t') || new URLSearchParams(location.search).get('t');
   let stored = null;
   try { stored = localStorage.getItem(CODE_KEY); } catch (e) { /* storage unavailable */ }
-  const remember = (code) => { try { localStorage.setItem(CODE_KEY, code.trim().toLowerCase()); } catch (e) { /* ignore */ } };
+  const remember = (code) => { try { localStorage.setItem(CODE_KEY, clean(code)); } catch (e) { /* ignore */ } };
   let tester = await testerOf(fromLink);
+  const linkRetired = retiredUsed;
   if (tester) remember(fromLink);
   else tester = await testerOf(stored);
+  retiredUsed = fromLink ? linkRetired : retiredUsed;
   if (fromLink) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ } }
   if (!tester) {
     $('gate').hidden = false;
-    if (fromLink) say('gate-msg', 'The code of this link is not valid.', 'bad');
+    if (fromLink || retiredUsed) say('gate-msg', whyNot(), 'bad');
     document.body.dataset.ready = 'gate';
     tester = await new Promise((resolve) => {
       $('gate-form').onsubmit = async (ev) => {
         ev.preventDefault();
         const t = await testerOf($('code').value);
         if (t) { remember($('code').value); resolve(t); }
-        else say('gate-msg', 'This code is not valid.', 'bad');
+        else say('gate-msg', whyNot(), 'bad');
       };
     });
     $('gate').hidden = true;
@@ -293,7 +319,8 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
   // Entries are sent to the feedback Worker as they are recorded, and again when they are completed later.
   // An entry that could not be sent is kept and tried again with the next one and at the end.
   const cfg = await (await fetch('data/config.json')).json();
-  const session = crypto.randomUUID();
+  // crypto.randomUUID is missing in browsers older than about 2022
+  const session = crypto.randomUUID ? crypto.randomUUID() : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (Number(c) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(c) / 4)))).toString(16));
   const unsent = new Set();
   let seqNext = 0, flushing = Promise.resolve();
   $('intro-data').textContent = cfg.worker

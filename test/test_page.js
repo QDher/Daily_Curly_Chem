@@ -10,7 +10,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applic
 
 const crypto = require('crypto');
 const CODE = 'local-test-code';
-const TESTERS = JSON.stringify({ sha256: [crypto.createHash('sha256').update(CODE).digest('hex')] });
+const OLD_CODE = 'old-public-code';
+const TESTERS = JSON.stringify({ sha256: [crypto.createHash('sha256').update(CODE).digest('hex')], retired: [crypto.createHash('sha256').update(OLD_CODE).digest('hex')] });
 const LABEL = crypto.createHash('sha256').update(CODE).digest('hex').slice(0, 8);
 let remarkLabels = [LABEL]; // labels served as "remarks" in data/config.json
 
@@ -817,6 +818,37 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       await ctx.close();
     }
     dailyMode = 'file';
+  });
+
+  await test('a replaced code says so; a pasted link with stray characters still opens; a failure of the page is shown', async () => {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(url + '#t=' + OLD_CODE);
+    await page.waitForSelector('body[data-ready="gate"]', { timeout: 30000 });
+    if (!(await page.textContent('#gate-msg')).includes('was replaced')) throw new Error('link with a replaced code: ' + (await page.textContent('#gate-msg')));
+    await page.fill('#code', 'something-else');
+    await page.click('#gate-form button');
+    await page.waitForFunction(() => document.getElementById('gate-msg').textContent.includes('not valid'));
+    await page.fill('#code', OLD_CODE.toUpperCase());
+    await page.click('#gate-form button');
+    await page.waitForFunction(() => document.getElementById('gate-msg').textContent.includes('was replaced'));
+    // pasted with a trailing period and spaces
+    await page.fill('#code', '  ' + CODE + '. ');
+    await page.click('#gate-form button');
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.evaluate(() => localStorage.getItem('curly:code')), CODE, 'stored without the stray characters');
+    await ctx.close();
+    // a browser without crypto.randomUUID still starts; a script failure is shown with its text
+    const ctx2 = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx2.addInitScript(() => { delete Crypto.prototype.randomUUID; });
+    const page2 = await ctx2.newPage();
+    await page2.goto(url + '#t=' + CODE);
+    await page2.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page2.isHidden('#fatal'), true, 'no failure without randomUUID');
+    await page2.evaluate(() => setTimeout(() => { throw new Error('test failure of the page'); }, 0));
+    await page2.waitForSelector('#fatal:not([hidden])');
+    if (!(await page2.textContent('#fatal-text')).includes('test failure of the page')) throw new Error('failure text');
+    await ctx2.close();
   });
 
   await test('without a code: gate only; wrong code refused; right code opens the page', async () => {
