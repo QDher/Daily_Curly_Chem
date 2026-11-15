@@ -1,9 +1,9 @@
 {
- "date": "2026-11-13",
+ "date": "2026-11-14",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
-  "copies": 10
+  "copies": 5
  },
  "versions": {
   "solver": "0.1.0",
@@ -11,67 +11,155 @@
  },
  "tasks": [
   {
-   "id": "d20261113-a1",
+   "id": "d20261114-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
-    "date": "2026-11-12"
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
    },
-   "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
+   "conditions": "NaOMe (about 1.1 equiv); Et2O, reflux, 2 h; then H2O",
    "start": [
-    "CC(=O)OC1CC2OC(=O)CC2C1C=O",
-    "CCCCCC(=O)[CH-]P(=O)(OC)OC"
+    "O=C1C2CCCC12",
+    "C[O-]"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a7"
+      "lp": "s1a1"
      },
      "to": {
-      "atom": "s0a13"
+      "atom": "s0a1"
      }
     },
     {
      "from": {
       "bond": [
-       "s0a13",
-       "s0a14"
+       "s0a0",
+       "s0a1"
       ]
      },
      "to": {
-      "atom": "s0a14"
+      "atom": "s0a0"
      }
     }
    ],
    "expected": [
-    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC",
-    "CCCCCC(=O)C(C(O)C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC",
-    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC21)P(=O)(OC)OC"
+    "COC1([O-])C2CCCC12",
+    "COC1(O)C2CCCC12",
+    "COC1([O-])C2CCCC21"
    ]
   },
   {
-   "id": "d20261113-c1",
+   "id": "d20261114-c1",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
-    "date": "2026-11-12"
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
    },
-   "target": "CC(=O)OC1CC2OC(=O)CC2C1C=O"
+   "target": "O=C1CCCCC1Cl"
   },
   {
-   "id": "d20261113-c2",
+   "id": "d20261114-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "conditions": "benzene (solvent, excess), AlCl3 (about 2.2 equiv); benzene, reflux, 30 min; then H2O and conc. HCl",
+   "start": [
+    "O=C1CCC(=O)O1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "[O+]#CCCC(=O)O",
+    "[O+]#CCCC(=O)[O-]",
+    "O=[C+]CCC(=O)O",
+    "O=[C+]CCC(=O)[O-]"
+   ]
+  },
+  {
+   "id": "d20261114-c2",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
-    "date": "2026-11-12"
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
    },
-   "target": "CCCCCC(=O)[CH-]P(=O)(OC)OC"
+   "target": "COC(=O)C1CCCC1"
   },
   {
-   "id": "d20261113-a2",
+   "id": "d20261114-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
+   },
+   "conditions": "benzene (solvent, excess), AlCl3 (about 2.2 equiv); benzene, reflux, 30 min; then H2O and conc. HCl",
+   "start": [
+    "[O+]#CCCC(=O)O",
+    "c1ccccc1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s0a1",
+      "via": "s1a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "OC(=O)CCC(=O)C1C=CC=C[CH+]1",
+    "OC(=O)CCC(=O)C1C=C[CH+]C=C1",
+    "[O-]C(=O)CCC(=O)C1C=CC=C[CH+]1",
+    "[O-]C(=O)CCC(=O)C1C=C[CH+]C=C1",
+    "O=C(O)CCC(=O)C1C=CC=C[CH+]1"
+   ]
+  },
+  {
+   "id": "d20261114-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-favorskii-chlorocyclohexanone-cyclopentanecarboxylate",
+    "date": "2026-11-13"
+   },
+   "target": "COC1([O-])C2CCCC21"
+  },
+  {
+   "id": "d20261114-a4",
    "type": "T1",
    "source": {
     "site": "onepot",
@@ -80,137 +168,63 @@
    },
    "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
    "start": [
-    "CCCCCC(=O)C(C([O-])C1C(OC(C)=O)CC2OC(=O)CC12)P(=O)(OC)OC"
+    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC23)OP1([O-])(OC)OC"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s0a9"
+      "bond": [
+       "s0a8",
+       "s0a22"
+      ]
      },
      "to": {
-      "atom": "s0a23"
+      "bond": [
+       "s0a7",
+       "s0a8"
+      ]
      }
     },
     {
      "from": {
       "bond": [
        "s0a23",
-       "s0a24"
+       "s0a7"
       ]
      },
      "to": {
-      "atom": "s0a24"
+      "atom": "s0a23"
      }
     }
    ],
    "expected": [
-    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC23)OP1([O-])(OC)OC",
-    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC32)OP1([O-])(OC)OC"
+    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC12",
+    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC21.CO[P-]([O+])([O-])OC"
    ]
   },
   {
-   "id": "d20261113-c3",
+   "id": "d20261114-c4",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "hca1950-lialh4-sclareolide-ambradiol",
-    "date": "2026-11-12"
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
    },
-   "target": "CC1(C)CCCC2(C)C1CCC1(C)OC(=O)CC12"
+   "target": "O=C1CCC(=O)O1"
   },
   {
-   "id": "d20261113-c4",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "hca1950-lialh4-sclareolide-ambradiol",
-    "date": "2026-11-12"
-   },
-   "target": "CC1(C)CCCC2(C)C1CCC(C)(O)C2CCO"
-  },
-  {
-   "id": "d20261113-a3",
+   "id": "d20261114-a5",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "hca1950-lialh4-sclareolide-ambradiol",
-    "date": "2026-11-12"
+    "problem": "jacs2026-peterson-olefination-sestermobaraene",
+    "date": "2026-11-11"
    },
-   "conditions": "LiAlH₄; Et₂O; aqueous work-up",
+   "conditions": "MeOH (0.5 mL), p-TsOH·H₂O (10 equiv); Et₂O/MeOH, 0 °C to rt, 5 min; aq. NaHCO₃ quench",
    "start": [
-    "CC1(C)CCCC2(C)C1CCC1(C)OC([O-])CC21"
+    "OC1(C[Si](C)(C)C)CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12"
    ],
    "reference": [
-    {
-     "from": {
-      "lp": "s0a15"
-     },
-     "to": {
-      "bond": [
-       "s0a14",
-       "s0a15"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a13",
-       "s0a14"
-      ]
-     },
-     "to": {
-      "atom": "s0a13"
-     }
-    }
-   ],
-   "expected": [
-    "CC1(C)CCCC2(C)C1CCC(C)([O-])C2CC=O",
-    "CC1(C)CCCC2(C)C1CCC(C)(O)C2CC=O"
-   ]
-  },
-  {
-   "id": "d20261113-c5",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "hca1950-lialh4-sclareolide-ambradiol",
-    "date": "2026-11-12"
-   },
-   "target": "CC1(C)CCCC2(C)C1CCC1(C)OC([O-])CC12"
-  },
-  {
-   "id": "d20261113-c6",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-favorskii-cyclohexanecarboxylic-acid",
-    "date": "2026-11-12"
-   },
-   "target": "O=C(O)C1CCCCC1"
-  },
-  {
-   "id": "d20261113-a4",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-favorskii-cyclohexanecarboxylic-acid",
-    "date": "2026-11-12"
-   },
-   "conditions": "NaOH, H₂O",
-   "start": [
-    "O=C1C2CCCCC12",
-    "[OH-]"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a0"
-     },
-     "to": {
-      "atom": "s0a1"
-     }
-    },
     {
      "from": {
       "bond": [
@@ -224,91 +238,19 @@
     }
    ],
    "expected": [
-    "[O-]C1(O)C2CCCCC12",
-    "OC1(O)C2CCCCC12",
-    "[O-]C1(O)C2CCCCC21"
+    "[C+]1(C[Si](C)(C)C)CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12",
+    "CC(C)C1CCC2(C)CC3[C+](C[Si](C)(C)C)CCC45C(C)CCC4C5(C)C3CC12.[OH-]"
    ]
   },
   {
-   "id": "d20261113-c7",
+   "id": "d20261114-c5",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-peterson-olefination-sestermobaraene",
-    "date": "2026-11-11"
+    "problem": "os1933-friedel-crafts-succinic-anhydride-benzoylpropionic",
+    "date": "2026-11-13"
    },
-   "target": "[CH2-][Si](C)(C)C"
-  },
-  {
-   "id": "d20261113-c8",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs2026-chloroformate-dmap-ethyl-ester-rhabdobranin",
-    "date": "2026-11-11"
-   },
-   "target": "CCOC(=O)Cl"
-  },
-  {
-   "id": "d20261113-a5",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs2026-peterson-olefination-sestermobaraene",
-    "date": "2026-11-11"
-   },
-   "conditions": "Me₃SiCH₂Li (1.0 M in pentane, 5.0 equiv); Et₂O, 0 °C, 30 min",
-   "start": [
-    "O=C1CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12",
-    "[CH2-][Si](C)(C)C"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a0"
-     },
-     "to": {
-      "atom": "s0a1"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a0",
-       "s0a1"
-      ]
-     },
-     "to": {
-      "atom": "s0a0"
-     }
-    }
-   ],
-   "expected": [
-    "[O-]C1(C[Si](C)(C)C)CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12",
-    "OC1(C[Si](C)(C)C)CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12",
-    "[Li]OC1(C[Si](C)(C)C)CCC23C(C)CCC3C2(C)C2CC3C(C(C)C)CCC3(C)CC12",
-    "CC(C)C1CCC2(C)CC3C(CC12)C1(C)C2CCC(C)C21CCC3([O-])C[Si](C)(C)C"
-   ]
-  },
-  {
-   "id": "d20261113-c9",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs2026-chloroformate-dmap-ethyl-ester-rhabdobranin",
-    "date": "2026-11-11"
-   },
-   "target": "CN(C)c1ccncc1"
-  },
-  {
-   "id": "d20261113-c10",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-hell-volhard-zelinsky-bromoacetic-acid",
-    "date": "2026-11-11"
-   },
-   "target": "CC(=O)O"
+   "target": "O=C(O)CCC(=O)c1ccccc1"
   }
  ]
 }
