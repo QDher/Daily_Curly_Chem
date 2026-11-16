@@ -779,7 +779,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await ctx.close();
   });
 
-  await test('daily set: 5 arrow tasks and the structures to copy; an arrow task is answered although the problem lists no by-product', async () => {
+  await test('daily set: 5 arrow tasks and the structures to copy; an arrow task of the set is answered from its reference arrows', async () => {
     const daily = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'latest.json'), 'utf8'));
     if (!daily.tasks.length) throw new Error('no daily set in the repository to test with');
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
@@ -793,27 +793,45 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#start-daily');
     eq(await page.locator('#step option').count(), daily.tasks.length, 'tasks');
     eq(await page.evaluate(() => window.__app.tasks.filter((t) => t.type === 'T1').length), 5, 'arrow tasks');
-    // the first arrow task whose reference is a lone pair to an atom, then a double bond to its own atom
-    const k = daily.tasks.findIndex((t) => t.type === 'T1' && !t.drawH && t.reference.length === 2 && t.reference[0].from.lp && t.reference[0].to.atom && t.reference[1].to.atom);
-    if (k < 0) throw new Error('no such task in this set');
-    await page.selectOption('#step', { index: k });
-    const ref = daily.tasks[k].reference;
-    await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
-    const q = await page.evaluate((r) => {
-      const app = window.__app, sc = app.input.getScene();
-      const A = (id) => sc.atoms.find((a) => a.id === id);
-      const C = (x) => app.input.toClient(x);
-      const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-      return { a: C(A(r[0].from.lp)), b: C(A(r[0].to.atom)), c: C(mid(A(r[1].from.bond[0]), A(r[1].from.bond[1]))), d: C(A(r[1].to.atom)) };
-    }, ref);
-    await drag(page, q.a, q.b);
-    await drag(page, q.c, q.d, 10);
+    // The first arrow task of the set whose reference arrows, drawn from their ideal start to their ideal end
+    // (an arrow to the space between two atoms ending near the atom that gets the bond), give a reading with the
+    // expected structure. Any shape of reference is accepted; the set changes every day.
+    let k = -1, rank = -1, ends = null;
+    for (let i = 0; i < daily.tasks.length && k < 0; i++) {
+      const t = daily.tasks[i];
+      if (t.type !== 'T1') continue;
+      await page.selectOption('#step', { index: i });
+      await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
+      for (const id of t.drawH || []) {
+        await page.click('#m-h');
+        const h = await page.evaluate((a) => { const app = window.__app; return app.input.toClient(app.input.getScene().atoms.find((x) => x.id === a)); }, id);
+        await page.mouse.click(h.x, h.y);
+      }
+      const r = await page.evaluate(([ref, expected]) => {
+        const app = window.__app, sc = app.input.getScene();
+        const A = (id) => sc.atoms.find((a) => a.id === id);
+        if ([].concat(...ref.map((x) => [].concat(x.from.lp || x.from.bond, x.to.atom || x.to.bond || x.to.pair))).some((id) => !A(id))) return null;
+        const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+        const near = (a, b) => ({ x: a.x + 0.8 * (b.x - a.x), y: a.y + 0.8 * (b.y - a.y) });
+        const strokes = ref.map((x) => ({
+          start: x.from.lp ? { x: A(x.from.lp).x, y: A(x.from.lp).y } : mid(A(x.from.bond[0]), A(x.from.bond[1])),
+          end: x.to.atom ? { x: A(x.to.atom).x, y: A(x.to.atom).y } : x.to.bond ? mid(A(x.to.bond[0]), A(x.to.bond[1])) : near(A(x.to.pair[0]), A(x.to.pair[1])),
+        }));
+        const found = (smi) => { const have = smi ? smi.split('.') : []; return expected.some((e) => { const c = Scene.canonicalSmiles(app.R, e); return !!c && c.split('.').every((f) => have.includes(f)); }); };
+        const readings = Readings.read(sc, strokes).readings.map((x) => Scene.canonical(app.R, x.scene));
+        return { rank: readings.findIndex(found), ends: strokes.map((st) => [app.input.toClient(st.start), app.input.toClient(st.end)]) };
+      }, [t.reference, t.expected]);
+      if (r && r.rank >= 0) { k = i; rank = r.rank; ends = r.ends; }
+    }
+    if (k < 0) throw new Error('no arrow task of this set is read as expected from its reference arrows');
+    for (const [a, b] of ends) await drag(page, a, b, 12);
     await page.click('#apply');
     await page.waitForSelector('#result:not([hidden])');
+    for (let j = 0; j < rank; j++) await page.click('#no');
     await page.click('#yes');
     await page.click('#submit');
-    const e = await page.evaluate(() => window.__entries[0]);
-    eq(e.step, daily.tasks[k].id, 'task id'); eq(e.submitted.match, true, 'answer');
+    const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
+    eq(e.step, daily.tasks[k].id, 'task id'); eq(e.accepted, rank, 'reading accepted'); eq(e.submitted.match, true, 'answer');
     eq(errors.length, 0, 'page errors');
     await ctx.close();
   });
