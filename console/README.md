@@ -1,4 +1,8 @@
-# Claude Console: daily agent tester
+# Claude Console: daily agent tester (not used)
+
+Not used since 2026-11-16 (decision of the user): the daily run is a Claude Code scheduled task that adds each run
+to the review page (`docs/AGENT_TESTER.md`, `docs/AGENT_TASK_PROMPT.md`). These files were never applied; they are
+kept in case the runs move to the Console later.
 
 Managed Agents resources for the daily agent tester (plan: `docs/AGENT_TESTER.md`). One run per day; the tester
 of the day (john0002, john0003, john0004, john0005 in turn, `tools/agent_testers.json`) is chosen by the script.

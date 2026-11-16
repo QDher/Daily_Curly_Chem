@@ -1,0 +1,533 @@
+<!-- Review page of the agent testers (docs/AGENT_TESTER.md). Published as a claude.ai artifact with the capabilities db and user.
+     The runs are files published with the page (runs/index.json, runs/<runId>.json, written by tools/agent_review_data.js);
+     the reviewer's answers are kept in the page's database (reviews/<runId>__<set>__<task>__<attempt>). -->
+<title>Agent Tester Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: a summary of the four testers, a filter bar, then one section per task with the testers side by side. */
+:root {
+  --bg: #f4f6f7; --card: #ffffff; --fg: #1b2328; --muted: #5d6a72; --line: #d5dde1; --soft: #e9eef0;
+  --struct: #1b2328; --ref: #8a979e; --accent: #0e6b67; --accent-soft: #dcefed;
+  --el-o: #c62828; --el-n: #1d4ed8; --el-s: #a16207;
+  --ok: #1e7a3c; --ok-soft: #e1f2e6; --warn: #9a5b00; --warn-soft: #fbefd9; --bad: #b42318; --bad-soft: #fbe4e1;
+  --t1: #2563eb; --t2: #7c3aed; --t3: #c2410c; --t4: #be185d;
+  --f-display: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171a; --card: #1a2125; --fg: #e3e9ec; --muted: #98a6ae; --line: #2e383d; --soft: #222b30;
+  --struct: #dfe6e9; --ref: #6f7d84; --accent: #5cc4bd; --accent-soft: #163634;
+  --el-o: #ff7a6e; --el-n: #8ab4ff; --el-s: #e3b341;
+  --ok: #6fd18f; --ok-soft: #173322; --warn: #f2b45c; --warn-soft: #382a12; --bad: #ff8a7a; --bad-soft: #3a1d19;
+  --t1: #7aa7ff; --t2: #b794ff; --t3: #ff9a5c; --t4: #ff7ab8; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171a; --card: #1a2125; --fg: #e3e9ec; --muted: #98a6ae; --line: #2e383d; --soft: #222b30;
+  --struct: #dfe6e9; --ref: #6f7d84; --accent: #5cc4bd; --accent-soft: #163634;
+  --el-o: #ff7a6e; --el-n: #8ab4ff; --el-s: #e3b341;
+  --ok: #6fd18f; --ok-soft: #173322; --warn: #f2b45c; --warn-soft: #382a12; --bad: #ff8a7a; --bad-soft: #3a1d19;
+  --t1: #7aa7ff; --t2: #b794ff; --t3: #ff9a5c; --t4: #ff7ab8; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+.wrap > *, .task > *, .task-head > * { min-width: 0; }
+#tasks { display: grid; gap: 20px; min-width: 0; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 26px; font-weight: 600; }
+h2 { font-size: 17px; font-weight: 600; }
+h3 { font-size: 14px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+.intro { display: grid; gap: 6px; max-width: 80ch; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 500; }
+td.num { text-align: right; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group > span { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 2px; }
+button.chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+button.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.progress { margin-left: auto; font-size: 13px; }
+.task { display: grid; gap: 12px; }
+.task-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.task-meta { display: grid; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--soft); color: var(--muted); margin-right: 6px; }
+.target { flex: 0 0 auto; display: grid; gap: 2px; justify-items: center; }
+.target .mol { width: 210px; max-width: 100%; }
+.mol { color: var(--struct); width: 100%; max-width: 100%; }
+.mol svg { width: 100%; height: auto; display: block; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; }
+.col { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col-head { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.col-head small { font-weight: 400; color: var(--muted); }
+.attempt { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+.attempt-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.ink { background: var(--soft); border-radius: 8px; }
+.ink svg { width: 100%; height: auto; display: block; }
+.read { display: grid; grid-template-columns: 64px 1fr; gap: 6px; align-items: center; }
+.read > span { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.read .mol { max-width: 220px; }
+.note { font-size: 12.5px; }
+details.habits summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+details.habits dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 6px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+details.habits dt { color: var(--muted); }
+details.habits dd { margin: 0; }
+.review { border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 6px; }
+.result { background: var(--soft); border-radius: 8px; padding: 8px; display: grid; gap: 6px; margin-top: 4px; }
+.readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+.readings.one { grid-template-columns: minmax(0, 220px); }
+.readings figure { margin: 0; background: var(--card); border-radius: 6px; padding: 4px; display: grid; gap: 2px; min-width: 0; }
+.readings figcaption { font-size: 11px; color: var(--muted); text-align: center; }
+.review .q { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.review .q > span { font-size: 12px; color: var(--muted); width: 100%; }
+.review button.opt { font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+.review button.opt[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--card); }
+.review button.opt.flag[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: var(--card); }
+.review textarea { font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 6px; background: var(--card); color: var(--fg); resize: vertical; }
+.review .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.review button.save { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--accent); background: var(--card); color: var(--accent); cursor: pointer; }
+.review button:disabled, .review textarea:disabled { opacity: .55; cursor: default; }
+.status { font-size: 12px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+.legend svg { vertical-align: middle; margin-right: 4px; }
+.empty { padding: 24px; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<style>
+.runs td.pick { width: 1%; }
+.runs input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+.runs tr.on td { background: var(--accent-soft); }
+.runs button.link { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+.report { background: var(--soft); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; font-size: 13px; max-height: 420px; overflow: auto; margin-top: 10px; }
+.colhead small { display: block; }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Agent tester review</h1>
+    <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
+    <p>Choose the runs to show in the table. Each task shows the chosen runs side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page, per run, and can be read back in the Claude session.</p>
+  </header>
+
+  <section class="panel">
+    <h2 style="margin-bottom:8px">Runs</h2>
+    <div class="table-wrap"><table id="runs" class="runs"></table></div>
+    <p class="status" id="runs-status">Loading runs&hellip;</p>
+    <div id="report-box"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <div class="bar" id="bar">
+    <div class="group" id="f-type"><span>Task</span></div>
+    <div class="group" id="f-show"><span>Show</span></div>
+    <div class="progress" id="progress"></div>
+  </div>
+
+  <main id="tasks"></main>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs, kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (k === 'text') n.textContent = v; else if (k === 'html') n.innerHTML = v; else if (v !== null && v !== undefined && v !== false) n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of [].concat(kids || [])) if (c) n.appendChild(c);
+    return n;
+  };
+  const colorOf = (tester) => { const n = parseInt(String(tester).replace(/\D/g, ''), 10) || 2; return 'var(--t' + ((((n - 2) % 4) + 4) % 4 + 1) + ')'; };
+  const OUT = {
+    accepted: ['ok', (a) => 'accepted, reading ' + a.rank + (a.rank > 1 ? ' (earlier rejected)' : '')],
+    confirmed: ['ok', () => 'confirmed'],
+    flagged: ['bad', () => 'flagged as a wrong reading'],
+    'none-intended': ['bad', () => 'no reading as intended'],
+    'no-reading': ['warn', () => 'no reading'],
+    'not-drawn': ['warn', () => 'not drawn'],
+  };
+  const REASON = { 'bond-missing': 'a bond is missing', 'bond-extra': 'a bond or atom was added', 'bond-order': 'bond order', letter: 'a letter (element)', charge: 'a charge', all: 'nothing like the drawing' };
+
+  $('legend').innerHTML = '<span><svg width="34" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="var(--t1)" stroke-width="2.5" stroke-linecap="round"/></svg>ink of the tester (arrow head added for reading)</span>'
+    + '<span><svg width="34" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="var(--ref)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>reference arrow, from the ideal start to the ideal end</span>'
+    + '<span>Copies: letters in the accent colour are atoms placed with the row of atoms, as entered (the page cannot read a hydrogen written on a heteroatom yet, so the agents type O for OH; the page adds such hydrogens from valence)</span>';
+
+  // ---------- state ----------
+  const runs = new Map(); // runId -> run document
+  const loaded = new Map(); // runId -> { attempts, svg } once read
+  const loading = new Set();
+  let selected = [];
+  const reviews = new Map();
+  let db = null, uid = null, canWrite = true, dbState = 'loading';
+
+  // ---------- drawings ----------
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+  let mk = 0;
+  function markerFor(svg, color) {
+    const id = 'm' + (mk++);
+    const defs = sv('defs', {});
+    const m = sv('marker', { id, viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto-start-reverse' });
+    m.appendChild(sv('path', { d: 'M0,0 L10,5 L0,10 z', fill: color }));
+    defs.appendChild(m); svg.appendChild(defs);
+    return 'url(#' + id + ')';
+  }
+  function bbox(points, pad) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    if (!isFinite(x0)) { x0 = 0; y0 = 0; x1 = 4; y1 = 3; }
+    return [x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad];
+  }
+  const elColor = (e) => (e === 'O' ? 'var(--el-o)' : e === 'N' ? 'var(--el-n)' : e === 'S' ? 'var(--el-s)' : 'var(--struct)');
+  function drawArrows(a, color) {
+    const sc = a.scene, A = new Map(sc.atoms.map((x) => [x.id, x]));
+    const deg = new Map(sc.atoms.map((x) => [x.id, 0]));
+    for (const b of sc.bonds) { deg.set(b.a, deg.get(b.a) + 1); deg.set(b.b, deg.get(b.b) + 1); }
+    const pts = sc.atoms.map((x) => [x.x, x.y]).concat(...(a.ink || []));
+    const svg = sv('svg', { viewBox: bbox(pts, 0.7).join(' '), role: 'img', 'aria-label': 'arrows drawn by the tester on the structure' });
+    const g = sv('g', { 'stroke-linecap': 'round' });
+    for (const b of sc.bonds) {
+      const p = A.get(b.a), q = A.get(b.b);
+      const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      const offs = b.order === 1 ? [0] : b.order === 2 ? [-0.08, 0.08] : [-0.14, 0, 0.14];
+      for (const o of offs) g.appendChild(sv('line', { x1: p.x + nx * o, y1: p.y + ny * o, x2: q.x + nx * o, y2: q.y + ny * o, stroke: 'var(--struct)', 'stroke-width': 0.05 }));
+    }
+    // labels as on the test page: hydrogens of heteroatoms written (OH, NH3+); hydrogens of carbon implicit
+    for (const at of sc.atoms) {
+      if (at.el === 'C' && !at.q && deg.get(at.id) > 0) continue;
+      const hs = at.el === 'C' ? 0 : at.h || 0;
+      const w = 0.32 * (at.el.length + (hs ? 1 : 0) + (hs > 1 ? 0.6 : 0) + (at.q ? 0.6 : 0));
+      g.appendChild(sv('rect', { x: at.x - 0.2, y: at.y - 0.3, width: w + 0.08, height: 0.6, rx: 0.2, fill: 'var(--soft)' }));
+      const t = sv('text', { x: at.x - 0.16, y: at.y + 0.17, 'font-size': 0.48, 'font-family': 'IBM Plex Sans, sans-serif', fill: elColor(at.el) });
+      t.appendChild(document.createTextNode(at.el + (hs ? 'H' : '')));
+      if (hs > 1) { const sub = sv('tspan', { 'font-size': 0.32, dy: 0.12 }); sub.textContent = String(hs); t.appendChild(sub); }
+      if (at.q) { const sup = sv('tspan', { 'font-size': 0.32, dy: hs > 1 ? -0.34 : -0.22 }); sup.textContent = (Math.abs(at.q) > 1 ? Math.abs(at.q) : '') + (at.q > 0 ? '+' : '−'); t.appendChild(sup); }
+      g.appendChild(t);
+    }
+    svg.appendChild(g);
+    const refM = markerFor(svg, 'var(--ref)');
+    for (const r of a.refArrows || []) svg.appendChild(sv('line', { x1: r[0], y1: r[1], x2: r[2], y2: r[3], stroke: 'var(--ref)', 'stroke-width': 0.035, 'stroke-dasharray': '0.12 0.1', 'marker-end': refM }));
+    const m = markerFor(svg, color);
+    for (const st of a.ink || []) svg.appendChild(sv('polyline', { points: st.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 0.07, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'marker-end': m }));
+    return svg;
+  }
+  function drawCopy(a, color) {
+    const pts = [].concat(...(a.ink || [])).concat((a.typed || []).map((t) => [t.x, t.y]));
+    const svg = sv('svg', { viewBox: bbox(pts, 0.6).join(' '), role: 'img', 'aria-label': 'structure drawn by the tester' });
+    for (const st of a.ink || []) svg.appendChild(sv('polyline', { points: st.map((p) => p.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 0.06, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    for (const t of a.typed || []) {
+      const tx = sv('text', { x: t.x, y: t.y + 0.15, 'text-anchor': 'middle', 'font-size': 0.42, 'font-family': 'IBM Plex Sans, sans-serif', 'font-weight': 600, fill: 'var(--accent)' });
+      tx.textContent = t.el ? t.el + (t.q ? (t.q > 0 ? '+' : '−') : '') : (t.q > 0 ? '+' : '−');
+      svg.appendChild(tx);
+    }
+    return svg;
+  }
+  const svgOf = (smi) => { for (const id of selected) { const L = loaded.get(id); if (L && L.svg[smi]) return L.svg[smi]; } return null; };
+  const mol = (smi) => {
+    if (!smi) return el('p', { class: 'note muted', text: 'no valid structure (valence error in the reading)' });
+    const s = svgOf(smi);
+    return s ? el('div', { class: 'mol', html: s, title: smi }) : el('p', { class: 'mono', text: smi });
+  };
+
+  // ---------- reviews ----------
+  const keyOf = (a) => a.runId + '__' + a.set + '__' + a.task + '__' + a.attempt;
+  const found = (a) => a.outcome === 'accepted' || a.outcome === 'confirmed';
+  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return !!r.expected && (found(a) || !!r.outcome); };
+  const refreshers = new Map();
+  const shownAttempts = () => [].concat(...selected.filter((id) => loaded.has(id)).map((id) => loaded.get(id).attempts));
+  function setProgress() {
+    const list = shownAttempts();
+    const done = list.filter(isReviewed).length;
+    const where = dbState === 'ready' ? '' : dbState === 'loading' ? ' · loading answers…' : dbState === 'slow' ? ' · saved answers cannot be reached yet' : ' · answers cannot be saved in this view';
+    $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + where;
+  }
+
+  function resultOf(a) {
+    const box = el('div', { class: 'result' });
+    if (a.type === 'T1' && a.outcome === 'none-intended') {
+      box.appendChild(el('p', { class: 'note', text: 'Structures given by these arrows (' + a.readings.length + ' reading' + (a.readings.length > 1 ? 's' : '') + ' offered, all rejected as not the right structure):' }));
+      const g = el('div', { class: 'readings' });
+      a.readings.forEach((s, i) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (i + 1) })])));
+      box.appendChild(g);
+    } else if (a.type === 'T2' && a.outcome === 'flagged') {
+      box.appendChild(el('p', { class: 'note', text: 'Structure read from this drawing:' }));
+      box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(a.reading))));
+      if (a.reasons) box.appendChild(el('p', { class: 'note muted', text: 'Differences from the structure to copy: ' + a.reasons.map((r) => REASON[r] || r).join(', ') }));
+    } else {
+      box.appendChild(el('p', { class: 'note', text: a.type === 'T1' ? 'No structure: the page gave no reading of these arrows.' : 'No structure: the page could not read this drawing.' }));
+      if (a.message) box.appendChild(el('p', { class: 'note muted', text: 'Page message: ' + a.message }));
+    }
+    return box;
+  }
+
+  function reviewBlock(a) {
+    const k = keyOf(a);
+    const box = el('div', { class: 'review' });
+    const status = el('span', { class: 'status' });
+    const T1 = a.type === 'T1';
+    const qs = [
+      ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
+      ['expected', T1 ? 'Should these arrows have given the right structure?' : 'Should this drawing have given the right structure?', [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]],
+    ];
+    if (!found(a)) {
+      // stored as right / wrong / unsure in every case; for "no reading" the question is whether that is correct
+      const none = a.outcome === 'no-reading';
+      qs.push(['outcome', none ? 'Is the “no reading” correct?' : T1 ? 'Outcome of the arrows' : 'Reading of the drawing',
+        none ? [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']] : [['right', 'right'], ['wrong', 'wrong'], ['unsure', 'unsure']], resultOf(a)]);
+    }
+    const buttons = {};
+    for (const [field, title, opts, before] of qs) {
+      if (before) box.appendChild(before);
+      const q = el('div', { class: 'q' }, title ? el('span', { text: title }) : null);
+      buttons[field] = opts.map(([v, t]) => {
+        const b = el('button', { class: field === 'drawing' ? 'opt flag' : 'opt', type: 'button', 'aria-pressed': 'false', text: t });
+        b.onclick = () => save({ [field]: (reviews.get(k) || {})[field] === v ? null : v });
+        q.appendChild(b);
+        return [v, b];
+      });
+      box.appendChild(q);
+    }
+    const ta = el('textarea', { id: 'note-' + k, rows: '2', maxlength: '1000', placeholder: 'Note (optional)' });
+    const saveBtn = el('button', { class: 'save', type: 'button', text: 'Save note' });
+    saveBtn.onclick = () => save({ note: ta.value.trim() });
+    box.appendChild(ta);
+    box.appendChild(el('div', { class: 'row' }, [saveBtn, status]));
+    async function save(change) {
+      if (!db) return;
+      const cur = Object.assign({ drawing: null, expected: null, outcome: null, note: '' }, reviews.get(k) || {});
+      const next = Object.assign({}, cur, change, { runId: a.runId, tester: a.tester, date: a.date, set: a.set, task: a.task, attempt: a.attempt, type: a.type, by: uid, at: new Date().toISOString() });
+      status.textContent = 'Saving…';
+      try {
+        await db.doc('reviews/' + k).set(next);
+        reviews.set(k, next); refresh(); setProgress(); renderRuns();
+        status.textContent = 'Saved';
+      } catch (e) {
+        if (e && e.code === 'invalid_argument') { canWrite = false; status.textContent = 'You can read this page but not save answers.'; refreshAll(); }
+        else status.textContent = 'Not saved: ' + ((e && e.message) || 'error') + '. Try again.';
+      }
+    }
+    function refresh() {
+      const r = reviews.get(k) || {};
+      for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(r[f] === v)); b.disabled = !db || !canWrite; }
+      if (document.activeElement !== ta) ta.value = r.note || '';
+      ta.disabled = !db || !canWrite; saveBtn.disabled = !db || !canWrite;
+    }
+    refreshers.set(k, refresh);
+    refresh();
+    return box;
+  }
+  const refreshAll = () => { for (const f of refreshers.values()) f(); setProgress(); };
+
+  function attemptCard(a) {
+    const [cls, txt] = OUT[a.outcome] || ['warn', () => a.outcome];
+    const card = el('article', { class: 'attempt' });
+    card.appendChild(el('div', { class: 'attempt-head' }, [el('h3', { text: 'Attempt ' + a.attempt }), el('span', { class: 'pill ' + cls, text: txt(a) })]));
+    if (a.ink && a.ink.length) card.appendChild(el('div', { class: 'ink' }, a.type === 'T1' && a.scene ? drawArrows(a, colorOf(a.tester)) : drawCopy(a, colorOf(a.tester))));
+    if (a.outcome === 'accepted') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: reading ' + a.rank + ' of ' + a.readings.length + ' offered.' }));
+    if (a.outcome === 'confirmed') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: the drawing was read as the structure to copy.' }));
+    card.appendChild(reviewBlock(a));
+    const hb = el('details', { class: 'habits' }, [el('summary', { text: 'Habits used in this drawing (seed ' + a.seed + ')' })]);
+    const dl = el('dl');
+    for (const [k, v] of Object.entries(a.style || {})) { dl.appendChild(el('dt', { text: k })); dl.appendChild(el('dd', { text: String(v) })); }
+    hb.appendChild(dl);
+    card.appendChild(hb);
+    return card;
+  }
+
+  // ---------- runs table ----------
+  const KEEP = 'review:selected';
+  const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify(selected)); } catch (e) { /* storage unavailable */ } };
+  let reportOf = null;
+  function renderRuns() {
+    const t = $('runs');
+    t.textContent = '';
+    const list = [...runs.values()].sort((x, y) => (y.date + y.tester).localeCompare(x.date + x.tester));
+    if (!list.length) return;
+    t.appendChild(el('thead', {}, el('tr', {}, ['Show', 'Run date', 'Tester', 'Traits', 'Daily set', 'Arrows: 1st reading / accepted', 'Copies: 1st attempt / confirmed', 'Flagged', 'Replayed', 'Errors', 'Reviewed', 'Report'].map((h) => el('th', { text: h })))));
+    const body = el('tbody');
+    for (const r of list) {
+      const on = selected.includes(r.runId);
+      const box = el('input', { type: 'checkbox', id: 'pick-' + r.runId, 'aria-label': 'show run ' + r.runId });
+      box.checked = on;
+      box.onchange = () => { selected = box.checked ? selected.concat(r.runId) : selected.filter((x) => x !== r.runId); keepSelection(); renderRuns(); loadSelected(); };
+      const s = r.summary || { arrows: {}, copies: {} };
+      const rev = [...reviews.keys()].filter((k) => k.startsWith(r.runId + '__')).filter((k) => { const v = reviews.get(k); return v && v.expected; }).length;
+      const rep = r.report ? el('button', { class: 'link', type: 'button', text: reportOf === r.runId ? 'hide' : 'show' }) : el('span', { class: 'muted', text: '–' });
+      if (r.report) rep.onclick = () => { reportOf = reportOf === r.runId ? null : r.runId; renderRuns(); };
+      body.appendChild(el('tr', { class: on ? 'on' : null }, [
+        el('td', { class: 'pick' }, box),
+        el('td', { class: 'mono', text: r.date }),
+        el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester)]),
+        el('td', { text: (r.traits && r.traits.text) || '' }),
+        el('td', { class: 'mono', text: r.dailyDate || '–' }),
+        el('td', { class: 'num', text: s.arrows.acceptedFirstAttemptFirstReading + ' / ' + s.arrows.accepted + ' of ' + s.arrows.tasks }),
+        el('td', { class: 'num', text: s.copies.confirmedFirstAttempt + ' / ' + s.copies.confirmed + ' of ' + s.copies.tasks }),
+        el('td', { class: 'num', text: String(s.copies.flagged) }),
+        el('td', { class: 'num', text: r.replay ? r.replay.replayed + ' / ' + r.replay.of : '' }),
+        el('td', { class: 'num', text: String(typeof r.errors === 'number' ? r.errors : (r.errors || []).length) }),
+        el('td', { class: 'num', text: rev + ' / ' + (r.attemptCount || '?') }),
+        el('td', {}, rep),
+      ]));
+    }
+    t.appendChild(body);
+    const rb = $('report-box');
+    rb.textContent = '';
+    if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' kept, newest first. Tick the runs to show.';
+  }
+
+  async function loadSelected() {
+    for (const id of selected) {
+      if (loaded.has(id) || loading.has(id) || !runs.has(id)) continue;
+      loading.add(id);
+      try {
+        const r = runs.get(id);
+        const res = await fetch(r.file);
+        if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
+        const data = await res.json();
+        const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date }, a));
+        runs.set(id, Object.assign({}, r, { tasks: data.tasks || [] }));
+        loaded.set(id, { attempts, svg: data.svg || {} });
+      } catch (e) {
+        $('runs-status').textContent = 'Run ' + id + ' could not be read: ' + ((e && e.message) || 'error') + '.';
+      }
+      loading.delete(id);
+    }
+    render();
+  }
+
+  // ---------- filters and tasks ----------
+  const F = { type: 'all', show: 'all' };
+  try { Object.assign(F, JSON.parse(localStorage.getItem('review:filters') || '{}')); } catch (e) { /* storage unavailable */ }
+  function chips(groupId, field, options) {
+    const g = $(groupId);
+    for (const [v, t] of options) {
+      const b = el('button', { class: 'chip', type: 'button', 'aria-pressed': String(F[field] === v), text: t, 'data-v': v });
+      b.onclick = () => { F[field] = v; for (const x of g.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.v === v)); try { localStorage.setItem('review:filters', JSON.stringify(F)); } catch (e) { /* ignore */ } render(); };
+      g.appendChild(b);
+    }
+  }
+  chips('f-type', 'type', [['all', 'All'], ['T1', 'Arrows'], ['T2', 'Copies']]);
+  chips('f-show', 'show', [['all', 'All attempts'], ['failed', 'Not as intended'], ['open', 'Not reviewed']]);
+
+  const cards = new Map();
+  const cardOf = (a) => { const k = keyOf(a); if (!cards.has(k)) cards.set(k, attemptCard(a)); return cards.get(k); };
+  function render() {
+    const main = $('tasks');
+    main.textContent = '';
+    const chosen = selected.filter((id) => runs.has(id)).sort((x, y) => (runs.get(x).date + runs.get(x).tester).localeCompare(runs.get(y).date + runs.get(y).tester));
+    if (!chosen.length) { main.appendChild(el('p', { class: 'empty panel', text: runs.size ? 'Tick one or more runs in the table above.' : 'No run is kept yet.' })); setProgress(); return; }
+    if (chosen.some((id) => !loaded.has(id))) main.appendChild(el('p', { class: 'status', text: 'Loading the chosen runs…' }));
+    // tasks in the order they appear in the chosen runs
+    const tasks = [], seen = new Set();
+    for (const id of chosen) for (const t of runs.get(id).tasks || []) { const k = t.set + '/' + t.id; if (!seen.has(k)) { seen.add(k); tasks.push(t); } }
+    let shown = 0;
+    for (const t of tasks) {
+      if (F.type !== 'all' && t.type !== F.type) continue;
+      const cols = el('div', { class: 'cols' });
+      let n = 0;
+      for (const id of chosen) {
+        const L = loaded.get(id);
+        if (!L) continue;
+        const mine = L.attempts.filter((a) => a.set === t.set && a.task === t.id
+          && (F.show !== 'failed' || !found(a)) && (F.show !== 'open' || !isReviewed(a)))
+          .sort((x, y) => x.attempt - y.attempt);
+        if (!mine.length) continue;
+        n += mine.length;
+        const r = runs.get(id);
+        const col = el('div', { class: 'col' }, [el('div', { class: 'col-head colhead' }, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), el('span', {}, [document.createTextNode(r.tester + ' · ' + r.date), el('small', { text: (r.traits && r.traits.text) || '' })])])]);
+        for (const a of mine) col.appendChild(cardOf(a));
+        cols.appendChild(col);
+      }
+      if (!n) continue;
+      shown += n;
+      const sec = el('section', { class: 'task panel' });
+      const meta = el('div', { class: 'task-meta' }, [
+        el('h2', {}, [el('span', { class: 'tag', text: t.set === 'daily' ? 'daily set' : 'standard' }), el('span', { class: 'tag', text: t.type === 'T1' ? 'arrows' : 'copy' }), document.createTextNode(t.id)]),
+        t.conditions ? el('p', { class: 'muted', text: 'Conditions shown: ' + t.conditions }) : null,
+        t.type === 'T1' && t.refText ? el('p', { class: 'note muted', text: 'Reference: ' + t.refText }) : null,
+      ]);
+      const tgt = el('div', { class: 'target' }, [mol(t.type === 'T1' ? t.intended : t.target), el('span', { class: 'note muted', text: t.type === 'T1' ? 'structure the reference arrows give' : 'structure to copy' })]);
+      sec.appendChild(el('div', { class: 'task-head' }, [meta, tgt]));
+      sec.appendChild(cols);
+      main.appendChild(sec);
+    }
+    if (!shown && chosen.every((id) => loaded.has(id))) main.appendChild(el('p', { class: 'empty panel', text: F.show === 'open' ? 'Every attempt in this selection has been reviewed.' : 'No attempt matches this selection.' }));
+    setProgress();
+  }
+  render();
+
+  // ---------- runs (files published with the page) ----------
+  function chooseDefault() {
+    let keep = [];
+    try { keep = JSON.parse(localStorage.getItem(KEEP) || '[]').filter((id) => runs.has(id)); } catch (e) { keep = []; }
+    if (!keep.length) {
+      // newest run of each tester, at most four
+      const latest = new Map();
+      for (const r of [...runs.values()].sort((x, y) => y.date.localeCompare(x.date))) if (!latest.has(r.tester)) latest.set(r.tester, r.runId);
+      keep = [...latest.values()].slice(0, 4);
+    }
+    selected = keep;
+  }
+  (async () => {
+    try {
+      const res = await fetch('runs/index.json', { cache: 'no-store' });
+      const list = res.ok ? await res.json() : [];
+      for (const r of list) if (r && r.runId) runs.set(r.runId, r);
+      if (!runs.size) $('runs-status').textContent = 'No run is kept yet.';
+    } catch (e) {
+      $('runs-status').textContent = 'The list of runs could not be read: ' + ((e && e.message) || 'error') + '.';
+    }
+    chooseDefault();
+    renderRuns();
+    loadSelected();
+  })();
+
+  // ---------- answers (the page's database) ----------
+  // Answers saved before runs were kept per date carry no run in their key (tester__task__attempt, all from
+  // the runs of 2026-11-15, standard set): they are moved once to reviews/<runId>__standard__<task>__<attempt>.
+  async function moveOldAnswers(snap) {
+    if (!canWrite) return;
+    for (const d of snap.docs) {
+      const m = /^(john\d+)__([^_].*?)__(\d+)$/.exec(d.id);
+      const v = d.data() || {};
+      if (!m || v.runId) continue;
+      const runId = '2026-11-15_' + m[1];
+      const key = runId + '__' + (v.set || 'standard') + '__' + m[2] + '__' + m[3];
+      try {
+        const now = await db.doc('reviews/' + key).get();
+        if (!now.exists) await db.doc('reviews/' + key).set(Object.assign({}, v, { runId, date: '2026-11-15', movedFrom: d.id }));
+        await db.doc('reviews/' + d.id).delete();
+      } catch (e) { return; }
+    }
+  }
+  (async () => {
+    const timer = setTimeout(() => { if (dbState === 'loading') { dbState = 'slow'; setProgress(); } }, 10000);
+    try {
+      db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+      const user = window.claude && window.claude.use ? await window.claude.use('user') : null;
+      if (user) { try { uid = await user.id(); } catch (e) { uid = null; } try { const c = await user.can('data.write'); if (c === false) canWrite = false; } catch (e) { /* not told */ } }
+    } catch (e) { db = null; }
+    if (!db) { clearTimeout(timer); dbState = 'off'; refreshAll(); return; }
+    let moved = false;
+    db.collection('reviews').onSnapshot((snap) => {
+      if (!snap.metadata.fromCache) { clearTimeout(timer); dbState = 'ready'; if (!moved) { moved = true; moveOldAnswers(snap); } }
+      reviews.clear();
+      for (const d of snap.docs) reviews.set(d.id, d.data());
+      refreshAll(); renderRuns();
+    }, () => { clearTimeout(timer); dbState = 'off'; db = null; refreshAll(); });
+  })();
+})();
+</script>
