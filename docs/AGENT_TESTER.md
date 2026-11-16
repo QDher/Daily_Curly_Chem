@@ -29,11 +29,12 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
   (`src/glyphs.js`), so handwritten letters from them would test the recognizer against itself. Atoms other than
   carbon and charges are placed with the row of atoms, as testers may do. Letter recognition needs letters from
   people.
-- **Hydrogens on heteroatoms** (user, 2026-11-16): only hydrogens on carbon are implicit. The page cannot yet read a
-  hydrogen written on a heteroatom (items 7 and 8 of `docs/PLAN_DRAWING.md`), so the agents type O for OH and the
-  page adds such hydrogens from valence. When those items are built, the agents write them (typed label with its
-  hydrogen count), with a new `VERSION` of `tools/agent_ink.js`. Structures shown in the review page and in the run
-  record carry the hydrogen counts (`h`, from script 0.1.2).
+- **Hydrogens on heteroatoms** (user, 2026-11-16): only hydrogens on carbon are implicit. From ink 0.2.0 (script
+  0.1.3), every hydrogen of N, O, S, ... in a copy is drawn as a bond stroke with a typed H at its end, as long as the
+  other bonds, with the geometry of the review page (C=N-H bent at 120 degrees, two H at +-120 degrees, ...); a bond
+  between two labels keeps at least 0.6 of its length (gap at most 0.2 bond at each end). The page cannot yet read a
+  hydrogen written next to a heteroatom (NH2 as a label, items 7 and 8 of `docs/PLAN_DRAWING.md`). Structures shown
+  in the review page and in the run record carry the hydrogen counts (`h`, from script 0.1.2).
 - **Not calibrated yet.** The noise levels are set by hand. After the first files of testers, measure endpoint
   gaps, bond angle and length errors and arrow end distances on human drawings (`test/fixtures/`, tester files)
   and set `PRECISION` in `tools/agent_ink.js` to match (a change of the ink raises its `VERSION`).
@@ -173,3 +174,13 @@ Observations:
 - Copies by the imprecise testers are mostly flagged: bonds that do not meet, two bonds drawn in one nearly
   straight stroke, second lines of double bonds not read. Whether people draw this way is not known until the
   noise is calibrated.
+- Drawn N-H bonds (ink 0.2.0, 2026-11-16): the page places a typed atom on the nearest ink point within 0.6 units
+  and, when another typed atom lies within 0.45 units of that point, changes that atom instead of adding one
+  (`place` in `src/canvas.js`). A short N-H stroke then turns the typed N into H: the N is lost, and the reading has
+  a separate H (H-), H-H or a short stroke read as a letter (F, I). A first draft of the ink (bonds to H 0.9 of a
+  bond, full gap at both labels, N-H strokes of about 16 px) hit it often; ink 0.2.0 draws bonds to H at full
+  length with smaller gaps between two labels. Copies confirmed of 9 (first attempt) on the set of 2026-11-16, ink
+  0.1.0 (scheduled run) → ink 0.2.0 (session run): john0002 8 (7) → 8 (8); john0003 9 (8) → 9 (9); john0004 3 (3)
+  → 2 (2); john0005 3 (1) → 2 (1). The imprecise testers still lose the N of their NH2 and NH copies this way. Not
+  changed in the page (synthetic evidence; thresholds are set on drawings of people). To watch in the test run:
+  whether people draw X-H bonds short enough to hit it.

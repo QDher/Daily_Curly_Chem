@@ -46,6 +46,32 @@ test('structure: one typed atom per oxygen, a charge on the charged one; strokes
   ok(Ink.structure(Ink.drawing(Ink.writer('john0002'), 1), { atoms: [{ id: 'x', el: 'Na', q: 1, x: 0, y: 0 }], bonds: [] }, box).unsupported[0] === 'Na', 'unsupported element');
 });
 
+test('copies: hydrogens of heteroatoms are drawn as bonds ending on a typed H, bent at 120 degrees (C=N-H); none on carbon', () => {
+  const imine = { atoms: [{ id: 'c1', el: 'C', q: 0, h: 3, x: 0, y: 0 }, { id: 'c2', el: 'C', q: 0, h: 1, x: 1.3, y: -0.75 }, { id: 'n', el: 'N', q: 0, h: 1, x: 2.6, y: 0 }], bonds: [{ a: 'c1', b: 'c2', order: 1 }, { a: 'c2', b: 'n', order: 2 }] };
+  const x = Ink.withHydrogens(imine);
+  const hs = x.atoms.filter((a) => a.el === 'H');
+  ok(hs.length === 1 && x.bonds.some((b) => b.a === 'n' && b.b === hs[0].id), 'one N-H bond');
+  const N = x.atoms.find((a) => a.id === 'n'), C = x.atoms.find((a) => a.id === 'c2'), H = hs[0];
+  const v1 = { x: C.x - N.x, y: C.y - N.y }, v2 = { x: H.x - N.x, y: H.y - N.y };
+  const angle = (Math.acos((v1.x * v2.x + v1.y * v2.y) / Math.hypot(v1.x, v1.y) / Math.hypot(v2.x, v2.y)) * 180) / Math.PI;
+  ok(Math.abs(angle - 120) < 1, 'angle ' + angle);
+  const cross = (o, p, q) => (p.x - o.x) * (q.y - o.y) - (p.y - o.y) * (q.x - o.x);
+  ok(Math.sign(cross(N, C, H)) !== Math.sign(cross(N, C, x.atoms.find((a) => a.id === 'c1'))), 'zig-zag: H opposite the methyl');
+  const iminium = { atoms: imine.atoms.map((a) => (a.id === 'n' ? Object.assign({}, a, { q: 1, h: 2 }) : a)), bonds: imine.bonds };
+  const s = Ink.structure(Ink.drawing(Ink.writer('john0002'), 5), iminium, box);
+  ok(s.typed.filter((t) => t.el === 'H').length === 2, 'two typed H');
+  ok(s.typed.filter((t) => t.el === null && t.q === 1).length === 1, 'charge');
+  ok(s.strokes.length >= 4, 'strokes ' + s.strokes.length);
+  // the page merges typed atoms closer than 0.45 (src/canvas.js): a bond between two labels must be longer
+  const chord = (st) => Math.hypot(st[st.length - 1].x - st[0].x, st[st.length - 1].y - st[0].y);
+  // (precise testers; imprecise ones draw some short strokes, which is part of their imprecision)
+  for (const seed of [1, 2, 3, 4, 5, 6]) for (const name of ['john0002', 'john0003']) {
+    const t = Ink.structure(Ink.drawing(Ink.writer(name), seed), iminium, box);
+    const shortest = Math.min(...t.strokes.map(chord));
+    ok(shortest > 0.45, name + ' seed ' + seed + ': shortest stroke ' + shortest.toFixed(2));
+  }
+});
+
 test('consistency: habits vary much less between drawings of a consistent tester (john0002, john0004) than of a variable one (john0003, john0005)', () => {
   const spread = (key) => {
     const w = Ink.writer(key);

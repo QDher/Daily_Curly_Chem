@@ -31,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -259,7 +259,7 @@ async function main() {
       const app = window.__app;
       const sc = Scene.fromSpecies(app.R, smi.split('.'));
       return {
-        scene: { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, x: a.x, y: a.y })), bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })) },
+        scene: { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, h: a.h || 0, x: a.x, y: a.y })), bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })) },
         smiles: Scene.canonicalSmiles(app.R, smi),
       };
     }, task.target);

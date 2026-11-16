@@ -8,12 +8,13 @@
 //   anew each time.
 // Letters are not written by hand: the only letter shapes available are the recognizer's own templates
 // (src/glyphs.js), so handwritten letters from them would only test the recognizer against itself. Atoms other
-// than carbon and charges are placed as typed atoms (row of atoms), as testers may do.
+// than carbon and charges are placed as typed atoms (row of atoms), as testers may do. In copies, every hydrogen
+// of a heteroatom is a bond stroke ending on a typed H (ink 0.2.0); hydrogens of carbon stay implicit.
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -160,11 +161,62 @@ function arrow(d, from, to) {
 
 const ROW = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'I', 'B', 'Si', 'H'];
 
-// A structure copied by hand. scene: { atoms: [{ id, el, q, x, y }], bonds: [{ a, b, order }] } as laid out by
-// the page (bond length 1.5). box: { x, y, w, h } free area of the frame. Returns { strokes, typed, unsupported }:
-// strokes are point lists, typed are clicks { el | null, q, x, y } of the row of atoms, all in frame units.
-function structure(d, scene, box) {
+// Hydrogens of heteroatoms drawn as bonds (user, 2026-11-16: only hydrogens on carbon are implicit). Same geometry
+// as the review page: one heavy neighbour and one H bent at 120 degrees on the side away from the neighbour's other
+// bonds (C=N-H, C-O-H); two H at +-120 degrees; three at 90, 180, 270 degrees; two or more heavy neighbours: the H
+// go into the largest gaps; lone species: H2O as a V, H3O+ as a Y. Bonds to H are as long as the other bonds in the
+// ink (lh, fraction of a bond; the review page shows them at 0.9). Atoms without `h` (or h 0) get none.
+function withHydrogens(scene, lh = 1) {
+  const atoms = scene.atoms.map((a) => Object.assign({}, a));
+  const bonds = scene.bonds.map((b) => Object.assign({}, b));
+  const A = new Map(atoms.map((a) => [a.id, a]));
+  const nbrs = (id) => bonds.filter((b) => b.a === id || b.b === id).map((b) => A.get(b.a === id ? b.b : b.a)).filter(Boolean);
+  const ang = (p, q) => Math.atan2(q.y - p.y, q.x - p.x);
+  const cross = (o, p, q) => (p.x - o.x) * (q.y - o.y) - (p.y - o.y) * (q.x - o.x);
+  const LH = lh * L0;
+  for (const a0 of scene.atoms) {
+    if (a0.el === 'C' || a0.el === 'H' || !a0.h) continue;
+    const a = A.get(a0.id), k = a0.h, nb = nbrs(a.id), dirs = nb.map((n) => ang(a, n));
+    let angles = [];
+    if (!dirs.length) {
+      angles = k === 1 ? [0] : k === 2 ? [Math.PI / 2 - 0.95, Math.PI / 2 + 0.95] : k === 3 ? [-Math.PI / 2, Math.PI / 6, Math.PI * 5 / 6] : Array.from({ length: k }, (_, i) => Math.PI / 4 + (2 * Math.PI * i) / k);
+    } else if (dirs.length === 1) {
+      const t = dirs[0], n = nb[0];
+      if (k === 1) {
+        const c = [t + (2 * Math.PI) / 3, t - (2 * Math.PI) / 3];
+        const side = nbrs(n.id).filter((m) => m.id !== a.id).reduce((acc, m) => acc + Math.sign(cross(a, n, m)), 0);
+        const sideOf = (th) => Math.sign(cross(a, n, { x: a.x + Math.cos(th), y: a.y + Math.sin(th) }));
+        angles = [side === 0 ? (Math.sin(c[0]) > Math.sin(c[1]) ? c[1] : c[0]) : (sideOf(c[0]) !== Math.sign(side) ? c[0] : c[1])];
+      } else if (k === 2) angles = [t + (2 * Math.PI) / 3, t - (2 * Math.PI) / 3];
+      else angles = Array.from({ length: k }, (_, i) => t + (Math.PI / 2) * (i + 1) * (4 / (k + 1)));
+    } else {
+      const sorted = dirs.slice().sort((p, q) => p - q);
+      const gaps = sorted.map((th, i) => ({ from: th, size: (i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + 2 * Math.PI) - th }));
+      const count = gaps.map(() => 0);
+      for (let j = 0; j < k; j++) {
+        let best = 0;
+        gaps.forEach((g, i) => { if (g.size / (count[i] + 2) > gaps[best].size / (count[best] + 2)) best = i; });
+        count[best] += 1;
+      }
+      gaps.forEach((g, i) => { for (let j = 1; j <= count[i]; j++) angles.push(g.from + (g.size * j) / (count[i] + 1)); });
+    }
+    angles.forEach((th, i) => {
+      const id = a.id + '_H' + i;
+      atoms.push({ id, el: 'H', q: 0, h: 0, x: a.x + LH * Math.cos(th), y: a.y + LH * Math.sin(th) });
+      bonds.push({ a: a.id, b: id, order: 1 });
+    });
+    a.h = 0;
+  }
+  return { atoms, bonds };
+}
+
+// A structure copied by hand. scene: { atoms: [{ id, el, q, h, x, y }], bonds: [{ a, b, order }] } as laid out by
+// the page (bond length 1.5). Hydrogens of heteroatoms are drawn as bonds with a typed H at their end (from ink
+// 0.2.0). box: { x, y, w, h } free area of the frame. Returns { strokes, typed, unsupported }: strokes are point
+// lists, typed are clicks { el | null, q, x, y } of the row of atoms, all in frame units.
+function structure(d, scene0, box) {
   const s = d.style, nz = d.noise;
+  const scene = withHydrogens(scene0);
   const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
   if (unsupported.length) return { strokes: [], typed: [], unsupported };
   // place: centre, scale to the writer's bond length, rotate, shrink to fit the frame, small shift
@@ -188,10 +240,12 @@ function structure(d, scene, box) {
   for (const b of scene.bonds) { degree.set(b.a, degree.get(b.a) + 1); degree.set(b.b, degree.get(b.b) + 1); }
   const labelled = new Set(scene.atoms.filter((a) => a.el !== 'C' || degree.get(a.id) === 0).map((a) => a.id));
   const jitter = (p) => add(p, gauss(d, nz.end * L * 0.5));
+  // a bond between two labels (N-H, S-O) keeps at least 0.6 of its length: gap at most 0.2 L at each end
   const endAt = (id, toward) => {
     const p = at.get(id);
     if (!labelled.has(id)) return p;
-    return add(p, mul(unit(sub(at.get(toward), p)), s.labelGap * L));
+    const gap = labelled.has(toward) ? Math.min(s.labelGap, 0.2) : s.labelGap;
+    return add(p, mul(unit(sub(at.get(toward), p)), gap * L));
   };
   const strokes = [];
   // bonds: trails through atoms without a label, one stroke per trail
@@ -270,4 +324,4 @@ function structure(d, scene, box) {
   return { strokes, typed, unsupported: [], L };
 }
 
-module.exports = { VERSION, TESTERS, PRECISION, CONSISTENCY, HABITS, writer, drawing, arrow, structure, seedOf, ROW };
+module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, writer, drawing, arrow, structure, seedOf, ROW };

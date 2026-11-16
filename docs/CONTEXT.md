@@ -78,7 +78,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
-| Agent testers (synthetic, every tester every day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `tools/agent_review_data.js`, `tools/agent_review_page.html` | ink 0.1.0, script 0.1.2, review data 0.2.0 | four runs (2026-11-15, all entries replay) on the review page https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4; daily Claude Code scheduled task (prompt `docs/AGENT_TASK_PROMPT.md`) adds one run per tester per day; `console/` not used |
+| Agent testers (synthetic, every tester every day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `tools/agent_review_data.js`, `tools/agent_review_page.html` | ink 0.2.0 (hydrogens of heteroatoms drawn as bonds in copies), script 0.1.3, review data 0.2.0 | four runs (2026-11-15, all entries replay) on the review page https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4; daily Claude Code scheduled task (prompt `docs/AGENT_TASK_PROMPT.md`) adds one run per tester per day; `console/` not used |
 
 Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink for the benchmark), `console/` (Claude
 Console resources of the agent testers, not used),
@@ -173,6 +173,7 @@ them while the first test run collects data; the plan and its evidence log are u
 | Keys typed right after choosing a task go to the dropdown | Focus stays on the `select` until a click elsewhere | `keydown` handler in `src/canvas.js` |
 | Drawings whose bonds all run between two letters (Br–Br) | The bond length cannot be estimated | `estimateL` |
 | Arrow to the space between two atoms more than 4.5 units apart is not read (seen with agent testers, 2026-11-14) | In `t1-cc-bond` the two atoms are 5.1 units apart, above `pairReach`; ending near the receiving atom works. Synthetic evidence only: not changed | `P.pairReach` in `src/readings.js`; `docs/AGENT_TESTER.md` |
+| A typed atom placed within 0.45 units of another typed atom changes it instead of adding one (seen with agent testers, 2026-11-16) | A short N-H stroke turns the typed N into H; the reading then lacks the N and has H-, H-H or a stray letter. Synthetic evidence only: not changed | `place` and `snap` in `src/canvas.js`; `docs/AGENT_TESTER.md` |
 | A stroke shorter than 0.5 units in arrow mode is dropped without a message (seen with agent testers) | A short arrow from a lone pair to its own bond can vanish; the result then lacks that arrow | `len >= 0.5` in `src/canvas.js` |
 | Reference mechanisms not reviewed by a chemist | Step 3 of `acrylate-aldehyde` is a direct proton transfer (a simplification) | `data/tasks.json` |
 | Only one tester so far, mouse only | All real figures come from one person; touch is untested by a person | – |
