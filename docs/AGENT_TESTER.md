@@ -106,7 +106,7 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
 - Every run is kept. A run is three files published with the page: `runs/<runId>.json` (attempts, structures, run
   figures, report), a line in `runs/index.json`, and `entries/<entries file>` (the entries saved by the page during
   the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`.
-- The page lists the runs; the reviewer ticks the runs to show (by default the newest run of each tester), and each
+- The page shows one run date at a time (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are shown, each can be unticked, and each
   task shows the chosen runs side by side.
 - Answers are saved by the page in its database, one document per attempt: `reviews/<runId>__<set>__<task>__<attempt>`
   with `drawing` ("not-person" when a person would not draw it), `expected` (yes, no, unsure), `outcome` (right, wrong,

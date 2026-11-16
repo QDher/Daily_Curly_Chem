@@ -107,6 +107,11 @@ details.habits dd { margin: 0; }
 </style>
 <style>
 .runs td.pick { width: 1%; }
+.runs-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.runs-head h2 { margin-right: 6px; }
+.runs-head button { font: inherit; font-size: 14px; min-width: 34px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+.runs-head button:disabled { opacity: .4; cursor: default; }
+.runs-head .day { font-family: var(--f-mono); font-size: 14px; min-width: 11ch; text-align: center; font-variant-numeric: tabular-nums; }
 .runs input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
 .runs tr.on td { background: var(--accent-soft); }
 .runs button.link { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
@@ -118,11 +123,16 @@ details.habits dd { margin: 0; }
   <header class="intro">
     <h1>Agent tester review</h1>
     <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
-    <p>Choose the runs to show in the table. Each task shows the chosen runs side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page, per run, and can be read back in the Claude session.</p>
+    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page, per run, and can be read back in the Claude session.</p>
   </header>
 
   <section class="panel">
-    <h2 style="margin-bottom:8px">Runs</h2>
+    <div class="runs-head">
+      <h2>Runs</h2>
+      <button type="button" id="day-prev" aria-label="Earlier date" title="Earlier date">&larr;</button>
+      <span class="day" id="day" aria-live="polite"></span>
+      <button type="button" id="day-next" aria-label="Later date" title="Later date">&rarr;</button>
+    </div>
     <div class="table-wrap"><table id="runs" class="runs"></table></div>
     <p class="status" id="runs-status">Loading runs&hellip;</p>
     <div id="report-box"></div>
@@ -347,15 +357,34 @@ details.habits dd { margin: 0; }
   }
 
   // ---------- runs table ----------
-  const KEEP = 'review:selected';
-  const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify(selected)); } catch (e) { /* storage unavailable */ } };
+  // One run date at a time: the table lists the runs of that date; the arrows go to the earlier or later date.
+  const KEEP = 'review:day';
+  let day = null;
+  const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
+  const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify({ day, selected })); } catch (e) { /* storage unavailable */ } };
+  function showDay(d, keep) {
+    day = d;
+    const ofDay = [...runs.values()].filter((r) => r.date === d).map((r) => r.runId);
+    const kept = (keep || []).filter((id) => ofDay.includes(id));
+    selected = kept.length ? kept : ofDay;
+    reportOf = null;
+    keepSelection();
+    renderRuns();
+    loadSelected();
+  }
+  $('day-prev').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i > 0) showDay(ds[i - 1]); };
+  $('day-next').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i >= 0 && i < ds.length - 1) showDay(ds[i + 1]); };
   let reportOf = null;
   function renderRuns() {
     const t = $('runs');
     t.textContent = '';
-    const list = [...runs.values()].sort((x, y) => (y.date + y.tester).localeCompare(x.date + x.tester));
+    const ds = dates(), i = ds.indexOf(day);
+    $('day').textContent = day || '\u2013';
+    $('day-prev').disabled = i <= 0;
+    $('day-next').disabled = i < 0 || i >= ds.length - 1;
+    const list = [...runs.values()].filter((r) => r.date === day).sort((x, y) => x.tester.localeCompare(y.tester));
     if (!list.length) return;
-    t.appendChild(el('thead', {}, el('tr', {}, ['Show', 'Run date', 'Tester', 'Traits', 'Daily set', 'Arrows: 1st reading / accepted', 'Copies: 1st attempt / confirmed', 'Flagged', 'Replayed', 'Errors', 'Reviewed', 'Report'].map((h) => el('th', { text: h })))));
+    t.appendChild(el('thead', {}, el('tr', {}, ['Show', 'Tester', 'Traits', 'Daily set', 'Arrows: 1st reading / accepted', 'Copies: 1st attempt / confirmed', 'Flagged', 'Replayed', 'Errors', 'Reviewed', 'Report'].map((h) => el('th', { text: h })))));
     const body = el('tbody');
     for (const r of list) {
       const on = selected.includes(r.runId);
@@ -368,7 +397,6 @@ details.habits dd { margin: 0; }
       if (r.report) rep.onclick = () => { reportOf = reportOf === r.runId ? null : r.runId; renderRuns(); };
       body.appendChild(el('tr', { class: on ? 'on' : null }, [
         el('td', { class: 'pick' }, box),
-        el('td', { class: 'mono', text: r.date }),
         el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester)]),
         el('td', { text: (r.traits && r.traits.text) || '' }),
         el('td', { class: 'mono', text: r.dailyDate || '–' }),
@@ -385,7 +413,7 @@ details.habits dd { margin: 0; }
     const rb = $('report-box');
     rb.textContent = '';
     if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
-    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' kept, newest first. Tick the runs to show.';
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Untick a run to hide it.';
   }
 
   async function loadSelected() {
@@ -470,16 +498,13 @@ details.habits dd { margin: 0; }
   render();
 
   // ---------- runs (files published with the page) ----------
+  // the date shown last in this browser, else the newest date
   function chooseDefault() {
-    let keep = [];
-    try { keep = JSON.parse(localStorage.getItem(KEEP) || '[]').filter((id) => runs.has(id)); } catch (e) { keep = []; }
-    if (!keep.length) {
-      // newest run of each tester, at most four
-      const latest = new Map();
-      for (const r of [...runs.values()].sort((x, y) => y.date.localeCompare(x.date))) if (!latest.has(r.tester)) latest.set(r.tester, r.runId);
-      keep = [...latest.values()].slice(0, 4);
-    }
-    selected = keep;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEEP) || 'null'); } catch (e) { saved = null; }
+    const ds = dates();
+    const d = saved && ds.includes(saved.day) ? saved.day : ds[ds.length - 1];
+    if (d) showDay(d, saved && saved.day === d ? saved.selected : null);
   }
   (async () => {
     try {
@@ -491,8 +516,7 @@ details.habits dd { margin: 0; }
       $('runs-status').textContent = 'The list of runs could not be read: ' + ((e && e.message) || 'error') + '.';
     }
     chooseDefault();
-    renderRuns();
-    loadSelected();
+    if (!day) { renderRuns(); render(); }
   })();
 
   // ---------- answers (the page's database) ----------
