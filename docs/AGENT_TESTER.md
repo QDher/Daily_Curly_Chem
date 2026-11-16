@@ -1,7 +1,7 @@
-# Agent testers: synthetic drawing data, one run per day
+# Agent testers: synthetic drawing data, every tester every day
 
-Decisions of the user: agent testers run one per day to start with, named john0002, john0003, and so on
-(2026-11-14); the daily run is a Claude Code scheduled task that adds each run to the review page (2026-11-16;
+Decisions of the user: agent testers named john0002, john0003, and so on (2026-11-14); every tester of
+`rotation` runs every day (2026-11-16; one per day before); the daily run is a Claude Code scheduled task that adds each run to the review page (2026-11-16;
 it replaces the Claude Console deployment of 2026-11-14, whose files in `console/` are kept but not used). They know the correct answer of every task; only the drawing of arrows, bonds and
 atoms is under test, with two traits: precision and reproducibility (consistency). Each run also reports what
 it saw on the page.
@@ -58,12 +58,13 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
   habits move towards a new random set by a factor of 0.1 (high consistency) or 1 (low: drawn anew each time).
 - **Label**: first 8 hex digits of the SHA-256 of `agent-<name>`. That code opens only the page served locally by
   the script (with its own tester list); it is not valid on the live site and is not in `data/testers.json`.
-- **Rotation**: one tester per day in the order of `rotation`, counted from 2026-11-15 (john0002 on 2026-11-15,
-  john0003 on 2026-11-16, and so on). Each tester draws the standard set at every run: its 6 arrow tasks and
-  4 copies are the fixed panel on which reproducibility is measured across runs; the daily set adds new tasks.
+- **Daily testers**: every tester listed in `rotation` runs every day (user, 2026-11-16), so each date has one
+  run per tester. Each tester draws the standard set at every run: its 6 arrow tasks and 4 copies are the fixed
+  panel on which reproducibility is measured across runs; the daily set adds new tasks. (`--agent auto` of the
+  script still picks one tester by date, counted from 2026-11-15, for local runs.)
 - **More testers**: add a name, traits and seed to `tools/agent_testers.json` and to `rotation`. Never reuse a
-  name and never change the seed or traits of a tester that has run. Several testers per day: a scheduled task
-  per tester whose prompt runs `node tools/agent_tester.js --agent <name>` (the run id is `<date>_<tester>`).
+  name and never change the seed or traits of a tester that has run. A tester listed in `rotation` runs from the
+  next day on; one removed from it stops (its runs stay on the review page). The run id is `<date>_<tester>`.
 
 ## One run
 
@@ -93,7 +94,9 @@ Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agen
 
 - Scheduled task "Agent tester daily run (Daily Curly Chem)", a fresh session every day at 06:17 America/New_York,
   after the daily set is built (03:30 UTC). Prompt: `docs/AGENT_TASK_PROMPT.md` (identical to the stored one; a
-  change is made in both). One run per day: a run already in `runs/index.json` is not run again.
+  change is made in both). Every tester of `rotation` runs once per date; a run already in `runs/index.json` is not
+  run again (a second firing on the same date adds only the missing testers). One publish adds all runs of the
+  date. Time: about 2 minutes per tester for the script, plus the report.
 - The session changes nothing in the repository and commits nothing; its outputs go to the review page only.
 - `console/` (Managed Agents agent, environment and deployment of 2026-11-14) is kept but not used: it was never
   applied.
@@ -106,7 +109,7 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
 - Every run is kept. A run is three files published with the page: `runs/<runId>.json` (attempts, structures, run
   figures, report), a line in `runs/index.json`, and `entries/<entries file>` (the entries saved by the page during
   the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`.
-- The page shows one run date at a time (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are shown, each can be unticked, and each
+- The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are shown, each can be unticked, and each
   task shows the chosen runs side by side.
 - Answers are saved by the page in its database, one document per attempt: `reviews/<runId>__<set>__<task>__<attempt>`
   with `drawing` ("not-person" when a person would not draw it), `expected` (yes, no, unsure), `outcome` (right, wrong,

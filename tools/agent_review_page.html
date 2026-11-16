@@ -64,7 +64,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
 .target .mol { width: 210px; max-width: 100%; }
 .mol { color: var(--struct); width: 100%; max-width: 100%; }
 .mol svg { width: 100%; height: auto; display: block; }
-.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; } /* auto-fill: one run keeps the width of a quarter, as with four runs */
 .col { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .col-head { display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .col-head small { font-weight: 400; color: var(--muted); }

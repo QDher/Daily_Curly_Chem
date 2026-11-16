@@ -78,7 +78,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 | Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |
 | Replay of stored entries | `tools/replay.js` | – | works on saved files and on Worker exports |
 | Storage in the database | `data/config.json` (`worker: null`) | – | off on purpose (see Decisions) |
-| Agent testers (synthetic, one per day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `tools/agent_review_data.js`, `tools/agent_review_page.html` | ink 0.1.0, script 0.1.2, review data 0.1.0 | four runs (2026-11-15, all entries replay) on the review page https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4; daily Claude Code scheduled task (prompt `docs/AGENT_TASK_PROMPT.md`) adds one run per day; `console/` not used |
+| Agent testers (synthetic, every tester every day) | `tools/agent_testers.json`, `tools/agent_ink.js`, `tools/agent_tester.js`, `tools/agent_review_data.js`, `tools/agent_review_page.html` | ink 0.1.0, script 0.1.2, review data 0.1.0 | four runs (2026-11-15, all entries replay) on the review page https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4; daily Claude Code scheduled task (prompt `docs/AGENT_TASK_PROMPT.md`) adds one run per tester per day; `console/` not used |
 
 Other files: `src/scene.js` (RDKit import, layout), `src/ink.js` (synthetic ink for the benchmark), `console/` (Claude
 Console resources of the agent testers, not used),
@@ -147,7 +147,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 - Daily tasks: 5 arrow tasks and 5 structures (decision of 2026-11-14, before: 10 structures); One-Pot undergraduate and graduate problems and Name Reaction
   problems; past problems when needed; "No new task today" when too few good tasks are left; never the puzzle
   of the day itself (section "Daily set").
-- Agent testers (2026-11-14; daily run as a Claude Code scheduled task since 2026-11-16, not the Console): one per day to start with, named john0002, john0003,
+- Agent testers (2026-11-14; daily run as a Claude Code scheduled task since 2026-11-16, not the Console; every tester every day since 2026-11-16): named john0002, john0003,
   and so on; they know the answer and test only the drawing (traits precision and consistency). Their entries are
   synthetic: never counted in the readiness criteria, the phase-4 start conditions or the visitor rules, never
   used to evaluate a model, never committed (`docs/AGENT_TESTER.md`).
