@@ -1,0 +1,304 @@
+{
+ "date": "2026-11-15",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.1.0",
+  "recognize": "0.3.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261115-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1963-stork-enamine-acrylonitrile-cyanoethylcyclohexanone",
+    "date": "2026-11-14"
+   },
+   "conditions": "Acrylonitrile (1 equiv); EtOH, reflux",
+   "start": [
+    "C1=C(CCCC1)N1CCCC1",
+    "C=CC#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a6"
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a6"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a0",
+      "via": "s0a0"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a0",
+       "s1a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a1"
+     }
+    }
+   ],
+   "expected": [
+    "N#C[CH-]CC1CCCCC1=[N+]1CCCC1",
+    "[N-]=C=CCC1CCCCC1=[N+]1CCCC1"
+   ]
+  },
+  {
+   "id": "d20261115-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1963-stork-enamine-acrylonitrile-cyanoethylcyclohexanone",
+    "date": "2026-11-14"
+   },
+   "target": "C1=C(N2CCCC2)CCCC1"
+  },
+  {
+   "id": "d20261115-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1963-stork-enamine-acrylonitrile-cyanoethylcyclohexanone",
+    "date": "2026-11-14"
+   },
+   "conditions": "H₂O; reflux. Draw the hydrogen you need first (button H).",
+   "start": [
+    "N#CCCC1CCCCC1(O)N1CCCC1",
+    "O"
+   ],
+   "drawH": [
+    "s0a10"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a10",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a9",
+       "s0a10"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a9",
+       "s0a11"
+      ]
+     },
+     "to": {
+      "atom": "s0a11"
+     }
+    }
+   ],
+   "expected": [
+    "N#CCCC1CCCCC1=O",
+    "C1CC[N-]C1.N#CCCC1CCCCC1=O.[OH3+]"
+   ]
+  },
+  {
+   "id": "d20261115-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1963-stork-enamine-acrylonitrile-cyanoethylcyclohexanone",
+    "date": "2026-11-14"
+   },
+   "target": "N#CCCC1CCCCC1=O"
+  },
+  {
+   "id": "d20261115-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pictet-spengler-6-methoxy-tetrahydroisoquinoline",
+    "date": "2026-11-14"
+   },
+   "conditions": "HCHO (formaldehyde, aqueous), HCl (aqueous)",
+   "start": [
+    "COc1cccc(CC[NH+]=C)c1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
+     },
+     "to": {
+      "atom": "s0a10",
+      "via": "s0a5"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a9",
+       "s0a10"
+      ]
+     },
+     "to": {
+      "atom": "s0a9"
+     }
+    }
+   ],
+   "expected": [
+    "COC1=C[C+]2CCNCC2C=C1",
+    "COC1=C[CH+]C2CNCCC2=C1",
+    "C[O+]=C1C=CC2CNCCC2=C1"
+   ]
+  },
+  {
+   "id": "d20261115-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1963-stork-enamine-acrylonitrile-cyanoethylcyclohexanone",
+    "date": "2026-11-14"
+   },
+   "target": "C=CC#N"
+  },
+  {
+   "id": "d20261115-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pictet-spengler-6-methoxy-tetrahydroisoquinoline",
+    "date": "2026-11-14"
+   },
+   "conditions": "HCHO (formaldehyde, aqueous), HCl (aqueous). Draw the hydrogen you need first (button H).",
+   "start": [
+    "COC1=C[C+]2CCNCC2C=C1",
+    "C=O"
+   ],
+   "drawH": [
+    "s0a9"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a1"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a9",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a9",
+       "s0a4"
+      ]
+     }
+    }
+   ],
+   "expected": [
+    "COc1ccc2CNCCc2c1",
+    "C=[OH+].COc1ccc2c(c1)CCNC2"
+   ]
+  },
+  {
+   "id": "d20261115-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1950-hofmann-rearrangement-nicotinamide-aminopyridine",
+    "date": "2026-11-14"
+   },
+   "target": "NC(=O)c1cccnc1"
+  },
+  {
+   "id": "d20261115-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-hell-volhard-zelinsky-bromoacetic-acid",
+    "date": "2026-11-11"
+   },
+   "conditions": "Br₂, PBr₃",
+   "start": [
+    "CC([O-])(Br)OP(Br)Br"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a2"
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "atom": "s0a4"
+     }
+    }
+   ],
+   "expected": [
+    "CC(=O)Br",
+    "C=C(O)Br",
+    "CC(=O)Br.[O-]P(Br)Br"
+   ]
+  },
+  {
+   "id": "d20261115-c5",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1950-hofmann-rearrangement-nicotinamide-aminopyridine",
+    "date": "2026-11-14"
+   },
+   "target": "Nc1cccnc1"
+  }
+ ]
+}
