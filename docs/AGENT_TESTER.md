@@ -111,11 +111,21 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`.
 - The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are shown, each can be unticked, and each
   task shows the chosen runs side by side.
-- Answers are saved by the page in its database, one document per attempt: `reviews/<runId>__<set>__<task>__<attempt>`
-  with `drawing` ("not-person" when a person would not draw it), `expected` (yes, no, unsure), `outcome` (right, wrong,
-  unsure; shown only when the right structure was not found; for "no reading" the question is whether the no
-  reading is correct), `note`. Answers saved before 2026-11-16 (keys without the run) are moved by the page to the
-  runs of 2026-11-15.
+- Reviewers (decision of 2026-11-16): members of the organization, given access in the page's Share menu at
+  Contributor level (Viewers and Commenters cannot save; Editors could also republish the page). Each reviewer's
+  answers are kept apart under their claude.ai account: `reviews/<reviewer id>/answers/<runId>__<set>__<task>__<attempt>`,
+  plus `reviews/<reviewer id>` (marks the reviewer). Database rules declared with the page: `reviews` read `admin`,
+  write `owner`; `reviews/{self}` read and write `interact`. So a reviewer reads and writes only their own answers;
+  the owner and Editors read all and see a table of reviewers (answers, answers on the date shown, disagreements
+  with another reviewer) and can show one reviewer's answers (read only). The page stores reviewer ids, never names.
+- Each answer has `drawing` ("not-person" when a person would not draw it), `expected` (yes, no, unsure), `outcome`
+  (right, wrong, unsure; asked only when the right structure was not found; for "no reading" the question is whether
+  the no reading is correct), `note`, `reviewer`. Every judgement counts on its own: an attempt can be "correct" for
+  one reviewer and "incorrect" for another, and all judgements count in the 98 % bound of the replacement rule
+  (`ML_PLAN.md`, section F). Answers saved before reviewers were kept apart were moved by the owner's page into the
+  owner's space (31 answers, 2026-11-16).
+- People outside the organization cannot open the page: its organization does not allow public links or e-mail
+  invitations to outside people.
 - Limits: a version holds at most 511 files (two per run: about 250 runs) and 256 MB; split the page before that.
 - Earlier versions of the page are kept by claude.ai; the answers are in the database, not in a version.
 

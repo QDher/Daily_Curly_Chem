@@ -1,6 +1,7 @@
 <!-- Review page of the agent testers (docs/AGENT_TESTER.md). Published as a claude.ai artifact with the capabilities db and user.
      The runs are files published with the page (runs/index.json, runs/<runId>.json, written by tools/agent_review_data.js);
-     the reviewer's answers are kept in the page's database (reviews/<runId>__<set>__<task>__<attempt>). -->
+     each reviewer's answers are kept apart in the page's database (reviews/<reviewer id>/answers/<runId>__<set>__<task>__<attempt>);
+     database rules: a reviewer reads and writes only their own answers; the owner and Editors read all. -->
 <title>Agent Tester Review</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -123,7 +124,7 @@ details.habits dd { margin: 0; }
   <header class="intro">
     <h1>Agent tester review</h1>
     <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
-    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page, per run, and can be read back in the Claude session.</p>
+    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session.</p>
   </header>
 
   <section class="panel">
@@ -139,10 +140,16 @@ details.habits dd { margin: 0; }
     <div class="legend" id="legend"></div>
   </section>
 
+  <section class="panel" id="reviewers-panel" hidden>
+    <h2 style="margin-bottom:8px">Reviewers</h2>
+    <div class="table-wrap"><table id="reviewers" class="runs"></table></div>
+    <p class="status" id="reviewers-status">Each reviewer's answers are counted on their own: one attempt can be judged correct by one reviewer and incorrect by another. Disagreements are listed for information.</p>
+  </section>
+
   <div class="bar" id="bar">
     <div class="group" id="f-type"><span>Task</span></div>
     <div class="group" id="f-show"><span>Show</span></div>
-    <div class="progress" id="progress"></div>
+    <div class="progress"><span id="viewing"></span> <span id="progress"></span></div>
   </div>
 
   <main id="tasks"></main>
@@ -179,8 +186,17 @@ details.habits dd { margin: 0; }
   const loaded = new Map(); // runId -> { attempts, svg } once read
   const loading = new Set();
   let selected = [];
-  const reviews = new Map();
-  let db = null, uid = null, canWrite = true, dbState = 'loading';
+  // answers of each reviewer (reviewer id -> Map(attempt key -> answer)); the page shows those of viewAs
+  const answers = new Map();
+  let me = null, viewAs = null, seeAll = false, isOwner = false, userApi = null;
+  const reviewsOf = (id) => answers.get(id) || new Map();
+  const reviews = {
+    get: (k) => reviewsOf(viewAs).get(k),
+    keys: () => reviewsOf(viewAs).keys(),
+    set: (k, v) => { if (!answers.has(me)) answers.set(me, new Map()); answers.get(me).set(k, v); },
+  };
+  const reviewerDocs = new Set();
+  let db = null, canWrite = true, dbState = 'loading';
 
   // ---------- drawings ----------
   const NS = 'http://www.w3.org/2000/svg';
@@ -261,7 +277,7 @@ details.habits dd { margin: 0; }
     const list = shownAttempts();
     const done = list.filter(isReviewed).length;
     const where = dbState === 'ready' ? '' : dbState === 'loading' ? ' · loading answers…' : dbState === 'slow' ? ' · saved answers cannot be reached yet' : ' · answers cannot be saved in this view';
-    $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + where;
+    $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + where;
   }
 
   function resultOf(a) {
@@ -315,12 +331,13 @@ details.habits dd { margin: 0; }
     box.appendChild(ta);
     box.appendChild(el('div', { class: 'row' }, [saveBtn, status]));
     async function save(change) {
-      if (!db) return;
+      if (!db || !me || viewAs !== me) return;
       const cur = Object.assign({ drawing: null, expected: null, outcome: null, note: '' }, reviews.get(k) || {});
-      const next = Object.assign({}, cur, change, { runId: a.runId, tester: a.tester, date: a.date, set: a.set, task: a.task, attempt: a.attempt, type: a.type, by: uid, at: new Date().toISOString() });
+      const next = Object.assign({}, cur, change, { runId: a.runId, tester: a.tester, date: a.date, set: a.set, task: a.task, attempt: a.attempt, type: a.type, reviewer: me, at: new Date().toISOString() });
       status.textContent = 'Saving…';
       try {
-        await db.doc('reviews/' + k).set(next);
+        await ensureReviewer();
+        await db.doc('reviews/' + me + '/answers/' + k).set(next);
         reviews.set(k, next); refresh(); setProgress(); renderRuns();
         status.textContent = 'Saved';
       } catch (e) {
@@ -330,14 +347,15 @@ details.habits dd { margin: 0; }
     }
     function refresh() {
       const r = reviews.get(k) || {};
-      for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(r[f] === v)); b.disabled = !db || !canWrite; }
+      for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(r[f] === v)); b.disabled = !writable(); }
       if (document.activeElement !== ta) ta.value = r.note || '';
-      ta.disabled = !db || !canWrite; saveBtn.disabled = !db || !canWrite;
+      ta.disabled = !writable(); saveBtn.disabled = !writable();
     }
     refreshers.set(k, refresh);
     refresh();
     return box;
   }
+  const writable = () => !!db && canWrite && !!me && viewAs === me;
   const refreshAll = () => { for (const f of refreshers.values()) f(); setProgress(); };
 
   function attemptCard(a) {
@@ -519,39 +537,117 @@ details.habits dd { margin: 0; }
     if (!day) { renderRuns(); render(); }
   })();
 
+  // ---------- reviewers (owner and Editors see them all) ----------
+  async function renderReviewers() {
+    const panel = $('reviewers-panel');
+    panel.hidden = !seeAll;
+    const v = $('viewing');
+    v.textContent = '';
+    if (viewAs && me && viewAs !== me) {
+      let name = 'another reviewer';
+      try { if (userApi) { const ps = await userApi.profiles([viewAs]); name = ps[viewAs].name || name; } } catch (e) { /* unresolved */ }
+      const back = el('button', { class: 'chip', type: 'button', text: 'Back to my answers' });
+      back.onclick = () => { viewAs = me; cards.clear(); render(); renderReviewers(); renderRuns(); };
+      v.appendChild(document.createTextNode('Answers of ' + name + ' (read only) '));
+      v.appendChild(back);
+    }
+    if (!seeAll) return;
+    const ids = [...new Set([...reviewerDocs, ...answers.keys()].concat(me ? [me] : []))].filter(Boolean);
+    let ps = {};
+    try { if (userApi) ps = await userApi.profiles(ids); } catch (e) { ps = {}; }
+    const ofDay = new Set([...runs.values()].filter((r) => r.date === day).map((r) => r.runId));
+    const inDay = (k) => ofDay.has(k.split('__')[0]);
+    // disagreements on this date: attempts answered by two or more reviewers with different answers
+    const byKey = new Map();
+    for (const id of ids) for (const [k, a] of reviewsOf(id)) if (inDay(k) && a && a.expected) { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); }
+    const differs = (list) => list.length > 1 && (new Set(list.map((a) => a.expected)).size > 1 || new Set(list.map((a) => a.outcome || '')).size > 1);
+    const t = $('reviewers');
+    t.textContent = '';
+    t.appendChild(el('thead', {}, el('tr', {}, ['Reviewer', 'Answers, all dates', 'Answers on ' + (day || '\u2013'), 'Disagreeing with another reviewer on ' + (day || '\u2013'), ''].map((h) => el('th', { text: h })))));
+    const body = el('tbody');
+    for (const id of ids) {
+      const mineAll = [...reviewsOf(id).values()].filter((a) => a && a.expected).length;
+      const mineDay = [...reviewsOf(id).entries()].filter(([k, a]) => inDay(k) && a && a.expected);
+      const dis = mineDay.filter(([k]) => differs(byKey.get(k) || [])).length;
+      const p = ps[id] || {};
+      const btn = el('button', { class: 'link', type: 'button', text: id === viewAs ? 'shown' : 'show answers' });
+      btn.disabled = id === viewAs;
+      btn.onclick = () => { viewAs = id; cards.clear(); render(); renderReviewers(); renderRuns(); };
+      body.appendChild(el('tr', { class: id === viewAs ? 'on' : null }, [
+        el('td', { text: (p.name || 'Someone') + (id === me ? ' (you)' : '') }),
+        el('td', { class: 'num', text: String(mineAll) }),
+        el('td', { class: 'num', text: String(mineDay.length) }),
+        el('td', { class: 'num', text: String(dis) }),
+        el('td', {}, btn),
+      ]));
+    }
+    t.appendChild(body);
+  }
+
   // ---------- answers (the page's database) ----------
-  // Answers saved before runs were kept per date carry no run in their key (tester__task__attempt, all from
-  // the runs of 2026-11-15, standard set): they are moved once to reviews/<runId>__standard__<task>__<attempt>.
-  async function moveOldAnswers(snap) {
-    if (!canWrite) return;
-    for (const d of snap.docs) {
-      const m = /^(john\d+)__([^_].*?)__(\d+)$/.exec(d.id);
+  async function ensureReviewer() {
+    if (!me || reviewerDocs.has(me)) return;
+    await db.doc('reviews/' + me).set({ reviewer: me, since: new Date().toISOString() });
+    reviewerDocs.add(me);
+  }
+  // Answers saved before reviewers were kept apart (reviews/<key>, written by the owner): moved once, by the
+  // owner's page, to reviews/<owner id>/answers/<key>. Keys of before 2026-11-16 without a run
+  // (tester__task__attempt, runs of 2026-11-15, standard set) get the run first.
+  async function moveOldAnswers(docs) {
+    if (!isOwner || !canWrite || !me || !docs.length) return;
+    try { await ensureReviewer(); } catch (e) { return; }
+    for (const d of docs) {
       const v = d.data() || {};
-      if (!m || v.runId) continue;
-      const runId = '2026-11-15_' + m[1];
-      const key = runId + '__' + (v.set || 'standard') + '__' + m[2] + '__' + m[3];
+      let key = d.id;
+      const m = /^(john\d+)__([^_].*?)__(\d+)$/.exec(d.id);
+      if (m && !v.runId) key = '2026-11-15_' + m[1] + '__' + (v.set || 'standard') + '__' + m[2] + '__' + m[3];
+      const runId = key.split('__')[0];
       try {
-        const now = await db.doc('reviews/' + key).get();
-        if (!now.exists) await db.doc('reviews/' + key).set(Object.assign({}, v, { runId, date: '2026-11-15', movedFrom: d.id }));
+        const target = db.doc('reviews/' + me + '/answers/' + key);
+        const now = await target.get();
+        if (!now.exists) await target.set(Object.assign({}, v, { runId, date: runId.slice(0, 10), reviewer: me, movedFrom: d.id }));
         await db.doc('reviews/' + d.id).delete();
       } catch (e) { return; }
     }
   }
+  const watching = new Map();
+  let timer = null;
+  function watchReviewer(id) {
+    if (!id || watching.has(id)) return;
+    watching.set(id, db.collection('reviews/' + id + '/answers').onSnapshot((snap) => {
+      const m = new Map();
+      for (const d of snap.docs) m.set(d.id, d.data());
+      answers.set(id, m);
+      if (id === me && !snap.metadata.fromCache) { clearTimeout(timer); dbState = 'ready'; }
+      refreshAll(); renderRuns(); renderReviewers();
+    }, () => { if (id === me) { clearTimeout(timer); dbState = 'off'; refreshAll(); } }));
+  }
   (async () => {
-    const timer = setTimeout(() => { if (dbState === 'loading') { dbState = 'slow'; setProgress(); } }, 10000);
+    timer = setTimeout(() => { if (dbState === 'loading') { dbState = 'slow'; setProgress(); } }, 10000);
     try {
       db = window.claude && window.claude.use ? await window.claude.use('db') : null;
-      const user = window.claude && window.claude.use ? await window.claude.use('user') : null;
-      if (user) { try { uid = await user.id(); } catch (e) { uid = null; } try { const c = await user.can('data.write'); if (c === false) canWrite = false; } catch (e) { /* not told */ } }
+      userApi = window.claude && window.claude.use ? await window.claude.use('user') : null;
+      if (userApi) {
+        try { me = await userApi.id(); } catch (e) { me = null; }
+        try { isOwner = !!(await userApi.isOwner()); } catch (e) { isOwner = false; }
+        try { seeAll = isOwner || !!(await userApi.canEdit()); } catch (e) { seeAll = isOwner; }
+        try { const c = await userApi.can('data.write'); if (c === false) canWrite = false; } catch (e) { /* not told */ }
+      }
     } catch (e) { db = null; }
-    if (!db) { clearTimeout(timer); dbState = 'off'; refreshAll(); return; }
+    viewAs = me;
+    if (!db || !me) { clearTimeout(timer); dbState = 'off'; refreshAll(); renderReviewers(); return; }
+    watchReviewer(me);
     let moved = false;
     db.collection('reviews').onSnapshot((snap) => {
-      if (!snap.metadata.fromCache) { clearTimeout(timer); dbState = 'ready'; if (!moved) { moved = true; moveOldAnswers(snap); } }
-      reviews.clear();
-      for (const d of snap.docs) reviews.set(d.id, d.data());
-      refreshAll(); renderRuns();
-    }, () => { clearTimeout(timer); dbState = 'off'; db = null; refreshAll(); });
+      const old = [];
+      for (const d of snap.docs) {
+        if (d.id.includes('__')) old.push(d);
+        else { reviewerDocs.add(d.id); watchReviewer(d.id); }
+      }
+      if (!snap.metadata.fromCache && !moved) { moved = true; moveOldAnswers(old); }
+      renderReviewers();
+    }, () => { /* the list of reviewers is not readable: only one's own answers are shown */ });
+    renderReviewers();
   })();
 })();
 </script>
