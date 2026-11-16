@@ -180,7 +180,7 @@ details.habits dd { margin: 0; }
 
   $('legend').innerHTML = '<span><svg width="34" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="var(--t1)" stroke-width="2.5" stroke-linecap="round"/></svg>ink of the tester (arrow head added for reading)</span>'
     + '<span><svg width="34" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="var(--ref)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>reference arrow, from the ideal start to the ideal end</span>'
-    + '<span>Copies: letters in the accent colour are atoms placed with the row of atoms, as entered (the page cannot read a hydrogen written on a heteroatom yet, so the agents type O for OH; the page adds such hydrogens from valence)</span>';
+    + '<span>Copies: letters in the accent colour are atoms placed with the row of atoms, as entered. Ink 0.2.0: each hydrogen of N, O, S is a bond ending on a typed H. Ink 0.1.0: O typed for OH, hydrogens added by the page from valence</span>';
 
   // ---------- state ----------
   const runs = new Map(); // runId -> run document
@@ -458,12 +458,20 @@ details.habits dd { margin: 0; }
   const KEEP = 'review:day';
   let day = null;
   const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
-  const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify({ day, selected })); } catch (e) { /* storage unavailable */ } };
+  const runsOf = (d) => [...runs.values()].filter((r) => r.date === d).map((r) => r.runId).sort();
+  const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify({ day, selected, known: runsOf(day) })); } catch (e) { /* storage unavailable */ } };
+  // shown by default: the newest run of each tester on that date (a run made again with a new ink replaces the
+  // earlier one in the view; both stay listed). A selection kept in this browser is used until a run is added.
+  function newestPerTester(d) {
+    const best = new Map();
+    for (const r of runs.values()) if (r.date === d) { const b = best.get(r.tester); if (!b || String(r.added || '') > String(b.added || '')) best.set(r.tester, r); }
+    return [...best.values()].map((r) => r.runId);
+  }
   function showDay(d, keep) {
     day = d;
-    const ofDay = [...runs.values()].filter((r) => r.date === d).map((r) => r.runId);
-    const kept = (keep || []).filter((id) => ofDay.includes(id));
-    selected = kept.length ? kept : ofDay;
+    const ofDay = runsOf(d);
+    const kept = keep && keep.known && keep.known.join(' ') === ofDay.join(' ') ? keep.selected.filter((id) => ofDay.includes(id)) : [];
+    selected = kept.length ? kept : newestPerTester(d);
     reportOf = null;
     keepSelection();
     renderRuns();
@@ -479,7 +487,7 @@ details.habits dd { margin: 0; }
     $('day').textContent = day || '\u2013';
     $('day-prev').disabled = i <= 0;
     $('day-next').disabled = i < 0 || i >= ds.length - 1;
-    const list = [...runs.values()].filter((r) => r.date === day).sort((x, y) => x.tester.localeCompare(y.tester));
+    const list = [...runs.values()].filter((r) => r.date === day).sort((x, y) => x.tester.localeCompare(y.tester) || String(x.added || '').localeCompare(String(y.added || '')));
     if (!list.length) return;
     t.appendChild(el('thead', {}, el('tr', {}, ['Show', 'Tester', 'Traits', 'Daily set', 'Arrows: 1st reading / accepted', 'Copies: 1st attempt / confirmed', 'Flagged', 'Replayed', 'Errors', 'Reviewed', 'Report'].map((h) => el('th', { text: h })))));
     const body = el('tbody');
@@ -494,7 +502,7 @@ details.habits dd { margin: 0; }
       if (r.report) rep.onclick = () => { reportOf = reportOf === r.runId ? null : r.runId; renderRuns(); };
       body.appendChild(el('tr', { class: on ? 'on' : null }, [
         el('td', { class: 'pick' }, box),
-        el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester)]),
+        el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester), el('small', { class: 'muted', text: r.ink ? ' ink ' + r.ink : '' })]),
         el('td', { text: (r.traits && r.traits.text) || '' }),
         el('td', { class: 'mono', text: r.dailyDate || '–' }),
         el('td', { class: 'num', text: s.arrows.acceptedFirstAttemptFirstReading + ' / ' + s.arrows.accepted + ' of ' + s.arrows.tasks }),
@@ -510,7 +518,7 @@ details.habits dd { margin: 0; }
     const rb = $('report-box');
     rb.textContent = '';
     if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
-    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Untick a run to hide it.';
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.';
   }
 
   async function loadSelected() {
@@ -577,7 +585,7 @@ details.habits dd { margin: 0; }
         if (!mine.length) continue;
         n += mine.length;
         const r = runs.get(id);
-        const col = el('div', { class: 'col' }, [el('div', { class: 'col-head colhead' }, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), el('span', {}, [document.createTextNode(r.tester + ' · ' + r.date), el('small', { text: (r.traits && r.traits.text) || '' })])])]);
+        const col = el('div', { class: 'col' }, [el('div', { class: 'col-head colhead' }, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), el('span', {}, [document.createTextNode(r.tester + ' · ' + r.date + (r.ink ? ' · ink ' + r.ink : '')), el('small', { text: (r.traits && r.traits.text) || '' })])])]);
         for (const a of mine) col.appendChild(cardOf(a));
         cols.appendChild(col);
       }
@@ -606,7 +614,7 @@ details.habits dd { margin: 0; }
     try { saved = JSON.parse(localStorage.getItem(KEEP) || 'null'); } catch (e) { saved = null; }
     const ds = dates();
     const d = saved && ds.includes(saved.day) ? saved.day : ds[ds.length - 1];
-    if (d) showDay(d, saved && saved.day === d ? saved.selected : null);
+    if (d) showDay(d, saved && saved.day === d ? saved : null);
   }
   (async () => {
     try {

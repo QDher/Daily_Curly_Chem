@@ -119,8 +119,11 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   as a bond on the test page is to be explored later (user, 2026-11-16).
 - Every run is kept. A run is three files published with the page: `runs/<runId>.json` (attempts, structures, run
   figures, report), a line in `runs/index.json`, and `entries/<entries file>` (the entries saved by the page during
-  the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`.
-- The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are shown, each can be unticked, and each
+  the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`;
+  a further run of the same tester and date (made again with a new ink, user request of 2026-11-16) is
+  `<date>_<tester>_<suffix>` (`--suffix` of `tools/agent_review_data.js`, e.g. `ink0.2.0`), and the first run is kept
+  with the answers given on it. The index line carries the ink and script versions.
+- The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are listed with their ink version; the newest run of each tester is shown by default, each run can be ticked or unticked, and each
   task shows the chosen runs side by side.
 - Reviewers (decision of 2026-11-16): members of the organization, given access in the page's Share menu at
   Contributor level (Viewers and Commenters cannot save; Editors could also republish the page). Each reviewer's

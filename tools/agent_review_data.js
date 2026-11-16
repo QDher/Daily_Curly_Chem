@@ -6,11 +6,12 @@
 //                       ({ smiles: scene }, drawn by the page) and as RDKit drawings ({ smiles: svg }, fallback)
 //   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names), newest last
 //   entries/<name>      the entries file saved by the page during the run (synthetic, never committed)
-// runId = <date>_<tester>. The reviewer's answers are kept by the page in its database,
-// reviews/<runId>__<set>__<task>__<attempt>.
+// runId = <date>_<tester>, or <date>_<tester>_<suffix> for a further run of the same tester and date (--suffix, e.g.
+// ink0.2.0 for a run made again with a new ink; the first run is kept). The reviewers' answers are kept by the page
+// in its database, reviews/<reviewer id>/answers/<runId>__<set>__<task>__<attempt>.
 //
 // Run: node tools/agent_review_data.js <run record> --out DIR [--index runs/index.json of the live page]
-//        [--entries FILE] [--report report.md] [--source TEXT]
+//        [--entries FILE] [--report report.md] [--source TEXT] [--suffix TEXT]
 // Writes DIR/runs/<runId>.json, DIR/runs/index.json (the given index plus this run; a run already in it is
 // refused) and DIR/entries/<name>, and prints the files to publish.
 'use strict';
@@ -18,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
@@ -27,7 +28,7 @@ const Scene = require(path.join(repo, 'src', 'scene.js'));
 function args() {
   const a = process.argv.slice(2);
   const get = (k) => { const i = a.indexOf('--' + k); return i >= 0 ? a[i + 1] : undefined; };
-  return { record: a[0], out: get('out'), index: get('index'), entries: get('entries'), report: get('report'), source: get('source') };
+  return { record: a[0], out: get('out'), index: get('index'), entries: get('entries'), report: get('report'), source: get('source'), suffix: get('suffix') };
 }
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
@@ -59,7 +60,8 @@ function svgOf(R, smi) {
 }
 
 function build(R, run, opt) {
-  const runId = run.date + '_' + run.tester;
+  if (opt.suffix !== undefined && !/^[a-z0-9][a-z0-9.-]{0,23}$/i.test(opt.suffix)) throw new Error('suffix: letters, digits, dots and hyphens, at most 24');
+  const runId = run.date + '_' + run.tester + (opt.suffix ? '_' + opt.suffix : '');
   const std = JSON.parse(fs.readFileSync(path.join(repo, 'data', 'tasks.json'), 'utf8')).tasks;
   const dailyInfo = run.sets.find((s) => s.set === 'daily');
   const dailyDate = dailyInfo ? dailyInfo.date : null;
@@ -155,7 +157,7 @@ function write(out, built, opt) {
   fs.writeFileSync(path.join(out, file), JSON.stringify(Object.assign({}, built.runDoc, { attempts: built.attempts, svg, scenes })));
   const r = built.runDoc;
   index.push({
-    runId, date: r.date, tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit,
+    runId, date: r.date, tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit, ink: r.ink, script: r.script,
     summary: r.summary, replay: r.replay, errors: (r.errors || []).length, attemptCount: r.attemptCount,
     report: r.report, source: r.source, file, entries: r.entries, added: r.added,
   });
@@ -174,7 +176,7 @@ module.exports = { build, write, sceneOf, VERSION };
 
 if (require.main === module) {
   const opt = args();
-  if (!opt.record || !opt.out) { console.log('usage: node tools/agent_review_data.js <run record> --out DIR [--index FILE] [--entries FILE] [--report report.md] [--source TEXT]'); process.exit(2); }
+  if (!opt.record || !opt.out) { console.log('usage: node tools/agent_review_data.js <run record> --out DIR [--index FILE] [--entries FILE] [--report report.md] [--source TEXT] [--suffix TEXT]'); process.exit(2); }
   require(rdkitDir)({ locateFile: (f) => path.join(path.dirname(require.resolve(rdkitDir)), f) }).then((R) => {
     const run = JSON.parse(fs.readFileSync(opt.record, 'utf8'));
     const built = build(R, run, opt);
