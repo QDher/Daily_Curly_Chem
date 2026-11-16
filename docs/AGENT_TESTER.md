@@ -106,6 +106,16 @@ Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agen
 https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private to the user; source
 `tools/agent_review_page.html`, capabilities `db` and `user`).
 
+- Structures (the scene of an arrow task, the structure to copy or that the reference arrows give, the structures the
+  page read) are drawn by the review page itself from their layout, with every hydrogen of N, O, S, ... drawn as a
+  bond and hydrogens of carbon implicit (user, 2026-11-16, for clarity of the review). Geometry: one heavy
+  neighbour and one H bent at 120 degrees on the side away from the neighbour's other bonds (C=N-H, C-O-H); two H at
+  +-120 degrees; three at 90, 180, 270 degrees; with two or more heavy neighbours the H go into the largest gaps;
+  lone H2O as a V, H3O+ as a Y; bonds to H are two thirds of a bond. Charge signs go in the free direction nearest
+  to the upper right, away from every bond. Layouts come from `tools/agent_review_data.js` (`scenes` in the run file,
+  RDKit 2D coordinates); runs published before 2026-11-16 have them in `runs/<runId>.scenes.json`; RDKit drawings
+  (`svg`) are the fallback. The test page itself still shows hydrogens in labels (OH, NH2); drawing arrows with N-H
+  as a bond on the test page is to be explored later (user, 2026-11-16).
 - Every run is kept. A run is three files published with the page: `runs/<runId>.json` (attempts, structures, run
   figures, report), a line in `runs/index.json`, and `entries/<entries file>` (the entries saved by the page during
   the run). A publish adds the files it names and keeps the others, so earlier runs stay. runId = `<date>_<tester>`.

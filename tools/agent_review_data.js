@@ -2,7 +2,8 @@
 // tools/agent_tester.js into the files published with the review page (claude.ai artifact; files of earlier runs
 // are kept by every publish that does not name them):
 //   runs/<runId>.json   the run: tester, traits, dates, versions, figures, tasks, report, attempts (ink, structure
-//                       drawn on, readings, outcome, habits) and the structures drawn by RDKit ({ smiles: svg })
+//                       drawn on, readings, outcome, habits) and the structures it shows: laid out by RDKit
+//                       ({ smiles: scene }, drawn by the page) and as RDKit drawings ({ smiles: svg }, fallback)
 //   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names), newest last
 //   entries/<name>      the entries file saved by the page during the run (synthetic, never committed)
 // runId = <date>_<tester>. The reviewer's answers are kept by the page in its database,
@@ -17,10 +18,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
+const Scene = require(path.join(repo, 'src', 'scene.js'));
 
 function args() {
   const a = process.argv.slice(2);
@@ -32,6 +34,19 @@ const r3 = (v) => Math.round(v * 1000) / 1000;
 const hash = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 16);
 
 // SVG of a structure, colours as tokens of the review page
+// Laid-out structure (RDKit 2D coordinates, species side by side) for the review page, which draws it itself
+// with the hydrogens of heteroatoms as bonds: { atoms: [{ id, el, q, h, x, y }], bonds: [{ a, b, order }] }.
+function sceneOf(R, smi) {
+  let sc = null;
+  try { sc = Scene.fromSpecies(R, smi.split('.')); } catch (e) { sc = null; }
+  if (!sc) return null;
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+  return {
+    atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, h: a.h || 0, x: r3(a.x), y: r3(a.y) })),
+    bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })),
+  };
+}
+
 function svgOf(R, smi) {
   const m = R.get_mol(smi);
   if (!m) return null;
@@ -124,7 +139,7 @@ function build(R, run, opt) {
     report: opt.report ? fs.readFileSync(opt.report, 'utf8') : null,
     source: opt.source || null, added: new Date().toISOString(),
   };
-  const structures = [...smiles].map((s) => ({ id: hash(s), smiles: s, svg: svgOf(R, s) }));
+  const structures = [...smiles].map((s) => ({ id: hash(s), smiles: s, svg: svgOf(R, s), scene: sceneOf(R, s) }));
   return { runId, runDoc, attempts, structures };
 }
 
@@ -136,7 +151,8 @@ function write(out, built, opt) {
   if (index.some((r) => r.runId === runId)) throw new Error('run ' + runId + ' is already in the index');
   const file = 'runs/' + runId + '.json';
   const svg = Object.fromEntries(built.structures.map((x) => [x.smiles, x.svg]));
-  fs.writeFileSync(path.join(out, file), JSON.stringify(Object.assign({}, built.runDoc, { attempts: built.attempts, svg })));
+  const scenes = Object.fromEntries(built.structures.filter((x) => x.scene).map((x) => [x.smiles, x.scene]));
+  fs.writeFileSync(path.join(out, file), JSON.stringify(Object.assign({}, built.runDoc, { attempts: built.attempts, svg, scenes })));
   const r = built.runDoc;
   index.push({
     runId, date: r.date, tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit,
@@ -154,7 +170,7 @@ function write(out, built, opt) {
   return files;
 }
 
-module.exports = { build, write, VERSION };
+module.exports = { build, write, sceneOf, VERSION };
 
 if (require.main === module) {
   const opt = args();

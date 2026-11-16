@@ -63,7 +63,8 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
 .tag { display: inline-block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--soft); color: var(--muted); margin-right: 6px; }
 .target { flex: 0 0 auto; display: grid; gap: 2px; justify-items: center; }
 .target .mol { width: 210px; max-width: 100%; }
-.mol { color: var(--struct); width: 100%; max-width: 100%; }
+.mol { color: var(--struct); width: 100%; max-width: 100%; --bg-mol: var(--card); }
+.ink { --bg-mol: var(--soft); }
 .mol svg { width: 100%; height: auto; display: block; }
 .cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; } /* auto-fill: one run keeps the width of a quarter, as with four runs */
 .col { display: grid; gap: 10px; align-content: start; min-width: 0; }
@@ -217,31 +218,105 @@ details.habits dd { margin: 0; }
     return [x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad];
   }
   const elColor = (e) => (e === 'O' ? 'var(--el-o)' : e === 'N' ? 'var(--el-n)' : e === 'S' ? 'var(--el-s)' : 'var(--struct)');
-  function drawArrows(a, color) {
-    const sc = a.scene, A = new Map(sc.atoms.map((x) => [x.id, x]));
+  // Hydrogens of heteroatoms as atoms with bonds (hydrogens of carbon stay implicit). Geometry: an atom with one
+  // heavy neighbour and one H is bent at 120 degrees, on the side away from the neighbour's other bonds (C=N-H,
+  // C-O-H); two H at +-120 degrees; three H at 90, 180, 270 degrees; with two or more heavy neighbours the H go
+  // into the largest gaps; lone species: H2O as a V, H3O+ as a Y. Bonds to H are 1.0 long (other bonds 1.5).
+  function withHydrogens(sc) {
+    const atoms = sc.atoms.map((a) => Object.assign({}, a));
+    const bonds = sc.bonds.map((b) => Object.assign({}, b));
+    const A = new Map(atoms.map((a) => [a.id, a]));
+    const nbrs = (id) => bonds.filter((b) => b.a === id || b.b === id).map((b) => A.get(b.a === id ? b.b : b.a)).filter(Boolean);
+    const ang = (p, q) => Math.atan2(q.y - p.y, q.x - p.x);
+    const cross = (o, p, q) => (p.x - o.x) * (q.y - o.y) - (p.y - o.y) * (q.x - o.x);
+    const LH = 1.0;
+    for (const a0 of sc.atoms) {
+      if (a0.el === 'C' || a0.el === 'H' || !a0.h) continue;
+      const a = A.get(a0.id), k = a0.h;
+      const nb = nbrs(a.id);
+      const dirs = nb.map((n) => ang(a, n));
+      let angles = [];
+      if (!dirs.length) {
+        angles = k === 1 ? [0] : k === 2 ? [Math.PI / 2 - 0.95, Math.PI / 2 + 0.95] : k === 3 ? [-Math.PI / 2, Math.PI / 6, Math.PI * 5 / 6] : Array.from({ length: k }, (_, i) => Math.PI / 4 + (2 * Math.PI * i) / k);
+      } else if (dirs.length === 1) {
+        const t = dirs[0], n = nb[0];
+        if (k === 1) {
+          const c = [t + (2 * Math.PI) / 3, t - (2 * Math.PI) / 3];
+          // side of the line a-n where the neighbour's other bonds lie; the H goes to the other side
+          const side = nbrs(n.id).filter((m) => m.id !== a.id).reduce((acc, m) => acc + Math.sign(cross(a, n, m)), 0);
+          const sideOf = (th) => Math.sign(cross(a, n, { x: a.x + Math.cos(th), y: a.y + Math.sin(th) }));
+          angles = [side === 0 ? (Math.sin(c[0]) > Math.sin(c[1]) ? c[1] : c[0]) : (sideOf(c[0]) !== Math.sign(side) ? c[0] : c[1])];
+        } else if (k === 2) angles = [t + (2 * Math.PI) / 3, t - (2 * Math.PI) / 3];
+        else angles = Array.from({ length: k }, (_, i) => t + (Math.PI / 2) * (i + 1) * (4 / (k + 1)));
+      } else {
+        const sorted = dirs.slice().sort((p, q) => p - q);
+        const gaps = sorted.map((th, i) => ({ from: th, size: (i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + 2 * Math.PI) - th }));
+        // give each hydrogen to the gap that keeps the widest spacing
+        const count = gaps.map(() => 0);
+        for (let j = 0; j < k; j++) {
+          let best = 0;
+          gaps.forEach((g, i) => { if (g.size / (count[i] + 2) > gaps[best].size / (count[best] + 2)) best = i; });
+          count[best] += 1;
+        }
+        gaps.forEach((g, i) => { for (let j = 1; j <= count[i]; j++) angles.push(g.from + (g.size * j) / (count[i] + 1)); });
+      }
+      angles.forEach((th, i) => {
+        const id = a.id + '_H' + i;
+        atoms.push({ id, el: 'H', q: 0, h: 0, x: a.x + LH * Math.cos(th), y: a.y + LH * Math.sin(th) });
+        bonds.push({ a: a.id, b: id, order: 1 });
+      });
+      a.h = 0;
+    }
+    return { atoms, bonds };
+  }
+  // Drawn structure: bonds, element labels, charge signs placed where no bond goes. Returns the <g> and its box.
+  function structureGroup(sc0) {
+    const sc = withHydrogens(sc0);
+    const A = new Map(sc.atoms.map((x) => [x.id, x]));
     const deg = new Map(sc.atoms.map((x) => [x.id, 0]));
     for (const b of sc.bonds) { deg.set(b.a, deg.get(b.a) + 1); deg.set(b.b, deg.get(b.b) + 1); }
-    const pts = sc.atoms.map((x) => [x.x, x.y]).concat(...(a.ink || []));
-    const svg = sv('svg', { viewBox: bbox(pts, 0.7).join(' '), role: 'img', 'aria-label': 'arrows drawn by the tester on the structure' });
     const g = sv('g', { 'stroke-linecap': 'round' });
     for (const b of sc.bonds) {
       const p = A.get(b.a), q = A.get(b.b);
+      if (!p || !q) continue;
       const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
       const offs = b.order === 1 ? [0] : b.order === 2 ? [-0.08, 0.08] : [-0.14, 0, 0.14];
       for (const o of offs) g.appendChild(sv('line', { x1: p.x + nx * o, y1: p.y + ny * o, x2: q.x + nx * o, y2: q.y + ny * o, stroke: 'var(--struct)', 'stroke-width': 0.05 }));
     }
-    // labels as on the test page: hydrogens of heteroatoms written (OH, NH3+); hydrogens of carbon implicit
+    const pts = sc.atoms.map((x) => [x.x, x.y]);
     for (const at of sc.atoms) {
-      if (at.el === 'C' && !at.q && deg.get(at.id) > 0) continue;
-      const hs = at.el === 'C' ? 0 : at.h || 0;
-      const w = 0.32 * (at.el.length + (hs ? 1 : 0) + (hs > 1 ? 0.6 : 0) + (at.q ? 0.6 : 0));
-      g.appendChild(sv('rect', { x: at.x - 0.2, y: at.y - 0.3, width: w + 0.08, height: 0.6, rx: 0.2, fill: 'var(--soft)' }));
-      const t = sv('text', { x: at.x - 0.16, y: at.y + 0.17, 'font-size': 0.48, 'font-family': 'IBM Plex Sans, sans-serif', fill: elColor(at.el) });
-      t.appendChild(document.createTextNode(at.el + (hs ? 'H' : '')));
-      if (hs > 1) { const sub = sv('tspan', { 'font-size': 0.32, dy: 0.12 }); sub.textContent = String(hs); t.appendChild(sub); }
-      if (at.q) { const sup = sv('tspan', { 'font-size': 0.32, dy: hs > 1 ? -0.34 : -0.22 }); sup.textContent = (Math.abs(at.q) > 1 ? Math.abs(at.q) : '') + (at.q > 0 ? '+' : '−'); t.appendChild(sup); }
+      const labelled = at.el !== 'C' || at.q || deg.get(at.id) === 0;
+      if (!labelled) continue;
+      const w = 0.3 * at.el.length + 0.12;
+      g.appendChild(sv('rect', { x: at.x - w / 2, y: at.y - 0.28, width: w, height: 0.56, rx: 0.18, fill: 'var(--bg-mol)' }));
+      const t = sv('text', { x: at.x, y: at.y + 0.17, 'text-anchor': 'middle', 'font-size': 0.48, 'font-family': 'IBM Plex Sans, sans-serif', fill: elColor(at.el) });
+      t.textContent = at.el === 'C' && deg.get(at.id) > 0 ? 'C' : at.el;
       g.appendChild(t);
+      if (at.q) {
+        // the free direction nearest to the upper right, away from every bond of the atom
+        const bondDirs = sc.bonds.filter((b) => b.a === at.id || b.b === at.id).map((b) => { const o = A.get(b.a === at.id ? b.b : b.a); return Math.atan2(o.y - at.y, o.x - at.x); });
+        const cands = [-Math.PI / 4, -3 * Math.PI / 4, Math.PI / 4, 3 * Math.PI / 4, -Math.PI / 2, Math.PI / 2, 0, Math.PI];
+        const dist = (th) => bondDirs.reduce((m, d) => Math.min(m, Math.abs(Math.atan2(Math.sin(th - d), Math.cos(th - d)))), Math.PI);
+        let th = cands.find((c) => dist(c) >= 0.75);
+        if (th === undefined) th = cands.reduce((b, c) => (dist(c) > dist(b) ? c : b), cands[0]);
+        const r = 0.46 + 0.06 * (at.el.length - 1), cx = at.x + r * Math.cos(th), cy = at.y + r * Math.sin(th);
+        const sign = sv('text', { x: cx, y: cy + 0.11, 'text-anchor': 'middle', 'font-size': 0.34, 'font-family': 'IBM Plex Sans, sans-serif', fill: elColor(at.el) });
+        sign.textContent = (Math.abs(at.q) > 1 ? Math.abs(at.q) : '') + (at.q > 0 ? '+' : '−');
+        g.appendChild(sign);
+        pts.push([cx, cy]);
+      }
     }
+    return { g, pts };
+  }
+  function drawStructure(sc) {
+    const { g, pts } = structureGroup(sc);
+    const svg = sv('svg', { viewBox: bbox(pts, 0.55).join(' '), role: 'img', 'aria-label': 'structure' });
+    svg.appendChild(g);
+    return svg;
+  }
+  function drawArrows(a, color) {
+    const { g, pts } = structureGroup(a.scene);
+    const svg = sv('svg', { viewBox: bbox(pts.concat(...(a.ink || [])), 0.7).join(' '), role: 'img', 'aria-label': 'arrows drawn by the tester on the structure' });
     svg.appendChild(g);
     const refM = markerFor(svg, 'var(--ref)');
     for (const r of a.refArrows || []) svg.appendChild(sv('line', { x1: r[0], y1: r[1], x2: r[2], y2: r[3], stroke: 'var(--ref)', 'stroke-width': 0.035, 'stroke-dasharray': '0.12 0.1', 'marker-end': refM }));
@@ -260,10 +335,14 @@ details.habits dd { margin: 0; }
     }
     return svg;
   }
-  const svgOf = (smi) => { for (const id of selected) { const L = loaded.get(id); if (L && L.svg[smi]) return L.svg[smi]; } return null; };
+  const lookup = (field, smi) => { for (const id of selected) { const L = loaded.get(id); if (L && L[field] && L[field][smi]) return L[field][smi]; } return null; };
+  // structures shown are drawn by the page from their layout (hydrogens of heteroatoms as bonds); RDKit's drawing
+  // is the fallback for runs published without layouts
   const mol = (smi) => {
     if (!smi) return el('p', { class: 'note muted', text: 'no valid structure (valence error in the reading)' });
-    const s = svgOf(smi);
+    const sc = lookup('scenes', smi);
+    if (sc) { const d = el('div', { class: 'mol', title: smi }); d.appendChild(drawStructure(sc)); return d; }
+    const s = lookup('svg', smi);
     return s ? el('div', { class: 'mol', html: s, title: smi }) : el('p', { class: 'mono', text: smi });
   };
 
@@ -444,8 +523,13 @@ details.habits dd { margin: 0; }
         if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
         const data = await res.json();
         const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date }, a));
+        let scenes = data.scenes || null;
+        if (!scenes) {
+          // runs published before 2026-11-16 keep their layouts in a separate file
+          try { const sr = await fetch(r.file.replace(/\.json$/, '.scenes.json')); if (sr.ok) scenes = (await sr.json()).scenes || null; } catch (e) { scenes = null; }
+        }
         runs.set(id, Object.assign({}, r, { tasks: data.tasks || [] }));
-        loaded.set(id, { attempts, svg: data.svg || {} });
+        loaded.set(id, { attempts, svg: data.svg || {}, scenes: scenes || {} });
       } catch (e) {
         $('runs-status').textContent = 'Run ' + id + ' could not be read: ' + ((e && e.message) || 'error') + '.';
       }
