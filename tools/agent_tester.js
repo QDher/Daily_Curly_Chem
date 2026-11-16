@@ -31,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -218,7 +218,7 @@ async function main() {
         const app = window.__app, sc = app.input.getScene();
         const r3 = (v) => Math.round(v * 1000) / 1000;
         return {
-          scene: { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, x: r3(a.x), y: r3(a.y) })), bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })) },
+          scene: { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, h: a.h || 0, x: r3(a.x), y: r3(a.y) })), bonds: sc.bonds.map((b) => ({ a: b.a, b: b.b, order: b.order })) },
           ink: app.input.getStrokes().map((st) => st.points.map((p) => [r3(p.x), r3(p.y)])),
         };
       }));

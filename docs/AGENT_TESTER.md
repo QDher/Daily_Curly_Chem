@@ -27,6 +27,11 @@ resources and setup).
   (`src/glyphs.js`), so handwritten letters from them would test the recognizer against itself. Atoms other than
   carbon and charges are placed with the row of atoms, as testers may do. Letter recognition needs letters from
   people.
+- **Hydrogens on heteroatoms** (user, 2026-11-16): only hydrogens on carbon are implicit. The page cannot yet read a
+  hydrogen written on a heteroatom (items 7 and 8 of `docs/PLAN_DRAWING.md`), so the agents type O for OH and the
+  page adds such hydrogens from valence. When those items are built, the agents write them (typed label with its
+  hydrogen count), with a new `VERSION` of `tools/agent_ink.js`. Structures shown in the review page and in the run
+  record carry the hydrogen counts (`h`, from script 0.1.2).
 - **Not calibrated yet.** The noise levels are set by hand. After the first files of testers, measure endpoint
   gaps, bond angle and length errors and arrow end distances on human drawings (`test/fixtures/`, tester files)
   and set `PRECISION` in `tools/agent_ink.js` to match (a change of the ink raises its `VERSION`).
