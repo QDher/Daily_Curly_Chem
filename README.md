@@ -63,7 +63,7 @@ the task. Remark text is free text: it stays in the files (and later in D1), nev
 npm ci
 npm run setup      # copies RDKit into rdkit/ (not committed)
 npm test           # interpreter (19), readings (12), recognizer (14), task list (17), solver and daily set (8); about 4 minutes
-npm run test:page  # index.html in headless Chromium with simulated pointer input, sending, replay and daily set (30); needs Playwright
+npm run test:page  # index.html in headless Chromium with simulated pointer input, sending, replay, daily set and day selection (31); needs Playwright
 node tools/replay.js entries.json --verbose   # a file saved from the page, or an export of the Worker
 npm run test:agent # agent testers (11); one run of john0002 on the standard set
 npm run agent -- --agent john0002   # one agent tester run (docs/AGENT_TESTER.md); outputs in agent-runs/ (not committed)

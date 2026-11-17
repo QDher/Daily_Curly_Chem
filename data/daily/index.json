@@ -1,0 +1,24 @@
+{
+ "days": [
+  {
+   "date": "2026-11-13",
+   "arrows": 5,
+   "copies": 10
+  },
+  {
+   "date": "2026-11-14",
+   "arrows": 5,
+   "copies": 5
+  },
+  {
+   "date": "2026-11-15",
+   "arrows": 5,
+   "copies": 5
+  },
+  {
+   "date": "2026-11-16",
+   "arrows": 5,
+   "copies": 5
+  }
+ ]
+}

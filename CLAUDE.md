@@ -31,6 +31,8 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   the answer and never judge a tester's arrows.
 - Daily set (`tools/make_daily.js`, `src/solver.js`, `data/daily/`): built by the workflow, never by hand. A change
   of the solver rules increases `Solver.VERSION`; `node test/test_daily.js` must pass. Do not edit `data/daily/`.
+  The page lists the days from `data/daily/index.json` (written by the tool); the fixed set of `data/tasks.json`
+  is shown only with `?set=standard` (tests, agent testers), not to testers.
 - Entries: collected as files saved by the testers. Sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
   switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does at the
   start of stage 3 of `ML_PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table

@@ -90,7 +90,7 @@ Console resources of the agent testers, not used),
 ```bash
 npm ci && npm run setup          # RDKit copied into rdkit/ (not committed)
 npm test                         # arrows 19, readings 12, recognizer 14, tasks 17, daily 8: each ends with N/N passed (about 4 min)
-npm run test:page                # 30 browser tests (Playwright, already installed in cloud sessions)
+npm run test:page                # 31 browser tests (Playwright, already installed in cloud sessions)
 npm run test:agent               # 11 tests of the agent testers, one run of john0002 on the standard set (about 20 s)
 npm run agent -- --agent john0002 --date 2026-11-15   # one agent tester run; outputs in agent-runs/<date>/ (ignored)
 node tools/update_fixture.js     # the 14 real drawings read by the current recognizer; --write updates the fixture
@@ -126,8 +126,13 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   `data/problems.json` from `main` of the sites, runs `tools/make_daily.js` with the New York date, commits
   `data/daily/` when it changed, then tests and deploys. No Claude session and no secret is involved. Local run:
   `node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--dry]` (about 1 minute).
-- Page: the intro offers "Start today's tasks" (when the set has tasks) and "Start the standard set" (the 14 fixed
-  tasks). Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
+- Page (user request of 2026-11-16): the intro has a day selection (earlier and later buttons, list of the days
+  that have a set, newest marked "latest", a day marked "✓ done" when all its tasks were finished in this browser)
+  and "Start the tasks". The days come from `data/daily/index.json`, written by `tools/make_daily.js` at every run
+  (`--index` rewrites it alone). With no set for today the list shows "today · no new task" and earlier days can
+  be started. The standard set (14 fixed tasks of `data/tasks.json`) is no longer offered to testers: its button
+  appears only with `?set=standard` in the address, which the tests and the agent testers (script 0.1.4) use.
+  Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
   of an expected structure (by-products not listed by the problem do not count against it).
 - The set of 2026-11-13 was first built with that day's problems, then rebuilt with the tool under the date rule
   (problems of 2026-11-11 and 2026-11-12). It is the only set made in a session.

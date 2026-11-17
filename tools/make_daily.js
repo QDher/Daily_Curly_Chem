@@ -29,6 +29,7 @@ function args() {
   const a = process.argv.slice(2), o = {};
   for (let i = 0; i < a.length; i++) {
     if (a[i] === '--dry') o.dry = true;
+    else if (a[i] === '--index') o.index = true;
     else if (a[i].startsWith('--')) o[a[i].slice(2)] = a[++i];
   }
   return o;
@@ -186,12 +187,22 @@ function supply(R, opt) {
 
 async function main() {
   const o = args();
-  if (!o.onepot || !o.namerxn) { console.log('usage: node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--out data/daily] [--dry]'); process.exit(2); }
+  if (!o.index && (!o.onepot || !o.namerxn)) { console.log('usage: node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--out data/daily] [--dry] | --index [--out data/daily]'); process.exit(2); }
   const R = await initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rdkit')), f) });
   const out = o.out || path.join(__dirname, '..', 'data', 'daily');
+  // index.json: the days that have a set, oldest first, with task counts (day selection of the page)
+  const writeIndex = () => {
+    const days = fs.readdirSync(out).filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().map((f) => {
+      const d = JSON.parse(fs.readFileSync(path.join(out, f), 'utf8'));
+      return { date: d.date, arrows: d.tasks.filter((t) => t.type === 'T1').length, copies: d.tasks.filter((t) => t.type === 'T2').length };
+    }).filter((d) => d.arrows + d.copies > 0);
+    fs.writeFileSync(path.join(out, 'index.json'), JSON.stringify({ days }, null, 1) + '\n');
+    return days.length;
+  };
+  if (o.index) { console.log('index: ' + writeIndex() + ' days'); return; }
   const date = o.date || new Date().toISOString().slice(0, 10);
   // one set per date: a second run on the same day changes nothing
-  if (!o.dry && fs.existsSync(path.join(out, date + '.json'))) { console.log(date + ': already built, nothing changed'); return; }
+  if (!o.dry && fs.existsSync(path.join(out, date + '.json'))) { writeIndex(); console.log(date + ': already built, nothing changed'); return; }
   const usedFile = path.join(out, 'used.json');
   const used = fs.existsSync(usedFile) ? JSON.parse(fs.readFileSync(usedFile, 'utf8')) : { arrows: [], copies: [] };
   // the tasks of the fixed set are not used again
@@ -214,6 +225,7 @@ async function main() {
     fs.writeFileSync(path.join(out, date + '.json'), JSON.stringify(doc, null, 1) + '\n');
     fs.writeFileSync(usedFile, JSON.stringify({ arrows: used.arrows.concat(r.keys.arrows), copies: used.copies.concat(r.keys.copies) }, null, 1) + '\n');
   }
+  writeIndex();
 }
 
 module.exports = { make, supply, eligible, setsOf, N_ARROWS, N_COPIES };

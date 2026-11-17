@@ -31,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.3';
+const VERSION = '0.1.4';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -322,7 +322,7 @@ async function main() {
 
   let first = true;
   for (const set of opt.sets) {
-    await page.goto(first ? url + '#t=' + code : url + '?set=' + set);
+    await page.goto(url + '?set=' + set + (first ? '#t=' + code : ''));
     first = false;
     await page.waitForSelector('body[data-ready="1"]', { timeout: 60000 });
     run.versions = await page.evaluate(() => ({ arrows: Arrows.VERSION, readings: Readings.VERSION, recognize: Recognize.VERSION }));

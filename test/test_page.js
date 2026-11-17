@@ -78,7 +78,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     pages.push(page);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(noCode ? url : url + '#t=' + CODE);
+    await page.goto(noCode ? url : url + '?set=standard#t=' + CODE);
     await page.waitForSelector(noCode ? 'body[data-ready="gate"]' : 'body[data-ready="1"]', { timeout: 30000 });
     if (!noCode) {
       await page.click('#start');
@@ -587,7 +587,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq((await remarks()).length, 2, 'two tasks');
     await page.reload();
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
-    await page.click('#start');
+    await page.evaluate(() => document.getElementById('start').click()); // fixed set: its button is hidden without ?set=standard
     eq(await page.inputValue('#remark'), 'The second structure is cut off.', 'restored after a reload');
     await page.fill('#remark', '');
     await page.click('#remark-save');
@@ -659,7 +659,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.reload();
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     if (!(await page.textContent('#intro-msg')).includes('1 entries from an earlier visit')) throw new Error('intro message');
-    await page.click('#start');
+    await page.evaluate(() => document.getElementById('start').click()); // fixed set: its button is hidden without ?set=standard
     const e = await page.evaluate(() => window.__entries);
     eq(e.length, 1, 'restored'); eq(e[0].kind, 'votes');
     if (!(await page.locator('#step option').nth(12).textContent()).endsWith('\u2713')) throw new Error('done mark');
@@ -741,7 +741,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page2.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     await page2.close();
     // an entry, then forget: code and entries are removed, the gate comes back
-    await page.click('#start');
+    await page.evaluate(() => document.getElementById('start').click()); // fixed set: its button is hidden without ?set=standard
     await page.selectOption('#step', { index: 12 });
     const rows = page.locator('#mech-steps .mstep [role="group"]');
     for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
@@ -770,7 +770,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.evaluate(() => localStorage.setItem('puzzles:level', 'postgraduate'));
     await page.reload();
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
-    await page.click('#start');
+    await page.evaluate(() => document.getElementById('start').click()); // fixed set: its button is hidden without ?set=standard
     await page.selectOption('#step', { index: 12 });
     const rows = page.locator('#mech-steps .mstep [role="group"]');
     for (let k = 0; k < 3; k++) await rows.nth(k).locator('button[data-vote="correct"]').click();
@@ -836,7 +836,8 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await ctx.close();
   });
 
-  await test('no daily set (empty or missing): "No new task today", the standard set still starts', async () => {
+  await test('no daily set (empty or missing): "No new task today"; an earlier day can be chosen and started', async () => {
+    const index = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'index.json'), 'utf8')).days;
     for (const mode of ['none', 'missing']) {
       dailyMode = mode;
       const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
@@ -844,12 +845,57 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       await page.goto(url + '#t=' + CODE);
       await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
       eq(await page.textContent('#daily-info'), 'No new task today.', mode);
-      eq(await page.isHidden('#start-daily'), true, mode + ': no daily button');
-      await page.click('#start');
-      eq(await page.locator('#step option').count(), 14, mode + ': standard set');
+      eq(await page.isHidden('#start-daily'), true, mode + ': no start button');
+      eq(await page.isHidden('#start'), true, mode + ': the fixed set is not offered');
+      eq(await page.locator('#day option').count(), index.length + 1, mode + ': days listed');
+      await page.click('#day-prev');
+      const last = index[index.length - 1];
+      if (!(await page.textContent('#daily-info')).includes(last.date)) throw new Error(mode + ': earlier day not shown');
+      await page.click('#start-daily');
+      await page.waitForSelector('#entries:not([hidden])');
+      eq(await page.locator('#step option').count(), last.arrows + last.copies, mode + ': tasks of the earlier day');
       await ctx.close();
     }
     dailyMode = 'file';
+  });
+
+  await test('day selection: newest day selected, earlier and later buttons, an earlier day starts; the fixed set only with ?set=standard', async () => {
+    const index = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'index.json'), 'utf8')).days;
+    const daily = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'latest.json'), 'utf8'));
+    if (!daily.tasks.length || index.length < 2) throw new Error('needs a daily set and an earlier day in the repository');
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(url + '#t=' + CODE);
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.isHidden('#start'), true, 'fixed set hidden');
+    eq(await page.inputValue('#day'), daily.date, 'newest day selected');
+    eq(await page.locator('#day option').count(), index.length, 'days listed');
+    if (!(await page.locator('#day option:checked').textContent()).includes('(latest)')) throw new Error('latest not marked');
+    eq(await page.isDisabled('#day-next'), true, 'no later day');
+    await page.click('#day-prev');
+    const prev = index[index.length - 2];
+    eq(await page.inputValue('#day'), prev.date, 'earlier day');
+    eq(await page.isDisabled('#day-next'), false, 'later day available');
+    if (!(await page.textContent('#daily-info')).includes(prev.date)) throw new Error('date of the earlier day not shown');
+    await page.click('#start-daily');
+    await page.waitForSelector('#entries:not([hidden])');
+    eq(await page.locator('#step option').count(), prev.arrows + prev.copies, 'tasks of the earlier day');
+    const tag = 'd' + prev.date.replace(/-/g, '') + '-';
+    eq(await page.evaluate((t) => window.__app.tasks.every((x) => x.id.startsWith(t)), tag), true, 'ids of that day');
+    // a day whose tasks are all finished in this browser is marked
+    await page.evaluate(({ d, key }) => {
+      const e = [];
+      for (let i = 1; i <= d.arrows; i++) e.push({ seq: i, kind: 'arrows', step: 'd' + d.date.replace(/-/g, '') + '-a' + i, accepted: 0 });
+      for (let i = 1; i <= d.copies; i++) e.push({ seq: 100 + i, kind: 'drawing', step: 'd' + d.date.replace(/-/g, '') + '-c' + i, accepted: true });
+      localStorage.setItem(key, JSON.stringify(e));
+    }, { d: prev, key: await page.evaluate(() => window.__app.storeKey) });
+    await page.goto(url + '?set=standard');
+    await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+    eq(await page.isHidden('#start'), false, 'fixed set shown with ?set=standard');
+    const marks = await page.locator('#day option').allTextContents();
+    eq(marks.filter((t) => t.includes('✓ done')).length, 1, 'one day marked done');
+    if (!marks[index.length - 2].includes('✓ done')) throw new Error('the wrong day is marked');
+    await ctx.close();
   });
 
   await test('a replaced code says so; a pasted link with stray characters still opens; a failure of the page is shown', async () => {
@@ -897,7 +943,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(await page.isVisible('#intro'), true, 'intro shown');
     eq(await page.isHidden('#gate'), true, 'gate hidden');
     eq(await page.locator('#level').count(), 0, 'no level prompt');
-    await page.click('#start');
+    await page.evaluate(() => document.getElementById('start').click()); // fixed set: its button is hidden without ?set=standard
     eq(await page.isVisible('#work'), true, 'work shown');
   });
 

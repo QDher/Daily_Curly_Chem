@@ -90,12 +90,17 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
 
   <section class="panel" id="intro" hidden>
     <h2>Tasks</h2>
+    <div class="row" id="daybar">
+      <button id="day-prev" aria-label="Earlier day" title="Earlier day">&lsaquo;</button>
+      <select id="day" aria-label="Day"></select>
+      <button id="day-next" aria-label="Later day" title="Later day">&rsaquo;</button>
+    </div>
     <p id="daily-info"></p>
     <div class="row">
-      <button id="start-daily" class="primary" hidden>Start today&rsquo;s tasks</button>
-      <button id="start">Start the standard set</button>
+      <button id="start-daily" class="primary" hidden>Start the tasks</button>
+      <button id="start" hidden>Start the standard set</button>
     </div>
-    <p class="muted">Today&rsquo;s tasks: 5 arrow tasks and 5 structures to copy, new each day when enough are available. Standard set: 14 tasks, about 20 minutes (arrows, structures to copy, drawing a species then arrows, and two mechanisms to judge). You can skip a task with &ldquo;Next task&rdquo;.</p>
+    <p class="muted">Each day: 5 arrow tasks and 5 structures to copy, new when enough are available. Earlier days stay available in the list. You can skip a task with &ldquo;Next task&rdquo;.</p>
     <p class="muted" id="intro-data"></p>
     <p id="intro-msg" role="status"></p>
   </section>
@@ -258,6 +263,8 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // Personal link: .../#t=CODE (the part after # is not sent to the server). The code is checked, kept in this
   // browser and removed from the address bar; later visits need no code. ?t=CODE is still accepted.
   const CODE_KEY = 'curly:code';
+  // ?set=standard shows the button of the fixed set (tests and agent testers); it is not offered to testers
+  const showStandard = new URLSearchParams(location.search).get('set') === 'standard';
   const fromLink = new URLSearchParams(location.hash.replace(/^#/, '')).get('t') || new URLSearchParams(location.search).get('t');
   let stored = null;
   try { stored = localStorage.getItem(CODE_KEY); } catch (e) { /* storage unavailable */ }
@@ -306,6 +313,16 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     if (r.ok) daily = await r.json();
   } catch (e) { /* no daily set */ }
   const hasDaily = !!(daily && Array.isArray(daily.tasks) && daily.tasks.length);
+  // Earlier days (data/daily/index.json, written by tools/make_daily.js): date and task counts, oldest first.
+  let days = [];
+  try {
+    const r = await fetch('data/daily/index.json', { cache: 'no-store' });
+    if (r.ok) days = ((await r.json()).days || []).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.date));
+  } catch (e) { /* no list of days */ }
+  if (hasDaily && !days.some((d) => d.date === daily.date)) {
+    days.push({ date: daily.date, arrows: daily.tasks.filter((t) => t.type === 'T1').length, copies: daily.tasks.filter((t) => t.type === 'T2').length });
+  }
+  days.sort((a, b) => (a.date < b.date ? -1 : 1));
   const TYPE = {
     T1: { label: 'Arrows', text: 'Draw the arrows for this step, then press \u201cApply arrows\u201d.' },
     T2: { label: 'Copy', text: 'Copy the structure by hand.' },
@@ -899,16 +916,52 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     selectStep(0);
   };
   $('start').onclick = () => begin(data.tasks);
-  if (hasDaily) {
-    $('daily-info').textContent = 'Today’s tasks (' + daily.date + '): ' + daily.tasks.filter((t) => t.type === 'T1').length + ' arrow tasks and ' + daily.tasks.filter((t) => t.type === 'T2').length + ' structures to copy.';
-    $('start-daily').hidden = false;
-    $('start-daily').onclick = () => begin(daily.tasks);
-    $('start').classList.remove('primary');
-  } else {
-    $('daily-info').textContent = 'No new task today.';
-    $('start').classList.add('primary');
-  }
-  window.__app = { R, input, output, fixer, get tasks() { return tasks; }, daily, selectStep, getReading: () => reading, flush, unsent };
+  $('start').hidden = !showStandard;
+  // Day selection: the newest day first in use; a day is marked when all its tasks were finished in this browser.
+  const dayName = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const dayDone = (d) => {
+    const tag = 'd' + d.date.replace(/-/g, '') + '-';
+    const ok = new Set();
+    for (const e of entries) {
+      if (typeof e.step !== 'string' || !e.step.startsWith(tag)) continue;
+      if ((e.kind === 'arrows' && Number.isInteger(e.accepted)) || (e.kind === 'drawing' && e.accepted)) ok.add(e.step);
+    }
+    return ok.size >= d.arrows + d.copies;
+  };
+  const NONE = 'none';
+  const fillDays = () => {
+    const keep = $('day').value;
+    $('day').textContent = '';
+    const add = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; $('day').appendChild(o); };
+    days.forEach((d, i) => add(d.date, dayName(d.date) + (hasDaily && d.date === daily.date ? ' (latest)' : '') + (dayDone(d) ? ' · ✓ done' : '')));
+    if (!hasDaily) add(NONE, 'today · no new task');
+    $('day').value = keep || (hasDaily ? daily.date : NONE);
+  };
+  const showDay = () => {
+    const v = $('day').value;
+    const d = days.find((x) => x.date === v);
+    $('daily-info').textContent = d ? 'Tasks of ' + d.date + ': ' + d.arrows + ' arrow tasks and ' + d.copies + ' structures to copy.' : 'No new task today.';
+    $('start-daily').hidden = !d;
+    $('day-prev').disabled = $('day').selectedIndex <= 0;
+    $('day-next').disabled = $('day').selectedIndex >= $('day').options.length - 1;
+  };
+  fillDays();
+  showDay();
+  $('daybar').hidden = $('day').options.length < 2 && !days.length;
+  $('day').onchange = () => { say('intro-msg', ''); showDay(); };
+  $('day-prev').onclick = () => { $('day').selectedIndex -= 1; showDay(); };
+  $('day-next').onclick = () => { $('day').selectedIndex += 1; showDay(); };
+  $('start-daily').onclick = async () => {
+    const v = $('day').value;
+    if (hasDaily && v === daily.date) return begin(daily.tasks);
+    try {
+      const r = await fetch('data/daily/' + v + '.json', { cache: 'no-store' });
+      const set = r.ok ? await r.json() : null;
+      if (!set || !Array.isArray(set.tasks) || !set.tasks.length) throw new Error('no tasks');
+      begin(set.tasks);
+    } catch (e) { say('intro-msg', 'The tasks of this day could not be loaded.', 'err'); }
+  };
+  window.__app = { R, input, output, fixer, get tasks() { return tasks; }, daily, days, storeKey, selectStep, getReading: () => reading, flush, unsent };
   document.body.dataset.ready = '1';
 })();
 </script>
