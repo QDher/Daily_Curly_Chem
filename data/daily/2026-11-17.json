@@ -1,0 +1,295 @@
+{
+ "date": "2026-11-17",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.1.0",
+  "recognize": "0.3.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261117-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off",
+   "start": [
+    "CC(OC(C)C(C)=C)(OCC)OCC"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a8"
+      ]
+     },
+     "to": {
+      "atom": "s0a8"
+     }
+    }
+   ],
+   "expected": [
+    "CC(OCC)=[O+]C(C)C(C)=C",
+    "CC(=[O+]CC)OC(C)C(C)=C",
+    "C[C+](OCC)OC(C)C(C)=C",
+    "C=C(C)C(C)O[C+](C)OCC.CC[O-]"
+   ]
+  },
+  {
+   "id": "d20261117-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "C=C(C)C(C)O"
+  },
+  {
+   "id": "d20261117-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off. Draw the hydrogen you need first (button H).",
+   "start": [
+    "CC(OCC)=[O+]C(C)C(C)=C",
+    "CCOC(C)(OCC)OCC"
+   ],
+   "drawH": [
+    "s0a0"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a5"
+      ]
+     },
+     "to": {
+      "atom": "s0a5"
+     }
+    }
+   ],
+   "expected": [
+    "C=C(OCC)OC(C)C(C)=C",
+    "C=C(OCC)OC(C)C(=C)C.CCOC(C)(OCC)[OH+]CC"
+   ]
+  },
+  {
+   "id": "d20261117-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "CC=C(C)CCC(=O)OCC"
+  },
+  {
+   "id": "d20261117-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "H₂O, Concentrated H₂SO₄; Water/conc. H₂SO₄, heated at reflux with stirring, 3 h; poured into cold water. Draw the hydrogen you need first (button H).",
+   "start": [
+    "NC(O)(O)Cc1ccccc1",
+    "O"
+   ],
+   "drawH": [
+    "s0a2"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a2",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "OC(=O)Cc1ccccc1",
+    "O=C(O)Cc1ccccc1.[NH2-].[OH3+]"
+   ]
+  },
+  {
+   "id": "d20261117-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "CCOC(C)(OCC)OCC"
+  },
+  {
+   "id": "d20261117-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-arndt-eistert-propanoic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "SOCl₂ (thionyl chloride)",
+   "start": [
+    "CC(=O)O",
+    "O=S(Cl)Cl"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a2",
+      "via": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a1"
+     }
+    }
+   ],
+   "expected": [
+    "CC(=O)Cl",
+    "CC(=O)Cl.O=[S-]Cl.[OH+]"
+   ]
+  },
+  {
+   "id": "d20261117-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
+   },
+   "target": "N#CCc1ccccc1"
+  },
+  {
+   "id": "d20261117-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-arndt-eistert-propanoic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "silver(I) salt (Ag⁺), H₂O; heat (Δ) or irradiation (hν)",
+   "start": [
+    "CC(=O)[CH-][N+]#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "atom": "s0a4"
+     }
+    }
+   ],
+   "expected": [
+    "CC(=O)[CH]",
+    "N#N.[CH]C(C)=O"
+   ]
+  },
+  {
+   "id": "d20261117-c5",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
+   },
+   "target": "O=C(O)Cc1ccccc1"
+  }
+ ]
+}

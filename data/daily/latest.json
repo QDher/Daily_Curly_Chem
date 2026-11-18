@@ -1,5 +1,5 @@
 {
- "date": "2026-11-16",
+ "date": "2026-11-17",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -11,16 +11,257 @@
  },
  "tasks": [
   {
-   "id": "d20261116-a1",
+   "id": "d20261117-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "os1972-borch-reductive-amination-dimethylcyclohexylamine",
-    "date": "2026-11-15"
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
    },
-   "conditions": "Dimethylamine hydrochloride (Me₂NH·HCl), NaBH₃CN; MeOH, rt",
+   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off",
    "start": [
-    "CN(C)C1(O)CCCCC1"
+    "CC(OC(C)C(C)=C)(OCC)OCC"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a8"
+      ]
+     },
+     "to": {
+      "atom": "s0a8"
+     }
+    }
+   ],
+   "expected": [
+    "CC(OCC)=[O+]C(C)C(C)=C",
+    "CC(=[O+]CC)OC(C)C(C)=C",
+    "C[C+](OCC)OC(C)C(C)=C",
+    "C=C(C)C(C)O[C+](C)OCC.CC[O-]"
+   ]
+  },
+  {
+   "id": "d20261117-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "C=C(C)C(C)O"
+  },
+  {
+   "id": "d20261117-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off. Draw the hydrogen you need first (button H).",
+   "start": [
+    "CC(OCC)=[O+]C(C)C(C)=C",
+    "CCOC(C)(OCC)OCC"
+   ],
+   "drawH": [
+    "s0a0"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a5"
+      ]
+     },
+     "to": {
+      "atom": "s0a5"
+     }
+    }
+   ],
+   "expected": [
+    "C=C(OCC)OC(C)C(C)=C",
+    "C=C(OCC)OC(C)C(=C)C.CCOC(C)(OCC)[OH+]CC"
+   ]
+  },
+  {
+   "id": "d20261117-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "CC=C(C)CCC(=O)OCC"
+  },
+  {
+   "id": "d20261117-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "H₂O, Concentrated H₂SO₄; Water/conc. H₂SO₄, heated at reflux with stirring, 3 h; poured into cold water. Draw the hydrogen you need first (button H).",
+   "start": [
+    "NC(O)(O)Cc1ccccc1",
+    "O"
+   ],
+   "drawH": [
+    "s0a2"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a2",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "OC(=O)Cc1ccccc1",
+    "O=C(O)Cc1ccccc1.[NH2-].[OH3+]"
+   ]
+  },
+  {
+   "id": "d20261117-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "target": "CCOC(C)(OCC)OCC"
+  },
+  {
+   "id": "d20261117-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-arndt-eistert-propanoic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "SOCl₂ (thionyl chloride)",
+   "start": [
+    "CC(=O)O",
+    "O=S(Cl)Cl"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a2",
+      "via": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a1"
+     }
+    }
+   ],
+   "expected": [
+    "CC(=O)Cl",
+    "CC(=O)Cl.O=[S-]Cl.[OH+]"
+   ]
+  },
+  {
+   "id": "d20261117-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
+   },
+   "target": "N#CCc1ccccc1"
+  },
+  {
+   "id": "d20261117-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-arndt-eistert-propanoic-acid",
+    "date": "2026-11-16"
+   },
+   "conditions": "silver(I) salt (Ag⁺), H₂O; heat (Δ) or irradiation (hν)",
+   "start": [
+    "CC(=O)[CH-][N+]#N"
    ],
    "reference": [
     {
@@ -36,243 +277,19 @@
     }
    ],
    "expected": [
-    "C[N+](C)=C1CCCCC1",
-    "CN(C)[C+]1CCCCC1",
-    "CN(C)[C+]1CCCCC1.[OH-]"
+    "CC(=O)[CH]",
+    "N#N.[CH]C(C)=O"
    ]
   },
   {
-   "id": "d20261116-c1",
+   "id": "d20261117-c5",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1970-wolff-rearrangement-silver-benzoate-naphthylacetate",
-    "date": "2026-11-15"
+    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
+    "date": "2026-11-16"
    },
-   "target": "[N-]=[N+]=CC(=O)c1cccc2ccccc12"
-  },
-  {
-   "id": "d20261116-a2",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs2026-seyferth-gilbert-ribose-alkyne-benthol",
-    "date": "2026-11-10"
-   },
-   "conditions": "dimethyl (1-diazo-2-oxopropyl)phosphonate, K₂CO₃; MeOH, reflux",
-   "start": [
-    "OCC1OC(O)C2OC(C)(C)OC12"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a5"
-     },
-     "to": {
-      "atom": "s0a2"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a2",
-       "s0a3"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a3",
-       "s0a4"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a4",
-       "s0a5"
-      ]
-     },
-     "to": {
-      "atom": "s0a5"
-     }
-    }
-   ],
-   "expected": [
-    "O=CC1OC(C)(C)OC1C(O)CO",
-    "CC1(C)OC(C=O)C(C(O)CO)O1"
-   ]
-  },
-  {
-   "id": "d20261116-c2",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1970-wolff-rearrangement-silver-benzoate-naphthylacetate",
-    "date": "2026-11-15"
-   },
-   "target": "CCOC(=O)Cc1cccc2ccccc12"
-  },
-  {
-   "id": "d20261116-a3",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs2026-seyferth-gilbert-ribose-alkyne-benthol",
-    "date": "2026-11-10"
-   },
-   "conditions": "dimethyl (1-diazo-2-oxopropyl)phosphonate, K₂CO₃; MeOH, reflux",
-   "start": [
-    "[O-]C(C1OC(C)(C)OC1C(O)CO)C(=[N+]=[N-])P(=O)(OC)OC"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a0"
-     },
-     "to": {
-      "atom": "s0a16"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a16",
-       "s0a17"
-      ]
-     },
-     "to": {
-      "atom": "s0a17"
-     }
-    }
-   ],
-   "expected": [
-    "[O-]P1(OC)(OC)OC(C2OC(C)(C)OC2C(O)CO)C1=[N+]=[N-]",
-    "COP1([O-])(OC)OC(C2OC(C)(C)OC2C(O)CO)C1=[N+]=[N-]"
-   ]
-  },
-  {
-   "id": "d20261116-c3",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1970-wolff-rearrangement-silver-benzoate-naphthylacetate",
-    "date": "2026-11-15"
-   },
-   "target": "O=C=Cc1cccc2ccccc12"
-  },
-  {
-   "id": "d20261116-a4",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "oprd1999-haloform-veratric-acid",
-    "date": "2026-11-10"
-   },
-   "conditions": "aq. HCl (work-up); acidification of the aqueous solution",
-   "start": [
-    "COc1ccc(C([O-])(O)C(Cl)(Cl)Cl)cc1OC"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a7"
-     },
-     "to": {
-      "bond": [
-       "s0a6",
-       "s0a7"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a6",
-       "s0a9"
-      ]
-     },
-     "to": {
-      "atom": "s0a9"
-     }
-    }
-   ],
-   "expected": [
-    "COc1ccc(C(=O)O)cc1OC",
-    "COc1ccc(C(=O)O)cc1OC.Cl[C-](Cl)Cl"
-   ]
-  },
-  {
-   "id": "d20261116-c4",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1972-borch-reductive-amination-dimethylcyclohexylamine",
-    "date": "2026-11-15"
-   },
-   "target": "O=C1CCCCC1"
-  },
-  {
-   "id": "d20261116-a5",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-dakin-oxidation-hydroquinone",
-    "date": "2026-11-10"
-   },
-   "conditions": "H₂O₂, NaOH; heat (Δ)",
-   "start": [
-    "O=Cc1ccc(O)cc1",
-    "OO"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a0"
-     },
-     "to": {
-      "atom": "s0a0"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a0",
-       "s0a1"
-      ]
-     },
-     "to": {
-      "atom": "s1a1",
-      "via": "s0a1"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s1a0",
-       "s1a1"
-      ]
-     },
-     "to": {
-      "atom": "s1a0"
-     }
-    }
-   ],
-   "expected": [
-    "Oc1ccc(cc1)C([O-])OO",
-    "Oc1ccc(cc1)C(O)OO",
-    "OOC(O)c1ccc(O)cc1"
-   ]
-  },
-  {
-   "id": "d20261116-c5",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1972-borch-reductive-amination-dimethylcyclohexylamine",
-    "date": "2026-11-15"
-   },
-   "target": "CN(C)C1CCCCC1"
+   "target": "O=C(O)Cc1ccccc1"
   }
  ]
 }
