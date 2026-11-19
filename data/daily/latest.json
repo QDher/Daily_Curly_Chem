@@ -1,5 +1,5 @@
 {
- "date": "2026-11-17",
+ "date": "2026-11-18",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -11,128 +11,139 @@
  },
  "tasks": [
   {
-   "id": "d20261117-a1",
+   "id": "d20261118-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "jacs1970-johnson-claisen-methylbutenol",
-    "date": "2026-11-16"
+    "problem": "jacs2026-yamaguchi-esterification-angelic-acid-gummiferolate",
+    "date": "2026-11-17"
    },
-   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off",
+   "conditions": "Et₃N (40 equiv), 2,4,6-trichlorobenzoyl chloride (40 equiv); Toluene, rt, 2 h",
    "start": [
-    "CC(OC(C)C(C)=C)(OCC)OCC"
+    "CC=C(C)C(=O)O",
+    "O=C(Cl)c1c(Cl)cc(Cl)cc1Cl"
    ],
    "reference": [
     {
      "from": {
       "bond": [
-       "s0a1",
-       "s0a8"
-      ]
-     },
-     "to": {
-      "atom": "s0a8"
-     }
-    }
-   ],
-   "expected": [
-    "CC(OCC)=[O+]C(C)C(C)=C",
-    "CC(=[O+]CC)OC(C)C(C)=C",
-    "C[C+](OCC)OC(C)C(C)=C",
-    "C=C(C)C(C)O[C+](C)OCC.CC[O-]"
-   ]
-  },
-  {
-   "id": "d20261117-c1",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs1970-johnson-claisen-methylbutenol",
-    "date": "2026-11-16"
-   },
-   "target": "C=C(C)C(C)O"
-  },
-  {
-   "id": "d20261117-a2",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs1970-johnson-claisen-methylbutenol",
-    "date": "2026-11-16"
-   },
-   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off. Draw the hydrogen you need first (button H).",
-   "start": [
-    "CC(OCC)=[O+]C(C)C(C)=C",
-    "CCOC(C)(OCC)OCC"
-   ],
-   "drawH": [
-    "s0a0"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a2"
-     },
-     "to": {
-      "atom": "h1"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a0",
-       "h1"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a0",
-       "s0a1"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a1",
+       "s0a4",
        "s0a5"
       ]
      },
      "to": {
-      "atom": "s0a5"
+      "atom": "s1a0",
+      "via": "s0a4"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a0",
+       "s1a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a6",
+      "via": "s1a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
      }
     }
    ],
    "expected": [
-    "C=C(OCC)OC(C)C(C)=C",
-    "C=C(OCC)OC(C)C(=C)C.CCOC(C)(OCC)[OH+]CC"
+    "CC=C(C)C(=O)OC([O-])(Cl)c1c(Cl)cc(Cl)cc1Cl",
+    "CC=C(C)C(=O)OC(O)(Cl)c1c(Cl)cc(Cl)cc1Cl"
    ]
   },
   {
-   "id": "d20261117-c2",
+   "id": "d20261118-c1",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs1970-johnson-claisen-methylbutenol",
-    "date": "2026-11-16"
+    "problem": "jacs2026-yamaguchi-esterification-angelic-acid-gummiferolate",
+    "date": "2026-11-17"
    },
-   "target": "CC=C(C)CCC(=O)OCC"
+   "target": "CC=C(C)C(=O)O"
   },
   {
-   "id": "d20261117-a3",
+   "id": "d20261118-a2",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
-    "date": "2026-11-16"
+    "problem": "jacs2026-yamaguchi-esterification-angelic-acid-gummiferolate",
+    "date": "2026-11-17"
    },
-   "conditions": "H₂O, Concentrated H₂SO₄; Water/conc. H₂SO₄, heated at reflux with stirring, 3 h; poured into cold water. Draw the hydrogen you need first (button H).",
+   "conditions": "Et₃N (40 equiv), 2,4,6-trichlorobenzoyl chloride (40 equiv); Toluene, rt, 2 h",
    "start": [
-    "NC(O)(O)Cc1ccccc1",
-    "O"
+    "CC=C(C)C(=O)OC([O-])(Cl)c1c(Cl)cc(Cl)cc1Cl"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a8"
+     },
+     "to": {
+      "bond": [
+       "s0a7",
+       "s0a8"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a7",
+       "s0a9"
+      ]
+     },
+     "to": {
+      "atom": "s0a9"
+     }
+    }
+   ],
+   "expected": [
+    "CC=C(C)C(=O)OC(=O)c1c(Cl)cc(Cl)cc1Cl",
+    "CC=C(C)C(=O)OC(=O)c1c(Cl)cc(Cl)cc1Cl.[Cl-]"
+   ]
+  },
+  {
+   "id": "d20261118-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-yamaguchi-esterification-angelic-acid-gummiferolate",
+    "date": "2026-11-17"
+   },
+   "target": "O=C(Cl)c1c(Cl)cc(Cl)cc1Cl"
+  },
+  {
+   "id": "d20261118-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-knorr-pyrazole-3-5-dimethylpyrazole",
+    "date": "2026-11-17"
+   },
+   "conditions": "hydrazine (N₂H₄). Draw the hydrogen you need first (button H).",
+   "start": [
+    "CC1(O)CC(C)(O)NN1",
+    "NN"
    ],
    "drawH": [
-    "s0a2"
+    "s0a7"
    ],
    "reference": [
     {
@@ -146,17 +157,123 @@
     {
      "from": {
       "bond": [
-       "s0a2",
+       "s0a7",
        "h1"
       ]
      },
      "to": {
       "bond": [
-       "s0a1",
-       "s0a2"
+       "s0a4",
+       "s0a7"
       ]
      }
     },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "CC1=NNC(C)(O)C1",
+    "CC1=NNC(C)(O)C1.N[NH3+].[OH-]"
+   ]
+  },
+  {
+   "id": "d20261118-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-yamaguchi-esterification-angelic-acid-gummiferolate",
+    "date": "2026-11-17"
+   },
+   "target": "CC=C(C)C(=O)OC(=O)c1c(Cl)cc(Cl)cc1Cl"
+  },
+  {
+   "id": "d20261118-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-knorr-pyrazole-3-5-dimethylpyrazole",
+    "date": "2026-11-17"
+   },
+   "conditions": "hydrazine (N₂H₄). Draw the hydrogen you need first (button H).",
+   "start": [
+    "CC1=NNC(C)(O)C1",
+    "NN"
+   ],
+   "drawH": [
+    "s0a7"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a7",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a7"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "Cc1cc(C)[nH]n1",
+    "Cc1cc(C)[nH]n1.N[NH3+].[OH-]"
+   ]
+  },
+  {
+   "id": "d20261118-c4",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-knorr-pyrazole-3-5-dimethylpyrazole",
+    "date": "2026-11-17"
+   },
+   "target": "CC(=O)CC(C)=O"
+  },
+  {
+   "id": "d20261118-a5",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1970-johnson-claisen-methylbutenol",
+    "date": "2026-11-16"
+   },
+   "conditions": "Triethyl orthoacetate, CH₃C(OEt)₃ (excess), Propionic acid (trace); Neat, about 138 °C; ethanol distilled off",
+   "start": [
+    "C=C(OCC)OC(C)C(C)=C"
+   ],
+   "reference": [
     {
      "from": {
       "bond": [
@@ -165,131 +282,53 @@
       ]
      },
      "to": {
-      "atom": "s0a0"
-     }
-    }
-   ],
-   "expected": [
-    "OC(=O)Cc1ccccc1",
-    "O=C(O)Cc1ccccc1.[NH2-].[OH3+]"
-   ]
-  },
-  {
-   "id": "d20261117-c3",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs1970-johnson-claisen-methylbutenol",
-    "date": "2026-11-16"
-   },
-   "target": "CCOC(C)(OCC)OCC"
-  },
-  {
-   "id": "d20261117-a4",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-arndt-eistert-propanoic-acid",
-    "date": "2026-11-16"
-   },
-   "conditions": "SOCl₂ (thionyl chloride)",
-   "start": [
-    "CC(=O)O",
-    "O=S(Cl)Cl"
-   ],
-   "reference": [
-    {
-     "from": {
       "bond": [
        "s0a1",
-       "s0a3"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a1",
-       "s0a2"
+       "s0a5"
       ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a1",
-       "s0a2"
+       "s0a5",
+       "s0a6"
       ]
      },
      "to": {
-      "atom": "s1a2",
-      "via": "s0a1"
+      "bond": [
+       "s0a6",
+       "s0a8"
+      ]
      }
     },
     {
      "from": {
       "bond": [
-       "s1a1",
-       "s1a2"
+       "s0a8",
+       "s0a10"
       ]
      },
      "to": {
-      "atom": "s1a1"
+      "atom": "s0a0",
+      "via": "s0a10"
      }
     }
    ],
    "expected": [
-    "CC(=O)Cl",
-    "CC(=O)Cl.O=[S-]Cl.[OH+]"
+    "CCOC(=O)CCC(C)=CC",
+    "CC=C(C)CCC(=O)OCC"
    ]
   },
   {
-   "id": "d20261117-c4",
+   "id": "d20261118-c5",
    "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
-    "date": "2026-11-16"
-   },
-   "target": "N#CCc1ccccc1"
-  },
-  {
-   "id": "d20261117-a5",
-   "type": "T1",
    "source": {
     "site": "namerxn",
-    "problem": "smn-arndt-eistert-propanoic-acid",
-    "date": "2026-11-16"
+    "problem": "smn-knorr-pyrazole-3-5-dimethylpyrazole",
+    "date": "2026-11-17"
    },
-   "conditions": "silver(I) salt (Ag⁺), H₂O; heat (Δ) or irradiation (hν)",
-   "start": [
-    "CC(=O)[CH-][N+]#N"
-   ],
-   "reference": [
-    {
-     "from": {
-      "bond": [
-       "s0a3",
-       "s0a4"
-      ]
-     },
-     "to": {
-      "atom": "s0a4"
-     }
-    }
-   ],
-   "expected": [
-    "CC(=O)[CH]",
-    "N#N.[CH]C(C)=O"
-   ]
-  },
-  {
-   "id": "d20261117-c5",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1922-nitrile-hydrolysis-benzyl-cyanide-phenylacetic-acid",
-    "date": "2026-11-16"
-   },
-   "target": "O=C(O)Cc1ccccc1"
+   "target": "Cc1cc(C)[nH]n1"
   }
  ]
 }
