@@ -1,6 +1,6 @@
 # Plan: drawing fixes and features after the first test run
 
-Recorded 2026-11-14 at the user's request. Status of every item: **planned, not started**.
+Recorded 2026-11-14 at the user's request. Status of every item: **planned, not started** (item 6: scheduled for round 1, 2026-11-21).
 
 ## Rule while the first test run is open
 
@@ -11,6 +11,9 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
   "Evidence" of the item concerned, with the date and the counts, never with remark text.
 - Exception: a fault that blocks testers (page error, lost entries) is fixed at once, as before, and noted in
   `docs/CONTEXT.md`.
+- Exception (user, 2026-11-20): item 6, extended to atom labels and charge signs, is done before the testers are
+  invited (round 1 of rule-based drawing fixes), so that every tester of the run sees the same page version. It
+  changes the display of structures drawn by the page only; the other items stay on hold.
 - Items 1, 2, 4 and 5 give instant feedback and change how people draw. Entries made after they land are a
   different population: the first change adds `versions.page` to every entry, and reports compare figures within
   one page version only.
@@ -197,7 +200,9 @@ a move is in progress, never while drawing, and a tester can undo.
 
 ## 6. Overlapping bonds
 
-Added 2026-11-14 at the user's request.
+Added 2026-11-14 at the user's request. Extended on 2026-11-20 (user): atom labels and charge signs must not lie on a
+bond, another label or another sign either (placement as in the agent review page: a charge in the free direction
+nearest to the upper right, away from every bond); hold lifted for this item, to be done before testers are invited.
 
 **Goal.** No two bonds of a structure shown on the page cross or lie on top of each other in a way that can be read
 as a bond meeting at an atom. In order of preference: (a) a layout with correct bond lengths and angles that has no

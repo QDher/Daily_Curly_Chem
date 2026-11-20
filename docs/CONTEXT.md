@@ -164,7 +164,9 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 
 `docs/PLAN_DRAWING.md` (2026-11-14): line straightening while drawing, clean-up preview after a 1 s pause, a valence
 rule for third-row atoms, moving and rotating fragments, snapping fragments together, overlapping bonds in shown structures, hydrogens written next to a heteroatom, subscripts (NH2), arrows smoothed and stylized after snapping, fishhook arrows for radical mechanisms, wedge and hash bonds for stereochemistry. The page is not changed for
-them while the first test run collects data; the plan and its evidence log are updated as entries come in.
+them while the first test run collects data, except item 6 (overlaps in shown structures, extended to labels and
+charges; hold lifted by the user on 2026-11-20, round 1 of 2026-11-21, before testers are invited); the plan and its
+evidence log are updated as entries come in.
 
 ## Open issues, by priority
 
