@@ -123,7 +123,7 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   a further run of the same tester and date (made again with a new ink, user request of 2026-11-16) is
   `<date>_<tester>_<suffix>` (`--suffix` of `tools/agent_review_data.js`, e.g. `ink0.2.0`), and the first run is kept
   with the answers given on it. The index line carries the ink and script versions.
-- The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are listed with their ink version; the newest run of each tester is shown by default, each run can be ticked or unticked, and each
+- The page shows one run date at a time; each run's column keeps the width of a quarter of the page (arrows next to "Runs" go to the earlier or later date; it opens on the newest date or the date shown last); all runs of that date are listed with their ink version, except runs drawn with ink 0.1.0 (not listed since 2026-11-20, user request; files and answers kept); the newest run of each tester is shown by default, each run can be ticked or unticked, and each
   task shows the chosen runs side by side.
 - Reviewers (decision of 2026-11-16): members of the organization, given access in the page's Share menu at
   Contributor level (Viewers and Commenters cannot save; Editors could also republish the page). Each reviewer's

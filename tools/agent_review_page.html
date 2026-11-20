@@ -456,6 +456,10 @@ details.habits dd { margin: 0; }
   // ---------- runs table ----------
   // One run date at a time: the table lists the runs of that date; the arrows go to the earlier or later date.
   const KEEP = 'review:day';
+  // Runs drawn with these ink versions are not listed (user, 2026-11-20); their files and the answers given on them
+  // are kept.
+  const HIDDEN_INK = ['0.1.0'];
+  let hiddenRuns = 0;
   let day = null;
   const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
   const runsOf = (d) => [...runs.values()].filter((r) => r.date === d).map((r) => r.runId).sort();
@@ -518,7 +522,7 @@ details.habits dd { margin: 0; }
     const rb = $('report-box');
     rb.textContent = '';
     if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
-    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.';
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.' + (hiddenRuns ? ' Runs drawn with ink ' + HIDDEN_INK.join(', ') + ' are not listed (' + hiddenRuns + ').' : '');
   }
 
   async function loadSelected() {
@@ -620,7 +624,11 @@ details.habits dd { margin: 0; }
     try {
       const res = await fetch('runs/index.json', { cache: 'no-store' });
       const list = res.ok ? await res.json() : [];
-      for (const r of list) if (r && r.runId) runs.set(r.runId, r);
+      for (const r of list) {
+        if (!r || !r.runId) continue;
+        if (HIDDEN_INK.includes(r.ink)) { hiddenRuns += 1; continue; }
+        runs.set(r.runId, r);
+      }
       if (!runs.size) $('runs-status').textContent = 'No run is kept yet.';
     } catch (e) {
       $('runs-status').textContent = 'The list of runs could not be read: ' + ((e && e.message) || 'error') + '.';
