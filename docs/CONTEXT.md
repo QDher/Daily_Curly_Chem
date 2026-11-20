@@ -301,6 +301,9 @@ Later deployment of this project (phase 3 of the plan, not started): a versioned
 `src/` of both site repositories, added by their `src/build.js` as an optional step after the product is found,
 by pull request. The daily pages keep Ketcher for structure input; nothing of this project is on them today.
 
+Week files of 2026-11-20 (two testers): figures and cases 12 to 18 in `docs/WEAKNESSES.md`. Case 12 (hydrogens of O
+and N not drawable as bonds in arrow tasks) is blocking by the readiness criteria.
+
 ## When a tester sends an entries file
 
 0. Identify it: the name is `curly-entries-<label>-<device tag>.json`, and the file holds `tester` (the label)
