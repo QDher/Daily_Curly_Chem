@@ -375,8 +375,11 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   window.__entries = entries;
   let step = null, start = null, startRoom = null, readings = [], shown = 0, rejected = [], t0 = 0;
 
+  // Version of the page as testers see it: raised when what is shown or asked changes, so that entries are
+  // compared within one version. 0.2.0 (2026-11-21): hydrogens of atoms other than carbon shown with a bond.
+  const PAGE = '0.2.0';
   const HELP = {
-    arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on carbon are used only when drawn.',
+    arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
     atom: 'Click where the atom or charge goes: the end of a bond, a corner, an atom, or an empty place. Press Draw to draw more bonds.',
     h: 'Tap an atom to draw one of its hydrogens.',
@@ -464,7 +467,10 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     $('work').hidden = false;
     const mech = step.type === 'T4' ? data.mechanisms[step.mechanism] : null;
     $('instr').textContent = step.draw ? step.draw.text : TYPE[step.type].text;
-    $('cond').textContent = (mech ? mech.conditions : step.conditions) || '';
+    // hydrogens of atoms other than carbon are shown: the request to draw one is dropped when none is left to draw
+    let cond = (mech ? mech.conditions : step.conditions) || '';
+    if (step.type === 'T1' && step.drawH && Tasks.hydrogensShown(Tasks.startScene(R, step), step.drawH)) cond = cond.replace('. Draw the hydrogen you need first (button H).', '.').replace(/\.\.$/, '.');
+    $('cond').textContent = cond;
     $('target-wrap').hidden = step.type !== 'T2';
     $('tools-wrap').hidden = step.type === 'T4';
     $('mech').hidden = step.type !== 'T4';
@@ -478,7 +484,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
       load(Tasks.startScene(R, step), { right: 7, minH: 7 });
       setPhase('draw');
     } else if (step.type === 'T1') {
-      load(Tasks.startScene(R, step));
+      load(Tasks.showHydrogens(Tasks.startScene(R, step), step.drawH));
       setPhase('arrows');
     } else {
       $('result').hidden = true;
@@ -620,7 +626,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     shown = k;
     const r = readings[k];
     if (!r.clean) r.clean = Scene.relayout(R, r.scene);
-    output.setScene(r.clean);
+    output.setScene(Tasks.showHydrogens(r.clean));
     $('rank').textContent = '(reading ' + (k + 1) + ' of ' + readings.length + ')';
     $('result').hidden = false;
     $('confirm').hidden = false;
@@ -647,7 +653,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   function record(accepted) {
     const entry = {
       kind: 'arrows',
-      versions: { arrows: Arrows.VERSION, readings: Readings.VERSION },
+      versions: { arrows: Arrows.VERSION, readings: Readings.VERSION, page: PAGE },
       tester,
       level,
       step: step.id,
@@ -697,7 +703,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     say('msg2', 'Arrows recorded.');
   };
 
-  $('continue').onclick = () => { load(readings[shown].clean); setPhase('arrows'); };
+  $('continue').onclick = () => { load(Tasks.showHydrogens(readings[shown].clean)); setPhase('arrows'); };
 
   // Separate choice: the structure as an answer to the problem. It does not judge the arrows.
   $('submit').onclick = () => {
@@ -772,7 +778,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // drawing (with what is wrong), null when the tester only wants to draw again.
   function discardReading(flagged, what) {
     entries.push({
-      kind: 'drawing', versions: { recognize: Recognize.VERSION }, tester, level, step: step.id,
+      kind: 'drawing', versions: { recognize: Recognize.VERSION, page: PAGE }, tester, level, step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       strokes: reading.strokes, typed: reading.typed, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
       corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [],
@@ -796,7 +802,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     if (!smiles) return say('msg3', 'This structure has an atom with too many bonds. Correct it first.', 'bad');
     const e = {
       kind: 'drawing',
-      versions: { recognize: Recognize.VERSION },
+      versions: { recognize: Recognize.VERSION, page: PAGE },
       tester,
       level,
       step: step.id,
@@ -842,7 +848,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
       say('msg', note + ' Press \u201cNext task\u201d, or draw it again.', cls);
       return;
     }
-    load(scene);
+    load(Tasks.showHydrogens(scene, step.drawH));
     setPhase('arrows');
     say('msg', note, cls);
   };

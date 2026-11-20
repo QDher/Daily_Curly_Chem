@@ -3,6 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const initRDKit = require('@rdkit/rdkit');
+const Arrows = require('../src/arrows.js');
 const Scene = require('../src/scene.js');
 const Solver = require('../src/solver.js');
 const Tasks = require('../src/tasks.js');
@@ -117,6 +118,23 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
       if (!t.expected.some((e) => e.split('.').every((f) => got.includes(can(f))))) throw new Error(t.id + ' reference');
     }
     for (const t of d.tasks.filter((x) => x.type === 'T2')) if (!can(t.target)) throw new Error(t.id);
+  });
+
+  test('every daily set: reference arrows are valid on the scene the page shows (hydrogens of O, N, ... as bonds)', () => {
+    const dir = path.join(__dirname, '..', 'data', 'daily');
+    let n = 0;
+    for (const f of fs.readdirSync(dir).filter((x) => /^\d{4}-\d{2}-\d{2}\.json$/.test(x))) {
+      for (const t of JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).tasks.filter((x) => x.type === 'T1')) {
+        let sc = Tasks.showHydrogens(Tasks.startScene(R, t), t.drawH);
+        for (const id of t.drawH || []) if (sc.atoms.find((a) => a.id === id).h > 0) sc = Scene.drawHydrogen(sc, id).scene;
+        const r = Arrows.apply(sc, Tasks.resolve(sc, t.reference));
+        if (!r.ok) throw new Error(f + ' ' + t.id + ': ' + r.errors.map((e) => e.code).join(','));
+        const got = Solver.species(R, r.scene);
+        if (!t.expected.some((e) => e.split('.').every((x) => got.includes(can(x))))) throw new Error(f + ' ' + t.id + ' result');
+        n += 1;
+      }
+    }
+    if (!n) throw new Error('no daily arrow task found');
   });
 
   process.stderr.write = err;

@@ -131,7 +131,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   and "Start the tasks". The days come from `data/daily/index.json`, written by `tools/make_daily.js` at every run
   (`--index` rewrites it alone). With no set for today the list shows "today · no new task" and earlier days can
   be started. The standard set (14 fixed tasks of `data/tasks.json`) is no longer offered to testers: its button
-  appears only with `?set=standard` in the address, which the tests and the agent testers (script 0.1.4) use.
+  appears only with `?set=standard` in the address, which the tests and the agent testers (script 0.1.5) use.
   Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
   of an expected structure (by-products not listed by the problem do not count against it).
 - The set of 2026-11-13 was first built with that day's problems, then rebuilt with the tool under the date rule
@@ -226,6 +226,7 @@ frames, so it cannot open a menu while drawing). Not built, by choice: drag and 
 | Structures not redrawn when switching to arrows | hand-drawn positions kept | clean layout (`Scene.relayout`) at the switch | `test_page.js` |
 | Entries lost when the tab is closed; file had to be saved by hand | memory only | kept in `localStorage`, restored on return; file downloaded at "Finish" | `test_page.js` |
 | Right click in the drawing frame also opened the menu of the browser (user, 2026-11-14) | on Windows the menu event comes on button release, when the atom box already lies under the pointer; only the svg cancelled it | `contextmenu` is also cancelled on the container (`src/canvas.js`); not confirmed on the user's computer | `test_page.js` (menu cancelled on the atom box) |
+| Hydrogens of O and N could not be used in arrow tasks unless drawn one by one; both testers of the week files reported it (case 12) | heteroatom hydrogens were only counts on the atom label | page 0.2.0 (2026-11-21): in arrow tasks and in the result shown, every hydrogen of an atom other than carbon is an atom with a bond (`Tasks.showHydrogens`, `src/tasks.js`); carbon hydrogens are still drawn with button H. Reference arrows of all existing tasks stay valid (the hydrogen of `drawH` keeps the id `h1`; the others get `x1`, ...). A shown hydrogen is placed on the side away from other molecules. Entries carry `versions.page`. Not confirmed by testers yet | `test_tasks.js`, `test_daily.js` (every daily set), `test_page.js` |
 | Letters written with a mouse read very badly | templates do not fit mouse handwriting | not fixed in the recognizer; atoms can be entered without handwriting (three ways, above) | `test_page.js`, `test_recognize.js` |
 | A refused code gave only "not valid"; the page stopped silently in browsers before about 2022 | no distinction for replaced codes; `crypto.randomUUID` used without a fallback; no error display | replaced codes named (`retired` in `data/testers.json`), pasted codes cleaned (case, spaces, punctuation), fallback for `randomUUID`, panel "The page could not start" with the error text and the browser | `test_page.js` |
 | No way to say a reading is wrong | only "Draw again" | "The reading is wrong" with reasons (`flagged`, `wrong`) | `test_page.js` |
@@ -303,6 +304,10 @@ by pull request. The daily pages keep Ketcher for structure input; nothing of th
 
 Week files of 2026-11-20 (two testers): figures and cases 12 to 18 in `docs/WEAKNESSES.md`. Case 12 (hydrogens of O
 and N not drawable as bonds in arrow tasks) is blocking by the readiness criteria.
+
+Effect to watch after page 0.2.0: a shown X–H bond is a new candidate start for an arrow next to the lone pair of X
+(one agent task ranked the intended reading second before the hydrogens were placed away from other molecules). If
+entries of people show it, the fix belongs to the ranking (`Readings.P`, version raised), not to the page.
 
 ## When a tester sends an entries file
 

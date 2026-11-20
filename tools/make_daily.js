@@ -119,7 +119,7 @@ function make(R, opt) {
       out.push({
         key: startCan + '>' + hit.sol.result,
         source: { site: e.site, problem: p.id, date: e.date },
-        conditions: text + (hit.sol.drawH.length ? '. Draw the hydrogen you need first (button H).' : ''),
+        conditions: text + (hit.sol.drawH.length && !Tasks.hydrogensShown(Scene.fromSpecies(R, hit.start), hit.sol.drawH) ? '. Draw the hydrogen you need first (button H).' : ''),
         start: hit.start,
         drawH: hit.sol.drawH,
         reference: Solver.toSpec(hit.sol.scene, hit.sol.arrows),

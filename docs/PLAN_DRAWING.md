@@ -17,6 +17,8 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 - Items 1, 2, 4 and 5 give instant feedback and change how people draw. Entries made after they land are a
   different population: the first change adds `versions.page` to every entry, and reports compare figures within
   one page version only.
+- `versions.page` exists since 2026-11-21 (page 0.2.0: hydrogens of atoms other than carbon shown with a bond in
+  arrow tasks, fix of weakness case 12). Entries without it were made with the page before that change.
 
 ## Summary
 

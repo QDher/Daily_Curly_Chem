@@ -182,7 +182,8 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.mouse.click(a.x, a.y);
     const p = await page.evaluate((h) => {
       const { sc, nb, C, mid } = eval('(' + h + ')')();
-      const H = sc.atoms.find((x) => x.el === 'H');
+      // the hydrogen drawn by the tap is the one on a carbon (those of O are shown from the start)
+      const H = sc.atoms.find((x) => x.el === 'H' && nb(x)[0].atom.el === 'C');
       if (!H) return null;
       const Ca = nb(H)[0].atom;
       const Cco = nb(Ca).find((n) => n.atom.h === 0 && n.atom.el === 'C').atom;
@@ -491,7 +492,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(e.target.match, false, 'drawing differs'); eq(e.replaced, true, 'replaced');
     eq(e.final.atoms.some((a) => a.el === 'O' && a.q === -1), false, 'entry keeps what was confirmed');
     if (!(await page.textContent('#msg')).includes('differs from the species asked for')) throw new Error('message');
-    eq(await page.evaluate(() => window.__app.input.getScene().atoms.some((a) => a.el === 'O' && a.q === -1 && a.h === 1)), true, 'hydroxide present');
+    eq(await page.evaluate(() => { const sc = window.__app.input.getScene(); return sc.atoms.some((a) => a.el === 'O' && a.q === -1 && a.h === 0 && sc.bonds.some((b) => (b.a === a.id || b.b === a.id) && sc.atoms.find((x) => x.id === (b.a === a.id ? b.b : b.a)).el === 'H')); }), true, 'hydroxide present, its hydrogen drawn with a bond');
     await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
     const p = await page.evaluate((h) => {
       const { sc, nb, C, mid } = eval('(' + h + ')')();
@@ -803,6 +804,8 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       await page.selectOption('#step', { index: i });
       await page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
       for (const id of t.drawH || []) {
+        // a hydrogen of an atom other than carbon is already shown
+        if (!(await page.evaluate((a) => window.__app.input.getScene().atoms.find((x) => x.id === a).h > 0, id))) continue;
         await page.click('#m-h');
         const h = await page.evaluate((a) => { const app = window.__app; return app.input.toClient(app.input.getScene().atoms.find((x) => x.id === a)); }, id);
         await page.mouse.click(h.x, h.y);

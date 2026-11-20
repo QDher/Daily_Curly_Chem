@@ -31,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -162,6 +162,8 @@ async function main() {
       await centre();
       if (task.drawH && task.drawH.length) {
         for (const id of task.drawH) {
+          // a hydrogen of an atom other than carbon is already shown by the page (page 0.2.0)
+          if (!(await page.evaluate((a) => { const at = window.__app.input.getScene().atoms.find((x) => x.id === a); return !!at && at.h > 0; }, id))) continue;
           await page.click('#m-h');
           await centre();
           const p = await page.evaluate((a) => { const at = window.__app.input.getScene().atoms.find((x) => x.id === a); return { x: at.x, y: at.y }; }, id);

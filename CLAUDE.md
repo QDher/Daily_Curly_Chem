@@ -45,10 +45,16 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   recognizer. Only handwritten letters are data for letter recognition.
 - Real strokes in the repository: only with the agreement of the person who drew them, and only stroke points
   (no timing, pressure, tester label or free text). `test/fixtures/drawings_2026-11-13.json` was agreed on
-  2026-11-13. After a change of the recognizer, rebuild its `reads` and `recognizer` fields
+  2026-11-13. The stroke points of the week files of 2026-11-20 (labels `3005a301` and `4f7c82a3`) may be used the
+  same way: both testers agreed (user, 2026-11-21); no fixture is built from them yet. After a change of the recognizer, rebuild its `reads` and `recognizer` fields
   (`node tools/update_fixture.js --write`) and report the count.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
+- Arrow tasks show every hydrogen of an atom other than carbon as an atom with a bond (`Tasks.showHydrogens`,
+  page 0.2.0, 2026-11-21); hydrogens on carbon are drawn by the tester (button H). The ids are part of the
+  interface with the reference arrows (`h1` for `drawH`, `x1`, ... for the others): `node test/test_daily.js`
+  checks every daily set. A change of what the page shows or asks raises `PAGE` in `index.html`
+  (`versions.page` of the entries).
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
   against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)

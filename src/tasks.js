@@ -49,6 +49,78 @@
     return s;
   }
 
+  // Hydrogens of atoms other than carbon drawn as atoms with a bond, so that arrows can use them (shown in arrow
+  // tasks). The hydrogens of `drawH` that sit on such atoms get the ids the reference arrows use (h1/hb1 for the
+  // first entry of drawH, ...); all others get ids x1/xb1, ..., so that a hydrogen the tester draws on a carbon
+  // still gets the id of the reference. Atom and bond ids of the scene are kept.
+  function showHydrogens(scene, drawH) {
+    let s = { atoms: scene.atoms.map((a) => Object.assign({}, a)), bonds: scene.bonds.map((b) => Object.assign({}, b)) };
+    const hetero = (a) => !!a && a.el !== 'C' && a.el !== 'H';
+    // Place of a shown hydrogen: an open direction of its atom (at least 120 degrees from the bonds when there is
+    // room), and among those the one farthest from the atoms of other molecules, so that the side of the atom
+    // that faces a reaction partner stays free for arrows that start from its lone pair.
+    const place = (id) => {
+      const at0 = s.atoms.find((a) => a.id === id);
+      const L = 1.0;
+      const nbs = s.bonds.filter((b) => b.a === id || b.b === id).map((b) => s.atoms.find((a) => a.id === (b.a === id ? b.b : b.a)));
+      const taken = nbs.map((n) => Math.atan2(n.y - at0.y, n.x - at0.x));
+      const comp = new Set([id]);
+      for (let grown = true; grown;) {
+        grown = false;
+        for (const b of s.bonds) {
+          if (comp.has(b.a) !== comp.has(b.b)) { comp.add(b.a); comp.add(b.b); grown = true; }
+        }
+      }
+      const others = s.atoms.filter((a) => !comp.has(a.id));
+      const cands = [];
+      for (let k = 0; k < 24; k++) {
+        const ang = -Math.PI / 2 + (k * Math.PI) / 12;
+        let gap = Math.PI;
+        for (const t of taken) {
+          let d = Math.abs(ang - t) % (2 * Math.PI);
+          if (d > Math.PI) d = 2 * Math.PI - d;
+          gap = Math.min(gap, d);
+        }
+        const pt = { x: at0.x + L * Math.cos(ang), y: at0.y + L * Math.sin(ang) };
+        let far = Infinity;
+        for (const o of others) far = Math.min(far, Math.hypot(o.x - pt.x, o.y - pt.y));
+        cands.push({ pt, gap, far });
+      }
+      const best = Math.max(...cands.map((c) => c.gap));
+      const need = Math.min(best, (2 * Math.PI) / 3) - 1e-9;
+      const ok = cands.filter((c) => c.gap >= need);
+      ok.sort((p, q) => (Math.abs(q.far - p.far) > 1e-9 ? q.far - p.far : q.gap - p.gap));
+      return ok[0].pt;
+    };
+    const draw = (id, hid, bid) => {
+      const pos = place(id);
+      s = {
+        atoms: s.atoms.map((a) => (a.id === id ? Object.assign({}, a, { h: a.h - 1 }) : a)).concat([{ id: hid, el: 'H', q: 0, h: 0, x: pos.x, y: pos.y }]),
+        bonds: s.bonds.concat([{ id: bid, a: id, b: hid, order: 1 }]),
+      };
+    };
+    const at = (id) => s.atoms.find((a) => a.id === id);
+    const taken = () => new Set(s.atoms.map((a) => a.id).concat(s.bonds.map((b) => b.id)));
+    (drawH || []).forEach((id, k) => {
+      const a = at(id), t = taken();
+      if (hetero(a) && a.h > 0 && !t.has('h' + (k + 1)) && !t.has('hb' + (k + 1))) draw(id, 'h' + (k + 1), 'hb' + (k + 1));
+    });
+    let n = 0;
+    for (const a0 of scene.atoms) {
+      if (!hetero(a0)) continue;
+      while (at(a0.id).h > 0) {
+        const t = taken();
+        do n += 1; while (t.has('x' + n) || t.has('xb' + n));
+        draw(a0.id, 'x' + n, 'xb' + n);
+      }
+    }
+    return s;
+  }
+  // true when every hydrogen of drawH is one that showHydrogens draws (nothing is left for the tester to draw)
+  function hydrogensShown(scene, drawH) {
+    return (drawH || []).every((id) => { const a = scene.atoms.find((x) => x.id === id); return !!a && a.el !== 'C' && a.el !== 'H'; });
+  }
+
   // One step: { before (species added, hydrogens drawn), arrows, after (clean layout) }. Throws if the arrows
   // are not valid for src/arrows.js.
   function runStep(R, scene, step) {
@@ -78,5 +150,5 @@
     return addSpecies(R, { atoms: [], bonds: [] }, list);
   }
 
-  return { resolve, addSpecies, withHydrogens, runStep, runMechanism, startScene };
+  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, runStep, runMechanism, startScene };
 });
