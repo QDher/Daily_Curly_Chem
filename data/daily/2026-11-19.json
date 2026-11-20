@@ -1,0 +1,289 @@
+{
+ "date": "2026-11-19",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.1.0",
+  "recognize": "0.3.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261119-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-formyl-activated-robinson-annulation-grandifolia",
+    "date": "2026-11-18"
+   },
+   "conditions": "NaOEt (3.0 equiv) in EtOH; EtOH, rt, 3 h; aqueous NH₄Cl",
+   "start": [
+    "CCOC(=O)C12CCCC(C)(C)C1CCC(C=O)(CCC(C)=O)C2=O",
+    "CC[O-]"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "s0a16"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a16",
+       "s0a17"
+      ]
+     },
+     "to": {
+      "atom": "s0a17"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC([O-])C1(CCC(C)=O)CCC2C(C)(C)CCCC2(C(=O)OCC)C1=O",
+    "CCOC(=O)C12CCCC(C)(C)C1CCC(C(O)OCC)(CCC(C)=O)C2=O",
+    "CCOC(=O)C12CCCC(C)(C)C1CCC(CCC(C)=O)(C([O-])OCC)C2=O"
+   ]
+  },
+  {
+   "id": "d20261119-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-formyl-activated-robinson-annulation-grandifolia",
+    "date": "2026-11-18"
+   },
+   "target": "C=CC(C)=O"
+  },
+  {
+   "id": "d20261119-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-formyl-activated-robinson-annulation-grandifolia",
+    "date": "2026-11-18"
+   },
+   "conditions": "NaOEt (3.0 equiv) in EtOH; EtOH, rt, 3 h; aqueous NH₄Cl. Draw the hydrogen you need first (button H).",
+   "start": [
+    "CCOC(=O)C12CCCC(C)(C)C1CCC1CCC(=O)CC12O",
+    "CC[O-]"
+   ],
+   "drawH": [
+    "s0a20"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a20",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a20",
+       "s0a21"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a21",
+       "s0a22"
+      ]
+     },
+     "to": {
+      "atom": "s0a22"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC(=O)C12CCCC(C)(C)C1CCC1CCC(=O)C=C12",
+    "CCO.CCOC(=O)C12CCCC(C)(C)C1CCC1CCC(=O)C=C12.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261119-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-vinylsilane-bromodesilylation-z-vinyl-bromide-merocyclophane",
+    "date": "2026-11-18"
+   },
+   "target": "CCCC[N+](CCCC)(CCCC)CCCC"
+  },
+  {
+   "id": "d20261119-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-benzoin-condensation-benzoin",
+    "date": "2026-11-18"
+   },
+   "conditions": "KCN (potassium cyanide, catalytic), benzaldehyde (second molecule)",
+   "start": [
+    "O=Cc1ccccc1",
+    "[C-]#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "[O-]C(C#N)c1ccccc1",
+    "O[C-](C#N)c1ccccc1",
+    "OC(=C=[N-])c1ccccc1",
+    "OC(C#N)c1ccccc1",
+    "N#CC([O-])c1ccccc1"
+   ]
+  },
+  {
+   "id": "d20261119-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-vinylsilane-bromodesilylation-z-vinyl-bromide-merocyclophane",
+    "date": "2026-11-18"
+   },
+   "target": "CC(CC1[Br+]C1[Si](C)(C)C)B1OC(C)(C)C(C)(C)O1"
+  },
+  {
+   "id": "d20261119-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-benzoin-condensation-benzoin",
+    "date": "2026-11-18"
+   },
+   "conditions": "KCN (potassium cyanide, catalytic), benzaldehyde (second molecule)",
+   "start": [
+    "O[C-](C#N)c1ccccc1",
+    "O=Cc1ccccc1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a1"
+     },
+     "to": {
+      "atom": "s1a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a0",
+       "s1a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a0"
+     }
+    }
+   ],
+   "expected": [
+    "N#CC(O)(c1ccccc1)C([O-])c1ccccc1",
+    "N#CC([O-])(c1ccccc1)C(O)c1ccccc1",
+    "N#CC(O)(c1ccccc1)C(O)c1ccccc1"
+   ]
+  },
+  {
+   "id": "d20261119-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-vinylsilane-bromodesilylation-z-vinyl-bromide-merocyclophane",
+    "date": "2026-11-18"
+   },
+   "target": "CC(CC(Br)C(Br)[Si](C)(C)C)B1OC(C)(C)C(C)(C)O1"
+  },
+  {
+   "id": "d20261119-a5",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-seyferth-gilbert-ribose-alkyne-benthol",
+    "date": "2026-11-10"
+   },
+   "conditions": "dimethyl (1-diazo-2-oxopropyl)phosphonate, K₂CO₃; MeOH, reflux",
+   "start": [
+    "[O-]P1(OC)(OC)OC(C2OC(C)(C)OC2C(O)CO)C1=[N+]=[N-]"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a6",
+       "s0a7"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a6"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a19",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a7",
+       "s0a19"
+      ]
+     }
+    }
+   ],
+   "expected": [
+    "[N-]=[N+]=C=CC1OC(C)(C)OC1C(O)CO",
+    "CC1(C)OC(C=C=[N+]=[N-])C(C(O)CO)O1.COP(=O)([O-])OC"
+   ]
+  },
+  {
+   "id": "d20261119-c5",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-benzoin-condensation-benzoin",
+    "date": "2026-11-18"
+   },
+   "target": "O=Cc1ccccc1"
+  }
+ ]
+}
