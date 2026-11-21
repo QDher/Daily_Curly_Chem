@@ -63,8 +63,9 @@ fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer
 
 Test-run page for curly-arrow mechanisms, https://qdher.github.io/Daily_Curly_Chem/ (unlisted, opened with a
 personal link `#t=CODE`). A tester draws arrows on structures, draws structures by hand, and votes on two mechanisms; the entries
-(strokes, readings, answers) are the data for later models. Plan: `ML_PLAN.md` in
-QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` (not merged).
+(strokes, readings, answers) are the data for later models. Plan: `docs/PLAN.md`
+(moved from `ML_PLAN.md` of QDher/Daily-organic-chemistry-puzzles on 2026-11-21); decisions: `docs/DECISIONS.md`;
+work queue: `docs/BOARD.md`; contracts: `docs/INTERFACES.md`.
 
 ## State
 
@@ -142,7 +143,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
 ## Decisions of the user (do not reopen)
 
 - Entries are collected as files; the Worker part (table `mech_entries`, on the One-Pot branch above) is merged
-  at the start of stage 3 of `ML_PLAN.md` (2026-11-14; before: after the training and ML work). Do not switch
+  at the start of stage 3 of `docs/PLAN.md` (2026-11-14; before: after the training and ML work). Do not switch
   sending on, do not ask for the merge before that.
 - Confirming the structure given by arrows and submitting a structure as an answer are two separate choices.
 - Real strokes go into the repository only with the agreement of the person who drew them, as points only.
@@ -156,7 +157,7 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   and so on; they know the answer and test only the drawing (traits precision and consistency). Their entries are
   synthetic: never counted in the readiness criteria, the phase-4 start conditions or the visitor rules, never
   used to evaluate a model, never committed (`docs/AGENT_TESTER.md`).
-  Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
+  Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `docs/PLAN.md`, section F.
 - Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
   testers are invited; suggest a dedicated address.
 
@@ -293,9 +294,8 @@ Feedback Worker (in the One-Pot repository, `feedback-worker/`):
   session and number is replaced), `mech_summary` (counts, public), `mech_export` (rows with payloads, needs the
   header `X-Export-Key` equal to the Worker secret `MECH_EXPORT_KEY`; the workflow sets it from a repository secret
   of that name, which does not exist yet). Worker tests on the branch: 12, all passing. Never run on Cloudflare.
-- The branch also carries the plan: `ML_PLAN.md`, section "Future development: curly-arrow mechanisms" (A goals,
-  B scene format, C components, D data recorded, E order, F test run and readiness criteria, G 3D later). On `main`
-  that section is still the earlier version, and issue #4 of that repository has the earlier summary.
+- The branch also carries an earlier copy of the plan (`ML_PLAN.md`). The plan of record is `docs/PLAN.md` here
+  (moved from `main` of that repository on 2026-11-21); issue #4 of that repository has the earlier summary.
 - If the branch falls behind `main`, merge `origin/main` into it (a rebase needs a force-push, which is refused).
 
 Later deployment of this project (phase 3 of the plan, not started): a versioned copy of the modules of `src/` into

@@ -3,8 +3,9 @@
 Test run and shared modules for curly-arrow mechanisms on One-Pot Puzzles
 (QDher/Daily-organic-chemistry-puzzles) and Name Reaction Daily (QDher/Daily-name-reaction-puzzle).
 
-Plan: `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles, section "Future development: curly-arrow mechanisms"
-(components C1 to C4, test run in section F).
+Plan: `docs/PLAN.md` (six stages; components C1 to C4; test run in section F), moved from `ML_PLAN.md` of
+QDher/Daily-organic-chemistry-puzzles on 2026-11-21. Decisions: `docs/DECISIONS.md`. Work queue and requests between
+the people side and the agent side: `docs/BOARD.md`. Contracts between the parts: `docs/INTERFACES.md`.
 
 For a new working session: `docs/CONTEXT.md` (state, decisions, known issues and fixes, pitfalls).
 

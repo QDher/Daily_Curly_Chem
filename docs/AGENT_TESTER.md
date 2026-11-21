@@ -20,11 +20,11 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 - **Use:** pre-training of the recognition model (R2) and of the arrow-reading ranker (I1), with exact labels (the
   intended structure or arrows of every attempt are in the run record); a daily end-to-end check of the page, the
   entries file and the replay; feedback on the page and on the reference steps.
-- **Not tester data.** Agent entries are never counted in the readiness criteria of the test run (ML_PLAN.md,
+- **Not tester data.** Agent entries are never counted in the readiness criteria of the test run (`docs/PLAN.md`,
   section F), in the start conditions of phase 4 (drawings, visitors) or in the "at least 3 different visitors"
   rule. Every evaluation of a model and every frequency figure use entries of people only. The gap between models trained on
   synthetic ink and their results on human drawings is measured on the human entries.
-- **Judged agent entries and replacement (2026-11-14).** Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
+- **Judged agent entries and replacement (2026-11-14).** Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `docs/PLAN.md`, section F.
 - **Letters are typed**, not handwritten: the only letter shapes available are the recognizer's own templates
   (`src/glyphs.js`), so handwritten letters from them would test the recognizer against itself. Atoms other than
   carbon and charges are placed with the row of atoms, as testers may do. Letter recognition needs letters from
@@ -136,7 +136,7 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   (right, wrong, unsure; asked only when the right structure was not found; for "no reading" the question is whether
   the no reading is correct), `note`, `reviewer`. Every judgement counts on its own: an attempt can be "correct" for
   one reviewer and "incorrect" for another, and all judgements count in the 98 % bound of the replacement rule
-  (`ML_PLAN.md`, section F). Answers saved before reviewers were kept apart were moved by the owner's page into the
+  (`docs/PLAN.md`, section F). Answers saved before reviewers were kept apart were moved by the owner's page into the
   owner's space (31 answers, 2026-11-16).
 - People outside the organization cannot open the page: its organization does not allow public links or e-mail
   invitations to outside people.

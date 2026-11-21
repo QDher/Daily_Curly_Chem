@@ -2,6 +2,14 @@
 
 Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls, commands. Keep it up to date.
 
+Coordination (2026-11-21): two sides work on this repository, the people side (test run, human drawings) and the
+agent side (agent testers, review page). At the start of a session read `docs/BOARD.md` (work queue, requests
+between the sides, shared files being changed) and `docs/DECISIONS.md` (decision log). Before changing a shared
+file (`src/`, `index.html`, `data/tasks.json`), add a line under "Shared files being changed" on the board. Before
+ending: update the board, append each new decision to `docs/DECISIONS.md` (and to `docs/PLAN.md` when it changes
+the plan), and add `docs/handoff/<topic>_<date>.md` when work continues in another session. A decision exists only
+once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other side.
+
 - Commits go to `main` (no pull requests unless asked): the site is deployed from `main`, and all work so far was
   pushed there with the user's agreement. Start with `git fetch origin main && git checkout -B main origin/main`;
   if a push is rejected, rebase on `origin/main`; never force-push.
@@ -11,9 +19,10 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   must end with N/N passed for every set.
 
 - Purpose: test-run page and single source of the shared curly-arrow modules for the two puzzle sites; stage 1 of
-  the six stages of `ML_PLAN.md` ("Overall plan in six stages", 2026-11-14). The plan is
-  `ML_PLAN.md` in QDher/Daily-organic-chemistry-puzzles (section "Future development: curly-arrow mechanisms"); update
-  it there when a decision changes, and the status table in `README.md` here.
+  the six stages of `docs/PLAN.md` (moved from `ML_PLAN.md` of QDher/Daily-organic-chemistry-puzzles on 2026-11-21).
+  When a decision changes, update `docs/PLAN.md`, log it in `docs/DECISIONS.md` and update the status table of
+  `README.md`. Contracts between the parts (problem repositories, page, entries, agent runs, review answers):
+  `docs/INTERFACES.md`.
 - The two site repositories are not changed from here before the test run is evaluated. Deployment is a versioned
   copy of the modules into their `src/`, by pull request.
 - `src/arrows.js` (component C1): no dependency, runs in Node and in the page. Every rule is described in
@@ -35,7 +44,7 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   is shown only with `?set=standard` (tests, agent testers), not to testers.
 - Entries: collected as files saved by the testers. Sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
   switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does at the
-  start of stage 3 of `ML_PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
+  start of stage 3 of `docs/PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
   rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
   `MECH_EXPORT_KEY` (never in a repository).
 - Open with the user: the contact e-mail for the "Write the e-mail" link at the end of the test run (`contact` in
@@ -70,6 +79,6 @@ Start with `docs/CONTEXT.md`: state, decisions, open and fixed issues, pitfalls,
   `docs/AGENT_TASK_PROMPT.md` (change both together); each run is published with the review page
   (`tools/agent_review_page.html`, `tools/agent_review_data.js`); `console/` is not used.
   The review page keeps each reviewer's answers apart (`reviews/<reviewer id>/answers/...`, rules declared with the page);
-  every judgement counts on its own (2026-11-16). Attempts judged in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `ML_PLAN.md`, section F.
+  every judgement counts on its own (2026-11-16). Attempts judged in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `docs/PLAN.md`, section F.
 - Remarks of testers stay in D1; never copy them into the repository.
 - Reporting: brief, neutral and objective; state what was verified and what was not.
