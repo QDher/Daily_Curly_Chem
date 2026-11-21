@@ -252,12 +252,40 @@
         const poly = st.points.length > 2 && root.Recognize ? root.Recognize.simplify(st.points, 0.22) : st.points;
         for (const q of poly) consider(q, 'ink');
       }
+      // Bonds drawn first with an empty place left for the atom (the four bonds of an ammonium): the atom goes to
+      // the middle of the bond ends around the place, not onto one of them, which would leave the other bonds
+      // too far to be read as joined. A click right on an end or on an atom still snaps to it.
+      if (!best || bd > 0.25) {
+        const typedNear = state.typed.some((t) => t.el && Math.hypot(t.x - p.x, t.y - p.y) < 0.45);
+        if (!typedNear && !(best && best.kind === 'atom')) {
+          // the ends around a point: one per stroke; found around the click, then around their middle again, so
+          // that a click off the middle still finds every bond
+          const around = (c) => {
+            const ends = [];
+            for (const st of state.ink) {
+              if (st.points.length < 2) continue;
+              const near = [st.points[0], st.points[st.points.length - 1]].filter((q) => Math.hypot(q.x - c.x, q.y - c.y) < 0.9);
+              near.sort((u, v) => Math.hypot(u.x - c.x, u.y - c.y) - Math.hypot(v.x - c.x, v.y - c.y));
+              if (near.length) ends.push(near[0]);
+            }
+            return ends;
+          };
+          const middle = (ends) => ({ x: ends.reduce((t, q) => t + q.x, 0) / ends.length, y: ends.reduce((t, q) => t + q.y, 0) / ends.length });
+          let ends = around(p);
+          if (ends.length >= 2) {
+            for (let k = 0; k < 2; k++) { const more = around(middle(ends)); if (more.length >= 2) ends = more; }
+            const m = middle(ends);
+            return { x: m.x, y: m.y, kind: 'ends' };
+          }
+        }
+      }
       return best || { x: p.x, y: p.y, kind: 'free' };
     }
     // tool: { el } or { q: +1 | -1 }. Returns the label placed or changed.
     function place(p, tool) {
       const s = snap(p);
-      let t = state.typed.find((x) => Math.hypot(x.x - s.x, x.y - s.y) < 0.45);
+      // an atom already placed right where the click is takes the change (a charge for it, another element)
+      let t = state.typed.find((x) => Math.hypot(x.x - p.x, x.y - p.y) < 0.45) || state.typed.find((x) => Math.hypot(x.x - s.x, x.y - s.y) < 0.45);
       if (tool.el) {
         if (t) t.el = tool.el;
         else { t = { el: tool.el, q: 0, x: s.x, y: s.y, snap: s.kind, order: ++state.order }; state.typed.push(t); }

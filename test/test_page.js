@@ -173,7 +173,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#result:not([hidden])');
     await page.click('#yes');
     const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
-    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.5.0', 'page version');
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.6.0', 'page version');
     // the entry replays: the stored strokes give the stored readings
     const again = await page.evaluate((en) => {
       const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
@@ -193,6 +193,30 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     const c = list.findIndex((t) => t.type === 'T2');
     await page.selectOption('#step', { index: c });
     if ((await page.textContent('#instr')).includes('arrow')) throw new Error('copy task names arrows');
+  });
+
+  await test('bonds drawn first around an empty place: the atom placed there goes to the middle of the bond ends and all bonds are read', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    const list = await page.evaluate(() => window.__app.tasks.map((t) => t.type));
+    await page.selectOption('#step', { index: list.indexOf('T2') });
+    const res = await page.evaluate(() => {
+      const app = window.__app, c = { x: 5, y: 5 }, gap = 0.6;
+      const line = (a, b) => { const o = []; for (let i = 0; i <= 10; i++) o.push({ x: a.x + ((b.x - a.x) * i) / 10, y: a.y + ((b.y - a.y) * i) / 10 }); return o; };
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) app.input.addInk(line({ x: c.x + dx * gap, y: c.y + dy * gap }, { x: c.x + dx * (gap + 1.4), y: c.y + dy * (gap + 1.4) }));
+      // the click is off the middle, nearer to one bond end
+      const t = app.input.place({ x: 5.3, y: 5.1 }, { el: 'N' });
+      const q = app.input.place({ x: 5.2, y: 4.9 }, { q: 1 });
+      // a click right on a bond end still snaps to that end
+      const o = app.input.place({ x: 5 + gap + 1.4 + 0.05, y: 5.02 }, { el: 'O' });
+      return { t: { x: t.x, y: t.y, snap: t.snap }, sameLabel: q === t, o: { x: o.x, y: o.y, snap: o.snap }, typed: app.input.getTyped() };
+    });
+    if (Math.abs(res.t.x - 5) > 0.01 || Math.abs(res.t.y - 5) > 0.01) throw new Error('atom at ' + res.t.x + ', ' + res.t.y);
+    eq(res.t.snap, 'ends', 'snapped to the middle of the ends'); eq(res.sameLabel, true, 'charge given to that atom');
+    if (Math.abs(res.o.x - 7) > 0.01 || res.o.snap !== 'ink') throw new Error('end: ' + JSON.stringify(res.o));
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    eq(await page.evaluate(() => { const sc = window.__app.getReading().scene; const N = sc.atoms.find((a) => a.el === 'N'); return N.q + ':' + sc.bonds.filter((b) => b.a === N.id || b.b === N.id).length + ':' + sc.atoms.length; }), '1:4:5', 'N+ with four bonds, five atoms');
+    eq(errors.length, 0, 'page errors');
   });
 
   await test('rejecting a reading shows the next one or asks to redraw', async () => {
@@ -452,7 +476,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.5.0', 'page version');
+    eq(e.versions.page, '0.6.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');

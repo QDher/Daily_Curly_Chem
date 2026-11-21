@@ -18,7 +18,8 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
   atoms (click an element, click the place) or, with a mouse, from pointing at a place and typing the letters (B then
   r for Br, C then l for Cl, S then i for Si; + and − for charges; Backspace removes), or from a right click, which
   opens a text box for the symbol (Br, N+, O-, or a charge alone; Enter places it). The place snaps to an atom, to
-  the end or a corner of a stroke, or stays where it is.
+  the end or a corner of a stroke, or stays where it is. When two or more bond ends lie around the place (bonds
+  drawn first, with room left for the atom), the atom goes to the middle of these ends (page 0.6.0).
 - `unknown`: atoms whose label was not read with confidence; the page circles them.
 - Hydrogens are not atoms of the result: they follow from the usual valence, the charge and the bonds
   (`implicitH`). An H written with an atom (OH, NH2) is recognized only to be left out (step 5).
