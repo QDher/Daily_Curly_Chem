@@ -381,7 +381,8 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // 0.3.0 (2026-11-21): in copy tasks the reading is compared with the structure to copy before it is confirmed.
   // 0.4.0 (2026-11-21): a change of the arrows after "Apply arrows" closes the result; the answer check also says
   // when the structure is the expected one up to the position of hydrogens.
-  const PAGE = '0.4.0';
+  // 0.5.0 (2026-11-21): arrow tasks say how many arrows the step asked for uses.
+  const PAGE = '0.5.0';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
@@ -471,7 +472,11 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     $('quest').hidden = true;
     $('work').hidden = false;
     const mech = step.type === 'T4' ? data.mechanisms[step.mechanism] : null;
-    $('instr').textContent = step.draw ? step.draw.text : TYPE[step.type].text;
+    // Arrow tasks say how many arrows the step asked for uses, so that the tester knows where the step ends
+    // (user decision of 2026-11-21; the arrows themselves and the result stay hidden).
+    const count = step.type === 'T1' && Array.isArray(step.reference) && step.reference.length
+      ? ' The step asked for uses ' + step.reference.length + (step.reference.length === 1 ? ' arrow.' : ' arrows.') : '';
+    $('instr').textContent = (step.draw ? step.draw.text : TYPE[step.type].text) + count;
     // hydrogens of atoms other than carbon are shown: the request to draw one is dropped when none is left to draw
     let cond = (mech ? mech.conditions : step.conditions) || '';
     if (step.type === 'T1' && step.drawH && Tasks.hydrogensShown(Tasks.startScene(R, step), step.drawH)) cond = cond.replace('. Draw the hydrogen you need first (button H).', '.').replace(/\.\.$/, '.');

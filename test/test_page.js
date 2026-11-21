@@ -173,7 +173,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#result:not([hidden])');
     await page.click('#yes');
     const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
-    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.4.0', 'page version');
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.5.0', 'page version');
     // the entry replays: the stored strokes give the stored readings
     const again = await page.evaluate((en) => {
       const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
@@ -181,6 +181,18 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     }, e);
     eq(again, true, 'entry replays');
     eq(errors.length, 0, 'page errors');
+  });
+
+  await test('arrow tasks say how many arrows the step uses; copy tasks do not', async () => {
+    const { page } = await open({ width: 1100, height: 900 });
+    const list = await page.evaluate(() => window.__app.tasks.map((t) => ({ type: t.type, n: t.reference ? t.reference.length : 0 })));
+    const k = list.findIndex((t) => t.type === 'T1');
+    await page.selectOption('#step', { index: k });
+    const text = await page.textContent('#instr');
+    if (!text.endsWith('The step asked for uses ' + list[k].n + (list[k].n === 1 ? ' arrow.' : ' arrows.'))) throw new Error('text: ' + text);
+    const c = list.findIndex((t) => t.type === 'T2');
+    await page.selectOption('#step', { index: c });
+    if ((await page.textContent('#instr')).includes('arrow')) throw new Error('copy task names arrows');
   });
 
   await test('rejecting a reading shows the next one or asks to redraw', async () => {
@@ -440,7 +452,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.4.0', 'page version');
+    eq(e.versions.page, '0.5.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');

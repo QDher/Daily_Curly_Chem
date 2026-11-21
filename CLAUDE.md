@@ -37,7 +37,8 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   it; tune on drawings from the test run.
 - `data/tasks.json`: every reference and mechanism step must pass `node test/test_tasks.js` (valid for
   `src/arrows.js`, stated result, no names or mechanism words in the texts shown). References are never shown before
-  the answer and never judge a tester's arrows.
+  the answer and never judge a tester's arrows. Exception (user, 2026-11-21, page 0.5.0): an arrow task says how many
+  arrows its step uses, so that the tester knows where the step ends.
 - Daily set (`tools/make_daily.js`, `src/solver.js`, `data/daily/`): built by the workflow, never by hand. A change
   of the solver rules increases `Solver.VERSION`; `node test/test_daily.js` must pass. Do not edit `data/daily/`.
   Solver 0.2.0 refuses results no single step forms (`Solver.plausible`); sets built before are not rebuilt.
