@@ -51,7 +51,7 @@ were changed, not the rendering. No change is in progress on the people side.
 | B12 | Retirement check (98 % bound) of the agent testers | agent side | no tester reached it on 2026-11-20 | Closest: john0002, lower bound 0.87 for "correct" (threshold 0.90) |
 | B13 | Arrow attempts judged "should not give the structure" that the page accepted (52 judgements up to 2026-11-20) | agent side | open | Examine before using them as labels (depends on B10) |
 | B14 | Merge of the Worker part (`mech_entries`) | user | at the start of stage 3, not before | Decision 7 |
-| B15 | Pages deploys of the two site repositories failed on 2026-11-21 ("No artifacts named github-pages", 01:35 and 01:55 to 02:31 UTC); today's problems were not live until a new run | any side | fixed by new runs at 02:31 UTC; watch | A re-run of the failed job fails again ("Multiple artifacts"); start a new run instead (Actions, "Run workflow"). If it recurs: split the workflow into a build job and a deploy job |
+| B15 | Pages deploys of the two site repositories failed on 2026-11-21 ("No artifacts named github-pages", 01:35 to 02:31 UTC); today's problems were not live until new runs at 02:31 UTC | any side | done 2026-11-21 | Both workflows now have a build job and a deploy job (50cca04, a50b9f8; first runs succeeded, about 8 s between upload and deploy). A failed deploy can be re-run alone with "Re-run failed jobs" |
 
 ## Requests between the sides
 
