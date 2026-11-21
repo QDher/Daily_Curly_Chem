@@ -12,6 +12,15 @@ changed" and remove it when the change is pushed. Figures come from files or com
 
 Last updated: 2026-11-21 (agent side).
 
+## Links
+
+| What | Link |
+|---|---|
+| Workflow of the two sides (flow chart, 15 steps; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/XxThPg1cfRoqeTtsEGNHoR |
+| Review page of the agent testers (claude.ai artifact) | https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 |
+| Test page (unlisted, opened with a tester link) | https://qdher.github.io/Daily_Curly_Chem/ |
+| Deployments (GitHub Actions, "Deploy GitHub Pages") | https://github.com/QDher/Daily_Curly_Chem/actions/workflows/pages.yml · https://github.com/QDher/Daily-organic-chemistry-puzzles/actions/workflows/pages.yml · https://github.com/QDher/Daily-name-reaction-puzzle/actions/workflows/pages.yml |
+
 ## Shared files being changed
 
 | Files | Side | What | Since | Until |
