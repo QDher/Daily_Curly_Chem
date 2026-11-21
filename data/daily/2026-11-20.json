@@ -1,0 +1,256 @@
+{
+ "date": "2026-11-20",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.2.0",
+  "recognize": "0.4.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261120-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
+    "date": "2026-11-19"
+   },
+   "conditions": "DABCO (1,4-diazabicyclo[2.2.2]octane, catalytic), Acetaldehyde; neat, rt, several days",
+   "start": [
+    "C=CC(=O)OCC",
+    "C1CN2CCN1CC2"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC([O-])=CC[N+]12CCN(CC1)CC2",
+    "CCOC(=O)[CH-]C[N+]12CCN(CC1)CC2"
+   ]
+  },
+  {
+   "id": "d20261120-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
+    "date": "2026-11-19"
+   },
+   "target": "C=CC(=O)OCC"
+  },
+  {
+   "id": "d20261120-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
+    "date": "2026-11-19"
+   },
+   "conditions": "DABCO (1,4-diazabicyclo[2.2.2]octane, catalytic), Acetaldehyde; neat, rt, several days",
+   "start": [
+    "CCOC([O-])=CC[N+]12CCN(CC1)CC2",
+    "CC=O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a4"
+     },
+     "to": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a5"
+      ]
+     },
+     "to": {
+      "atom": "s1a1",
+      "via": "s0a5"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a2"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC(=O)C(C[N+]12CCN(CC1)CC2)C(C)[O-]",
+    "CCOC([O-])=C(C[N+]12CCN(CC1)CC2)C(C)O"
+   ]
+  },
+  {
+   "id": "d20261120-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
+    "date": "2026-11-19"
+   },
+   "target": "C=C(C(=O)OCC)C(C)O"
+  },
+  {
+   "id": "d20261120-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1921-benzoin-condensation-cyanide",
+    "date": "2026-11-19"
+   },
+   "conditions": "NaCN (ca. 0.2 equiv), Benzaldehyde (second equivalent); 95% EtOH/H₂O, reflux, 30 min; cooling, filtration",
+   "start": [
+    "OC(c1ccccc1)C([O-])(C#N)c1ccccc1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a9"
+     },
+     "to": {
+      "bond": [
+       "s0a8",
+       "s0a9"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a8",
+       "s0a10"
+      ]
+     },
+     "to": {
+      "atom": "s0a10"
+     }
+    }
+   ],
+   "expected": [
+    "O=C(c1ccccc1)C(O)c1ccccc1",
+    "O=C(c1ccccc1)C(O)c1ccccc1.[C-]#N"
+   ]
+  },
+  {
+   "id": "d20261120-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1921-benzoin-condensation-cyanide",
+    "date": "2026-11-19"
+   },
+   "target": "O=C(c1ccccc1)C(O)c1ccccc1"
+  },
+  {
+   "id": "d20261120-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-ritter-reaction-n-tert-butylacetamide",
+    "date": "2026-11-19"
+   },
+   "conditions": "acetonitrile, H₂SO₄ (sulfuric acid)",
+   "start": [
+    "CC(C)(C)O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "atom": "s0a4"
+     }
+    }
+   ],
+   "expected": [
+    "C[C+](C)C",
+    "C[C+](C)C.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261120-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1921-benzoin-condensation-cyanide",
+    "date": "2026-11-19"
+   },
+   "target": "N#CC([O-])c1ccccc1"
+  },
+  {
+   "id": "d20261120-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-ritter-reaction-n-tert-butylacetamide",
+    "date": "2026-11-19"
+   },
+   "conditions": "acetonitrile, H₂SO₄ (sulfuric acid)",
+   "start": [
+    "C[C+](C)C",
+    "CC#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a2"
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    }
+   ],
+   "expected": [
+    "CC#[N+]C(C)(C)C",
+    "C[C+]=NC(C)(C)C"
+   ]
+  },
+  {
+   "id": "d20261120-c5",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1921-benzoin-condensation-cyanide",
+    "date": "2026-11-19"
+   },
+   "target": "N#CC(O)(c1ccccc1)C([O-])c1ccccc1"
+  }
+ ]
+}
