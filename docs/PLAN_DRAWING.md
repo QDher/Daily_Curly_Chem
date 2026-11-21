@@ -18,7 +18,8 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
   different population: the first change adds `versions.page` to every entry, and reports compare figures within
   one page version only.
 - `versions.page` exists since 2026-11-21 (page 0.2.0: hydrogens of atoms other than carbon shown with a bond in
-  arrow tasks, fix of weakness case 12). Entries without it were made with the page before that change.
+  arrow tasks, fix of weakness case 12). Entries without it were made with the page before that change. Page 0.3.0 (2026-11-21): in copy tasks the reading is compared with
+  the structure to copy before it is confirmed (weakness case 15); this changes how testers correct and confirm.
 
 ## Summary
 

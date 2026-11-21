@@ -83,6 +83,20 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(Scene.drawHydrogen(Tasks.showHydrogens(sc, [carbon.id]), carbon.id).atom, 'h1', 'hydrogen drawn on carbon by the tester');
   });
 
+  test('differences between a reading and the structure asked: atoms, bonds, rings, charges, pieces', () => {
+    const sc = (x) => Scene.fromSpecies(R, x.split('.'));
+    const d = (a, b) => Tasks.differences(sc(a), sc(b)).join('; ');
+    eq(d('CC=O', 'CC(=O)O'), '1 O missing');
+    eq(d('OCCc1ccccc1', 'O=C(O)Cc1ccccc1'), '1 O missing; 1 double bond missing');
+    eq(d('O=C(O)Cc1ccccc1.F', 'O=C(O)Cc1ccccc1'), '1 F too many; in 2 pieces instead of 1');
+    eq(d('CC(=N)Cc1ccccc1', 'N#CCc1ccccc1'), '1 C too many; 1 double bond too many; 1 triple bond missing');
+    eq(d('O=CC1C=CC=C1', 'O=Cc1ccccc1'), '1 C missing; 1 double bond missing');
+    eq(d('CCCCCC', 'C1CCCCC1'), '1 ring missing');
+    eq(d('C[Si](C)(C)C', '[CH2-][Si](C)(C)C'), '1 charge missing');
+    eq(d('CC(C)O', 'CCCO'), '', 'same counts, connected differently');
+    eq(d('CCO', 'OCC'), '', 'same structure');
+  });
+
   test('mechanisms used by T4 tasks exist', () => {
     for (const t of data.tasks.filter((x) => x.type === 'T4')) if (!data.mechanisms[t.mechanism]) throw new Error(t.id);
   });

@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-21 (agent side).
+Last updated: 2026-11-21 (people side, after page 0.3.0).
 
 ## Links
 
@@ -27,6 +27,9 @@ Last updated: 2026-11-21 (agent side).
 |---|---|---|---|---|
 | `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
 
+Note (people side, 2026-11-21): `index.html` and `src/tasks.js` were changed and pushed for page 0.3.0 (comparison
+before the confirmation in copy tasks, `Tasks.differences`); no change is in progress on the people side.
+
 ## Open items
 
 | # | Item | Owner | Status | Notes |
@@ -35,7 +38,7 @@ Last updated: 2026-11-21 (agent side).
 | B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | scheduled 2026-11-21 | Hold lifted (decision 26); screenshots to the user before the distortion limits (proposed 15° and 15 %) are fixed |
 | B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | scheduled 2026-11-21 | 11 reviewer notes on overlapping arrows; all 11 attempts were read correctly by the page |
 | B4 | Calibrate the agents' ink on people's strokes, per device | agent side | planned | Strokes now in `test/fixtures/drawings_2026-11-20.json` (168 drawings; pen and touch 145, mouse 23). Check: agents should fail like people, category by category |
-| B5 | Weakness cases 13 to 18 (people) | people side | 13, 14 partly fixed (recognizer 0.4.0); 15 to 18 open | `docs/WEAKNESSES.md` |
+| B5 | Weakness cases 13 to 18 (people) | people side | 12 fixed (page 0.2.0); 13, 14 partly fixed (recognizer 0.4.0), rest in the next cycle (decision 34); 15 fixed (page 0.3.0); 16 to 18 open | `docs/WEAKNESSES.md` |
 | B6 | Method of the evaluation of human drawings (who judges, questions, labels, storage) | people side | unknown to the agent side | Request R1 |
 | B7 | Contact e-mail of the test run (`contact` in `data/config.json`, public) | user | open since 2026-11-13 | A dedicated address is suggested; needed before testers are invited |
 | B8 | More testers, with touch screens and pens | user | open | Today: one tester with pen and some touch, the creator with a mouse |
@@ -51,7 +54,7 @@ Last updated: 2026-11-21 (agent side).
 
 | # | Date | From → to | Request | Status | Answer |
 |---|---|---|---|---|---|
-| R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | open | – |
+| R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | answered 2026-11-21 | `docs/handoff/human-drawing-evaluation_2026-11-21.md` |
 
 ## Cycle
 

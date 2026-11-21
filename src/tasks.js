@@ -116,6 +116,42 @@
     }
     return s;
   }
+  // What differs between a structure read from a drawing and the structure asked for, as short texts for the
+  // tester (copy tasks): atoms per element, pieces, charges, double and triple bonds, rings. Hydrogens are not
+  // counted. An empty list with different structures means: same counts, connected differently.
+  function differences(read, asked) {
+    const count = (scene) => {
+      const s = Scene.foldHydrogens(scene);
+      const el = {};
+      let charged = 0;
+      for (const a of s.atoms) { el[a.el] = (el[a.el] || 0) + 1; if (a.q) charged += 1; }
+      const comp = new Map(s.atoms.map((a) => [a.id, a.id]));
+      const root = (x) => { while (comp.get(x) !== x) x = comp.get(x); return x; };
+      for (const b of s.bonds) comp.set(root(b.a), root(b.b));
+      const pieces = new Set(s.atoms.map((a) => root(a.id))).size;
+      return {
+        el, charged, pieces,
+        double: s.bonds.filter((b) => b.order === 2).length,
+        triple: s.bonds.filter((b) => b.order === 3).length,
+        rings: s.bonds.length - s.atoms.length + pieces,
+      };
+    };
+    const r = count(read), a = count(asked);
+    const out = [];
+    const n = (k, one, many) => k + ' ' + (k === 1 ? one : many);
+    for (const e of Array.from(new Set(Object.keys(r.el).concat(Object.keys(a.el)))).sort()) {
+      const d = (r.el[e] || 0) - (a.el[e] || 0);
+      if (d) out.push(Math.abs(d) + ' ' + e + (d > 0 ? ' too many' : ' missing'));
+    }
+    const more = (d, one, many) => { if (d) out.push(n(Math.abs(d), one, many) + (d > 0 ? ' too many' : ' missing')); };
+    more(r.double - a.double, 'double bond', 'double bonds');
+    more(r.triple - a.triple, 'triple bond', 'triple bonds');
+    more(r.rings - a.rings, 'ring', 'rings');
+    more(r.charged - a.charged, 'charge', 'charges');
+    if (r.pieces !== a.pieces) out.push('in ' + n(r.pieces, 'piece', 'pieces') + ' instead of ' + a.pieces);
+    return out;
+  }
+
   // true when every hydrogen of drawH is one that showHydrogens draws (nothing is left for the tester to draw)
   function hydrogensShown(scene, drawH) {
     return (drawH || []).every((id) => { const a = scene.atoms.find((x) => x.id === id); return !!a && a.el !== 'C' && a.el !== 'H'; });
@@ -150,5 +186,5 @@
     return addSpecies(R, { atoms: [], bonds: [] }, list);
   }
 
-  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, runStep, runMechanism, startScene };
+  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, differences, runStep, runMechanism, startScene };
 });

@@ -66,6 +66,9 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   interface with the reference arrows (`h1` for `drawH`, `x1`, ... for the others): `node test/test_daily.js`
   checks every daily set. A change of what the page shows or asks raises `PAGE` in `index.html`
   (`versions.page` of the entries).
+- Copy tasks (page 0.3.0): the reading is compared with the structure to copy before the confirmation and the
+  difference is named (`Tasks.differences`); the tester still decides. A confirmed drawing is a correct label for
+  training only when `target.match` is true.
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
   against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)

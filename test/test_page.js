@@ -390,6 +390,47 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  await test('copy task: the reading is compared with the structure to copy before it is confirmed; what was shown is recorded', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    await page.selectOption('#step', { index: 5 }); // bromoketone
+    const tgt = await page.evaluate(() => window.__app.tasks[5].target);
+    // one line only: two carbons instead of the structure
+    const stroke = [];
+    for (let i = 0; i <= 10; i++) stroke.push({ x: 5 + 0.15 * i, y: 5 });
+    await page.evaluate((p) => window.__app.input.addInk(p), stroke);
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    let text = await page.textContent('#cmp');
+    if (!text.startsWith('This reading differs from the structure to copy')) throw new Error('text: ' + text);
+    for (const part of ['C missing', '1 O missing', '1 Br missing', '1 double bond missing', '1 ring missing']) if (!text.includes(part)) throw new Error('not named: ' + part + ' in ' + text);
+    eq(await page.getAttribute('#cmp', 'class'), 'bad', 'marked as different');
+    await page.click('#r-no');
+    let e = await page.evaluate(() => window.__entries[0]);
+    eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
+    eq(e.versions.page, '0.3.0', 'page version');
+    // the structure itself
+    await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
+    await page.click('#read');
+    await page.waitForSelector('#reading:not([hidden])');
+    eq(await page.textContent('#cmp'), 'This reading is the structure to copy.', 'same structure');
+    eq(await page.getAttribute('#cmp', 'class'), 'ok', 'marked as the same');
+    // a correction updates the comparison
+    await page.evaluate(() => document.getElementById('stage3').scrollIntoView({ block: 'center' }));
+    const O2 = await page.evaluate(() => { const app = window.__app; const sc = app.fixer.getScene(); return app.fixer.toClient(sc.atoms.find((a) => a.el === 'O')); });
+    await page.mouse.click(O2.x, O2.y);
+    await page.waitForSelector('#pal-atom:not([hidden])');
+    await page.click('#pal-atom button:text-is("S")');
+    text = await page.textContent('#cmp');
+    if (!text.includes('1 O missing') || !text.includes('1 S too many')) throw new Error('after correction: ' + text);
+    await page.click('#r-yes');
+    e = await page.evaluate(() => window.__entries[1]);
+    eq(e.accepted, true); eq(e.shown.match, false, 'confirmed although different'); eq(e.target.match, false);
+    // arrow tasks show no comparison
+    await page.selectOption('#step', { index: 0 });
+    eq(await page.isHidden('#cmp') || await page.isHidden('#reading'), true, 'no comparison outside copy tasks');
+    eq(errors.length, 0, 'page errors');
+  });
+
   await test('a reading can be flagged as wrong, with what is wrong; drawing again is recorded apart', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     await page.selectOption('#step', { index: 2 });

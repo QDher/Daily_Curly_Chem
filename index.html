@@ -179,6 +179,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <p class="muted">Tap an atom or a bond to correct it. Circled atoms were not read with confidence.</p>
     <div class="row palette" id="pal-atom" hidden role="group" aria-label="Atom"></div>
     <div class="row palette" id="pal-bond" hidden role="group" aria-label="Bond"></div>
+    <p id="cmp" role="status" hidden></p>
     <div class="row">
       <button id="r-yes" class="primary">This is my structure</button>
       <button id="r-wrong">The reading is wrong</button>
@@ -377,7 +378,8 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
 
   // Version of the page as testers see it: raised when what is shown or asked changes, so that entries are
   // compared within one version. 0.2.0 (2026-11-21): hydrogens of atoms other than carbon shown with a bond.
-  const PAGE = '0.2.0';
+  // 0.3.0 (2026-11-21): in copy tasks the reading is compared with the structure to copy before it is confirmed.
+  const PAGE = '0.3.0';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
@@ -727,7 +729,25 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     $('pal-atom').hidden = true;
     $('pal-bond').hidden = true;
     $('wrong-what').hidden = true;
+    compare();
     $('reading').hidden = false;
+  }
+  // Copy tasks: before the reading is confirmed, the page says whether it is the structure to copy and, if not,
+  // what differs. The tester still decides (correct, flag the reading, draw again, or confirm as drawn); what was
+  // shown is recorded with the entry (shown).
+  function compare() {
+    reading.shown = null;
+    $('cmp').hidden = true;
+    if (!step || step.type !== 'T2' || !step.target) return;
+    const want = Scene.canonicalSmiles(R, step.target);
+    const got = Scene.canonical(R, reading.scene);
+    const match = !!got && got === want;
+    let diff = [];
+    if (!match) diff = Tasks.differences(reading.scene, Scene.fromSpecies(R, step.target.split('.')));
+    reading.shown = { match, differences: diff };
+    $('cmp').hidden = false;
+    say('cmp', match ? 'This reading is the structure to copy.'
+      : 'This reading differs from the structure to copy: ' + (!got ? 'an atom has too many bonds' : diff.length ? diff.join('; ') : 'same atoms and bonds, connected differently') + '. Correct it by tapping, flag it if it is not what you drew, or draw again.', match ? 'ok' : 'bad');
   }
   $('read').onclick = () => {
     const ink = input.getInk();
@@ -781,7 +801,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
       kind: 'drawing', versions: { recognize: Recognize.VERSION, page: PAGE }, tester, level, step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       strokes: reading.strokes, typed: reading.typed, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
-      corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [],
+      corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [], shown: reading.shown || undefined,
     });
     showLog();
     reading = null;
@@ -817,6 +837,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
       smiles,
       accepted: true,
       flagged: null,
+      shown: reading.shown || undefined,
     };
     if (step.draw) {
       const want = Scene.canonicalSmiles(R, step.start.concat([step.draw.smiles]).join('.'));
