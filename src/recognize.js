@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.3.0';
+  const VERSION = '0.4.0';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -27,6 +27,8 @@
     labelReach: 0.45, // a segment end this close to a label's box ends on that label
     parallelAngle: 25, // degrees
     parallelGap: 0.3, // largest distance between the lines of a double bond
+    innerGap: 0.5, // or, for a shorter line with free ends that lies along the bond, this distance
+    ringGap: 0.8, // or this distance when the bonds next to that bond turn to the side of the line (inside a ring)
     glyphGap: 0.2, // label strokes closer than this are one label
     chargeReach: 0.9, // a lone + or - is attached to an atom within this distance
     templateMax: 0.14, // largest template distance accepted without asking the user
@@ -359,6 +361,38 @@
   const isHorizontal = (s) => { const a = angleOf(s); return a < 30 || a > 150; };
   const isVertical = (s) => { const a = angleOf(s); return a > 60 && a < 120; };
 
+  // H written in two strokes: an upright, then the bar and the second upright in one stroke. The second stroke
+  // meets the first only in its middle part (the bumps of B and P meet it at the top or the bottom) and has an
+  // upright part at its right side.
+  function isTwoStrokeH(strokes) {
+    if (strokes.length !== 2) return false;
+    for (const [u, v] of [[strokes[0], strokes[1]], [strokes[1], strokes[0]]]) {
+      const bu = boxOf(u), bv = boxOf(v);
+      // an upright: tall and narrow, nearly as long as its path (a small tick at the end is ignored)
+      if (!(bu.h > 3 * bu.w && dist(u[0], u[u.length - 1]) > 0.7 * pathLength(u))) continue;
+      const tall = Math.max(bu.h, bv.h, 1e-9);
+      if (bu.h < 0.5 * tall || bv.h < 0.5 * tall) continue;
+      // the second stroke lies at the right of the upright
+      if (!(bv.x1 - bu.cx >= 0.25 * tall && bv.x0 >= bu.cx - 0.25 * tall)) continue;
+      const A = u[0], B = u[u.length - 1];
+      const len = dist(A, B) || 1e-9;
+      let t0 = Infinity, t1 = -Infinity;
+      for (const p of v) {
+        if (segDist(p, A, B) > 0.2 * tall) continue;
+        const t = ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / (len * len);
+        t0 = Math.min(t0, t); t1 = Math.max(t1, t);
+      }
+      // the bar meets the upright at one place in its middle part (the ends of a C next to an l are far apart)
+      if (t0 === Infinity || t0 < 0.12 || t1 > 0.88 || t1 - t0 > 0.4) continue;
+      // its own upright part, away from the first stroke: the points in the far half span most of its height
+      const w = Math.max(bv.w, 1e-9);
+      const far = v.filter((p) => p.x > bv.x1 - 0.55 * w);
+      const ys = far.map((p) => p.y);
+      if (far.length >= 2 && Math.max(...ys) - Math.min(...ys) >= 0.6 * bv.h) return true;
+    }
+    return false;
+  }
+
   // One character: { name, d } with d the template distance (0 for shapes decided by geometry).
   function readChar(strokes) {
     if (strokes.length === 1 && isStraight(strokes[0])) {
@@ -373,6 +407,7 @@
         if (Math.abs(bh.cx - bv.cx) < 0.3 * m && Math.abs(bh.cy - bv.cy) < 0.3 * m && bh.w > 0.5 * bv.h && bv.h > 0.5 * bh.w) return { name: '+', d: 0 };
       }
     }
+    if (isTwoStrokeH(strokes)) return { name: 'H', d: 0.03, margin: 1 };
     // N in one stroke: two sharp reversals and no loop, whatever the slant
     if (strokes.length === 1) {
       const b = boxOf(strokes[0]);
@@ -409,6 +444,15 @@
     return false;
   }
 
+  // H in three strokes: two uprights joined by a bar (items: { st, b, straight, len }).
+  function isThreeStrokeH(set, tol) {
+    const ups = set.filter((it) => it.straight && isVertical(it.st));
+    const bar = set.find((it) => it.straight && isHorizontal(it.st));
+    if (ups.length !== 2 || !bar) return false;
+    const gapX = Math.abs(ups[0].b.cx - ups[1].b.cx);
+    return gapX > 0.15 * Math.max(ups[0].b.h, ups[1].b.h) && bar.len < 1.4 * gapX && touches(bar.st, ups[0].st, tol * 1.5) && touches(bar.st, ups[1].st, tol * 1.5);
+  }
+
   // A label (strokes close together) -> { el, q, unknown, box, pos }.
   // Order: charge signs (small, raised, at the right), then H (two uprights joined by a bar), then the tail
   // of a two-letter symbol (l, r, i), then the capital, matched against the letter templates.
@@ -438,12 +482,45 @@
       for (const h of hs) if (!used.includes(h)) { used.push(h); out.q -= 1; }
       drop(used);
     }
+    // Hydrogens written with the atom (OH, NH2, HO, H2N): the strokes that touch form characters; a character
+    // that is an H is removed, and so is a smaller one set lower right after it (the count). The hydrogens
+    // follow from the valence.
+    let hydrogens = 0;
+    if (items.length >= 3) {
+      const gone = [];
+      const free = () => items.filter((it) => !gone.some((g) => g.set.includes(it)));
+      // H in two strokes, then H in three strokes
+      for (let found = true; found; ) {
+        found = false;
+        const f = free();
+        for (let i = 0; i < f.length && !found; i++) {
+          for (let j = i + 1; j < f.length && !found; j++) {
+            if (f.length > 2 && isTwoStrokeH([f[i].st, f[j].st])) { gone.push({ set: [f[i], f[j]], isH: true }); found = true; }
+            for (let k = j + 1; k < f.length && !found; k++) {
+              if (f.length > 3 && isThreeStrokeH([f[i], f[j], f[k]], tol)) { gone.push({ set: [f[i], f[j], f[k]], isH: true }); found = true; }
+            }
+          }
+        }
+      }
+      if (gone.length) {
+        for (const g of gone) g.b = boxOf([].concat(...g.set.map((it) => it.st)));
+        const rest = free();
+        const cap = boxOf([].concat(...rest.map((it) => it.st)));
+        // the count: a smaller stroke set lower, right after an H; only when a letter remains without it
+        for (const it of rest) {
+          if (rest.length - gone.filter((g) => !g.isH).length < 2) break;
+          const afterH = gone.some((h) => h.isH && it.b.x0 > h.b.cx && it.b.x0 - h.b.x1 < 0.6 * cap.h);
+          if (afterH && it.b.h < 0.75 * cap.h && it.b.cy > cap.cy + 0.1 * cap.h) gone.push({ set: [it], b: it.b });
+        }
+        hydrogens += gone.filter((g) => g.isH).length;
+        drop([].concat(...gone.map((g) => g.set)));
+      }
+    }
     const body = boxOf([].concat(...items.map((it) => it.st)));
     const tall = Math.max(body.h, 1e-9);
 
     // H: two uprights of similar height joined by a short bar
     const ups = items.filter((it) => it.straight && isVertical(it.st) && it.b.h > 0.55 * tall);
-    let hydrogens = 0;
     for (let i = 0; i < ups.length; i++) {
       for (let j = i + 1; j < ups.length; j++) {
         const a = ups[i], b = ups[j];
@@ -585,15 +662,23 @@
       }
       return false;
     };
-    const alongBond = (i) => {
+    const alone = (i) => {
+      for (let j = 0; j < strokes.length; j++) {
+        if (j === i || isBond[j]) continue;
+        const a = boxes[i], b = boxes[j], g = P.glyphGap * L;
+        if (a.x0 - g <= b.x1 && b.x0 - g <= a.x1 && a.y0 - g <= b.y1 && b.y0 - g <= a.y1) return false;
+      }
+      return true;
+    };
+    const alongBond = (i, ends2) => {
       const s = strokes[i];
-      const a = s[0], b = s[s.length - 1];
+      const a = ends2 ? ends2[0] : s[0], b = ends2 ? ends2[1] : s[s.length - 1];
       for (let j = 0; j < strokes.length; j++) {
         if (j === i || !isBond[j]) continue;
         const poly = straight[j] ? [strokes[j][0], strokes[j][strokes[j].length - 1]] : corners(strokes[j], L).pts;
         for (let k = 1; k < poly.length; k++) {
           const A = poly[k - 1], B = poly[k];
-          const la = dist(A, B), lb = lens[i];
+          const la = dist(A, B), lb = ends2 ? dist(a, b) : lens[i];
           if (la < lb * 0.8) continue;
           const cross = Math.abs((B.x - A.x) * (b.y - a.y) - (B.y - A.y) * (b.x - a.x)) / (la * lb);
           if (cross > Math.sin((P.parallelAngle * Math.PI) / 180)) continue;
@@ -601,11 +686,15 @@
           const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
           const d = Math.abs((m.x - A.x) * (B.y - A.y) - (m.y - A.y) * (B.x - A.x)) / la;
           const t0 = Math.max(0, Math.min(t(a), t(b))), t1 = Math.min(1, Math.max(t(a), t(b)));
-          if (d < P.parallelGap * L && d > 0.04 * L && (t1 - t0) * la >= 0.5 * lb) return true;
+          if (!ends2 && d < P.parallelGap * L && d > 0.04 * L && (t1 - t0) * la >= 0.5 * lb) return true;
+          // the second line of a double bond drawn inside a ring: farther from the bond, shorter, within its span,
+          // and not next to other label ink (the strokes of a letter are close together)
+          if (d < P.ringGap * L && d > 0.04 * L && lb <= 0.95 * la && Math.min(t(a), t(b)) > -0.05 && Math.max(t(a), t(b)) < 1.05 && alone(i)) return true;
         }
       }
       return false;
     };
+    const trimmed = new Map();
     let endPts = ends();
     for (let changed = true; changed; ) {
       changed = false;
@@ -621,13 +710,46 @@
       }
       if (changed) endPts = ends();
     }
+    // The second line of a ring double bond drawn with hooks at its ends: not straight by the test above, but
+    // flat (it stays close to the line between its ends), and it lies along a bond like the lines above.
+    for (let i = 0; i < strokes.length; i++) {
+      if (isBond[i] || straight[i] || parts[i]) continue;
+      const s = strokes[i];
+      const a = s[0], b = s[s.length - 1];
+      const chord = dist(a, b);
+      if (chord < 0.3 * L || chord > 1.0 * L || pathLength(s) > 1.4 * chord) continue;
+      let dev = 0;
+      for (const p of s) dev = Math.max(dev, segDist(p, a, b));
+      if (dev > 0.2 * chord) continue;
+      if (alongBond(i, [a, b])) { isBond[i] = true; trimmed.set(s, [a, b]); }
+    }
+    // the l of Cl is often as long as a bond: an upright line with both ends free, right of a letter, is label ink
+    for (let i = 0; i < strokes.length; i++) {
+      if (!isBond[i] || !straight[i] || parts[i] || lens[i] > 1.1 * L || !isVertical(strokes[i])) continue;
+      const s = strokes[i], bi = boxes[i];
+      const joined = (E) => {
+        for (let j = 0; j < strokes.length; j++) {
+          if (j === i || !isBond[j]) continue;
+          const poly = straight[j] ? [strokes[j][0], strokes[j][strokes[j].length - 1]] : corners(strokes[j], L).pts;
+          for (let k = 0; k < poly.length; k++) {
+            if (dist(poly[k], E) < P.join * L) return true;
+            if (k && segDist(E, poly[k - 1], poly[k]) < 0.2 * L) return true;
+          }
+        }
+        return false;
+      };
+      if (joined(s[0]) || joined(s[s.length - 1])) continue;
+      const letter = strokes.some((t, j) => j !== i && !isBond[j] && !straight[j] && boxes[j].diag > 0.3 * L &&
+        boxes[j].x1 > bi.cx - 0.45 * L && boxes[j].x1 < bi.cx + 0.12 * L && boxes[j].cy > bi.y0 - 0.1 * L && boxes[j].cy < bi.y1 + 0.1 * L);
+      if (letter) isBond[i] = false;
+    }
     const bondStrokes = [], labelStrokes = [];
     strokes.forEach((s, i) => (isBond[i] ? bondStrokes : labelStrokes).push(s));
 
     // segments of the bond strokes
     let segs = [];
     for (const s of bondStrokes) {
-      let poly = corners(s, L).pts;
+      let poly = trimmed.has(s) ? trimmed.get(s) : corners(s, L).pts;
       // drop short hooks at the ends, merge short pieces inside
       while (poly.length > 2 && dist(poly[0], poly[1]) < P.minSeg * L) poly.shift();
       while (poly.length > 2 && dist(poly[poly.length - 1], poly[poly.length - 2]) < P.minSeg * L) poly.pop();
@@ -666,6 +788,55 @@
         if ((t1 - t0) * la < 0.5 * lb) continue;
         B.dead = true;
         (A.extras = A.extras || []).push({ t0, t1 });
+      }
+    }
+    // the second line of a double bond drawn inside a ring: a shorter line with both ends free, along a bond
+    // within its span, up to innerGap away; it goes to the nearest such bond
+    const freeEnd = (B, pt) => !segs.some((S) => S !== B && !S.dead && (dist(S.a, pt) < P.join * L || dist(S.b, pt) < P.join * L));
+    for (const B of segs) {
+      if (B.dead || B.extras) continue;
+      // inside a ring the line may start close to a corner; elsewhere both its ends must be free
+      const free = freeEnd(B, B.a) && freeEnd(B, B.b);
+      const lb = dist(B.a, B.b);
+      let best = null, bd = P.ringGap * L;
+      const midB = { x: (B.a.x + B.b.x) / 2, y: (B.a.y + B.b.y) / 2 };
+      const side = (A, pt) => (A.b.x - A.a.x) * (pt.y - A.a.y) - (A.b.y - A.a.y) * (pt.x - A.a.x);
+      // inside a ring: at both ends of the bond another bond leaves to the side of the line
+      // (an end with no bond next to it, as when it ends on a letter, is accepted when the other end has one)
+      const ringSide = (A) => {
+        let same = 0;
+        for (const end of [A.a, A.b]) {
+          let any = false, ok = false;
+          for (const S of segs) {
+            if (S === A || S === B || S.dead) continue;
+            const far = dist(S.a, end) < P.join * L ? S.b : dist(S.b, end) < P.join * L ? S.a : null;
+            if (!far) continue;
+            any = true;
+            if (side(A, far) * side(A, midB) > 0 && Math.abs(side(A, far)) / dist(A.a, A.b) > 0.2 * L) ok = true;
+          }
+          if (any && !ok) return false;
+          if (ok) same += 1;
+        }
+        return same >= 1;
+      };
+      for (const A of segs) {
+        if (A === B || A.dead) continue;
+        const la = dist(A.a, A.b);
+        if (lb > 0.95 * la) continue;
+        const cross = Math.abs((A.b.x - A.a.x) * (B.b.y - B.a.y) - (A.b.y - A.a.y) * (B.b.x - B.a.x)) / (la * lb);
+        if (cross > sinMax) continue;
+        const pa = param(A, B.a), pb = param(A, B.b);
+        if (Math.min(pa.t, pb.t) < -0.05 || Math.max(pa.t, pb.t) > 1.05) continue;
+        const mid = param(A, { x: (B.a.x + B.b.x) / 2, y: (B.a.y + B.b.y) / 2 });
+        if (mid.d < 0.1 * L) continue;
+        const ring = ringSide(A);
+        if (!ring && (!free || mid.d >= P.innerGap * L)) continue;
+        if (mid.d < bd) { bd = mid.d; best = { A, t0: Math.max(0, Math.min(pa.t, pb.t)), t1: Math.min(1, Math.max(pa.t, pb.t)) }; }
+      }
+      if (best) {
+        B.dead = true;
+        // the whole bond is double: the inner line is drawn shorter than the bond
+        (best.A.extras = best.A.extras || []).push({ t0: 0, t1: 1 });
       }
     }
     // a long line with a parallel piece over part of it is cut at the ends of that piece (C–C≡N)
@@ -799,10 +970,74 @@
       const key = ia < ib ? ia + '|' + ib : ib + '|' + ia;
       links.set(key, Math.min(3, (links.get(key) || 0) + s.order));
     }
+    // Lines of a double or triple bond that spread out from a letter (C≡N, C=O): a bond from a node to a free
+    // end that lies close to another neighbour of that node, in nearly the same direction, is a further line of
+    // the bond to that neighbour.
+    for (let again = true, guard = 0; again && guard < 50; guard++) {
+      again = false;
+      const deg = new Map();
+      for (const key of links.keys()) key.split('|').forEach((k) => deg.set(Number(k), (deg.get(Number(k)) || 0) + 1));
+      for (const [key, order] of links) {
+        const pair = key.split('|').map(Number);
+        for (const [ia, ib] of [pair, [pair[1], pair[0]]]) {
+          const A = nodes[ia], B = nodes[ib];
+          if (again || deg.get(ia) !== 1 || A.label || A.atom) continue;
+          for (const key2 of links.keys()) {
+            if (key2 === key) continue;
+            const q = key2.split('|').map(Number);
+            if (!q.includes(ib)) continue;
+            const C = nodes[q[0] === ib ? q[1] : q[0]];
+            const la = dist(A, B), lc = dist(C, B);
+            const cos = ((A.x - B.x) * (C.x - B.x) + (A.y - B.y) * (C.y - B.y)) / (la * lc || 1e-9);
+            if (cos < Math.cos((32 * Math.PI) / 180) || la > 1.15 * lc || la < 0.5 * lc || dist(A, C) > 0.6 * L) continue;
+            links.set(key2, Math.min(3, links.get(key2) + order));
+            links.delete(key);
+            A.dropped = true;
+            again = true;
+            break;
+          }
+        }
+        if (again) break;
+      }
+    }
+    // A hydrogen written next to an atom (OH, NH2, HO) when it was read as a label of its own: an unbonded
+    // label that reads H, or a smaller one set lower (the count), right next to another label, is not an atom;
+    // the hydrogens follow from the valence.
+    {
+      const bonded = new Set();
+      for (const key of links.keys()) key.split('|').forEach((k) => bonded.add(Number(k)));
+      const gapOf = (a, b) => Math.hypot(Math.max(a.x0 - b.x1, 0, b.x0 - a.x1), Math.max(a.y0 - b.y1, 0, b.y0 - a.y1));
+      for (let pass = 0; pass < 2; pass++) {
+        nodes.forEach((n, i) => {
+          if (!n.label || n.atom || n.dropped || n.label.typed || bonded.has(i)) return;
+          const near = nodes.find((m) => m !== n && m.label && !m.dropped && m.label.el && m.label.el !== 'H' && gapOf(m.label.box, n.label.box) < 0.5 * L);
+          const nearH = nodes.find((m) => m !== n && m.label && m.dropped && gapOf(m.label.box, n.label.box) < 0.4 * L);
+          const small = (m) => n.label.box.h < 0.8 * m.label.box.h && n.label.box.cy > m.label.box.cy;
+          if ((near && (n.label.el === 'H' || small(near))) || (nearH && small(nearH))) { n.dropped = true; n.label = Object.assign({}, n.label, { hydrogen: true }); }
+        });
+      }
+    }
+    // A letter read as H with two or more bonds cannot be a hydrogen: the N written in two strokes looks like it.
+    {
+      const deg = new Map();
+      for (const key of links.keys()) key.split('|').forEach((k) => deg.set(Number(k), (deg.get(Number(k)) || 0) + 1));
+      nodes.forEach((n, i) => {
+        if (n.label && !n.label.typed && n.label.el === 'H' && (deg.get(i) || 0) >= 2) n.label = Object.assign({}, n.label, { el: 'N', unknown: true });
+      });
+    }
+    // A single straight stroke left as a label and joined to nothing (read as I) is stray ink, not an atom.
+    {
+      const bonded = new Set();
+      for (const key of links.keys()) key.split('|').forEach((k) => bonded.add(Number(k)));
+      nodes.forEach((n, i) => {
+        if (n.label && !n.atom && !n.dropped && !n.label.typed && !bonded.has(i) && n.label.el === 'I' && n.label.chars && n.label.chars[0] === 1 && links.size) n.dropped = true;
+      });
+    }
     for (const sg of signs) {
       const c = { x: sg.box.cx, y: sg.box.cy };
       let best = null, bd = P.chargeReach * L;
       for (const n of nodes) {
+        if (n.dropped) continue;
         const d = dist(n, c);
         if (d < bd) { bd = d; best = n; }
       }
@@ -851,7 +1086,7 @@
         if (n.charge) { a.q += n.charge; touched.add(a.id); edits.push({ kind: 'charge', atom: a.id, q: a.q }); }
         return;
       }
-      if (!n.label && !n.pts.length) return;
+      if (n.dropped || (!n.label && !n.pts.length)) return;
       const id = fresh('r');
       idOf.set(i, id);
       const q = (n.label ? n.label.q : 0) + (n.charge || 0);

@@ -17,7 +17,8 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
   let exact = 0, changed = 0;
   for (const d of doc.drawings) {
     const strokes = d.strokes.map((st) => st.map((p) => ({ x: p[0], y: p[1] })));
-    const r = Recognize.recognize(strokes, d.base ? { scene: d.base } : { nominal: 1.5 });
+    const labels0 = d.typed || []; // atoms and charges entered without handwriting
+    const r = Recognize.recognize(strokes, d.base ? { scene: d.base, labels: labels0 } : { nominal: 1.5, labels: labels0 });
     process.stderr.write = () => true; // RDKit reports structures it cannot parse
     const got = Scene.canonical(R, r.scene);
     process.stderr.write = err;

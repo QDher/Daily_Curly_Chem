@@ -72,7 +72,7 @@ QDher/Daily-organic-chemistry-puzzles, branch `claude/beautiful-pasteur-7tg1k3` 
 |---|---|---|---|
 | Arrow rules (deterministic) | `src/arrows.js` | 0.1.1 | stable; 8 of 8 real arrow entries accepted on the first reading |
 | Arrow reading (snapping, ranking) | `src/readings.js` | 0.1.0 | works on real input; thresholds `Readings.P` never tuned |
-| Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.3.0 | weak: 5 of 14 real drawings exact; letters are the weak part |
+| Structure recognition | `src/recognize.js`, `src/glyphs.js` | 0.4.0 (2026-11-21) | weak: week drawings of two testers 65 of 168 exact (45 with 0.3.0), aromatic targets 23 of 69 (10); first file 5 of 14; letters and rounded ring corners are the weak parts; figures in `docs/RECOGNITION.md` |
 | Canvas, page | `src/canvas.js`, `index.html` | – | 14 tasks, intro, votes, five questions, file saved at the end; the level is not asked (taken from the daily sites' setting `puzzles:level` when present, else empty); atoms can be entered without handwriting in three ways (below); tools per task phase and a remark box for the first testers (below) |
 | Task list, reference mechanisms | `data/tasks.json`, `src/tasks.js` | 1 | verified by the interpreter, not reviewed by a chemist |
 | Daily set (5 arrow tasks, 5 structures to copy) | `tools/make_daily.js`, `src/solver.js`, `data/daily/` | solver 0.1.0 | built by the workflow every day at 03:30 UTC; first set 2026-11-13 made in a session; scheduled run of 2026-11-14 04:20 UTC observed (success; date in New York still 2026-11-13, so no new set); a run that builds a new set is not yet observed |

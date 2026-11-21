@@ -1,4 +1,4 @@
-# Hand-drawn structure recognition, version 0.3.0 (component R0)
+# Hand-drawn structure recognition, version 0.4.0 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
@@ -20,7 +20,8 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
   opens a text box for the symbol (Br, N+, O-, or a charge alone; Enter places it). The place snaps to an atom, to
   the end or a corner of a stroke, or stays where it is.
 - `unknown`: atoms whose label was not read with confidence; the page circles them.
-- Hydrogens are not read: they follow from the usual valence, the charge and the bonds (`implicitH`).
+- Hydrogens are not atoms of the result: they follow from the usual valence, the charge and the bonds
+  (`implicitH`). An H written with an atom (OH, NH2) is recognized only to be left out (step 5).
 
 ## Steps
 
@@ -43,17 +44,29 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
 4. Bonds: corners of each stroke from the turning of its direction (between the 0.2 L before and the 0.2 L after each
    point, local maxima of at least 25°, at least 0.35 L apart). A bowed line turns a little everywhere and is one
    bond; two bonds at an angle turn at one place. A shorter parallel line within 0.3 L raises the order of the longer
-   one; a long line is cut where such a piece starts or ends (C–C≡N, C=C=O). A line is cut where another bond ends
+   one; a long line is cut where such a piece starts or ends (C–C≡N, C=C=O). The second line of a double bond
+   drawn inside a ring (0.4.0): a shorter line along a bond, within its span, up to 0.5 L away when both its ends
+   are free, up to 0.8 L when the bonds next to that bond turn to the side of the line (a ring); it may then start
+   close to a ring corner, and it may have hooks at its ends (a flat stroke: within 0.2 of its length from the
+   line between its ends). It goes to the nearest such bond, which becomes double over its whole length. Lines of
+   a double or triple bond that spread out from a letter (C≡N): a bond from the letter to a free end within 0.6 L
+   of another neighbour of the letter and within 32° of that bond is a further line of it. A line is cut where another bond ends
    on its inside, and into two or three bonds when it is two or three bond lengths long.
 5. Labels: strokes closer than 0.2 L form one label. Removed in this order: + and − (small, raised, at the right), H
+   written with the atom (0.4.0: in two strokes, an upright then the bar and the second upright, or in three; a
+   smaller stroke set lower right after it is its count), H
    (two uprights joined by a bar), the tail of a two-letter symbol (l, r, i; an r may be one stroke or an upright with
    a hook). The capital: one stroke with two sharp reversals and no loop is N; otherwise it is matched against the
    templates (C, N, O, S, F, P, B, H, I) by point-cloud distance ($P).
 6. Atoms: ends of segments closer than 0.38 L are one atom; an end ends on a label when the nearest point of the
    label's box is within 0.45 L, ahead of the end and within 0.2 L of the line of the bond. A lone + or − is given to
    the nearest atom within 0.9 L.
+7. Stray ink (0.4.0). An upright line as long as a bond, with both ends free, right of a letter, is the l of Cl.
+   A label without a bond that reads H, or a smaller one set lower, right next to another label, is that atom's
+   hydrogen or its count and is left out. A single straight stroke left as a label and joined to nothing is left
+   out. A letter read as H that has two or more bonds is read as N and marked to check.
 
-## Benchmark (synthetic ink, 2026-11-13)
+## Benchmark (synthetic ink; figures of version 0.4.0, 2026-11-21)
 
 `data/structures.json`: 390 structures of the published problems of both sites (no metals); 376 are used (the others
 have radicals or are not read back by RDKit). Each is redrawn by `src/ink.js` and must be read as exactly the same
@@ -62,9 +75,9 @@ structure.
 | Noise level of the synthetic ink | Exact structures |
 |---|---|
 | 0 (exact lines and letters) | 83.5 % |
-| 1 (neat) | 80.9 % |
-| 2 (ordinary) | 59.0 % |
-| 3 (careless) | 19.4 % |
+| 1 (neat) | 80.6 % |
+| 2 (ordinary) | 60.9 % |
+| 3 (careless) | 20.3 % |
 
 The letters of the synthetic ink are the recognizer's own templates with distortion: these figures say that the
 method is consistent, not how it performs on real handwriting. That is measured in the test run.
@@ -80,6 +93,7 @@ reading changes or fewer than 5 are exact. Read as exactly the structure asked:
 |---|---|---|
 | 0.1.1 (as recorded) | 1 of 14 | 0 |
 | 0.3.0 | 5 of 14 | 3 (N read as P once; Br read as B or O) |
+| 0.4.0 | 5 of 14 | two readings changed, none of them to or from exact |
 
 Of the other 6: three drawings are incomplete (a letter alone, or a bond that does not reach the letter), one writes
 methyl groups as "Me", two write "NH2+" with a subscript. Main causes found in version 0.1.1: letters written as
@@ -88,10 +102,39 @@ tolerance), on a shown structure the drawing was read at the scale of the struct
 were attached to it. The synthetic figures above went down by 2 to 8 points with these changes: the synthetic ink
 has letters of 0.42 bond length, smaller than real ones.
 
+## Drawings of the week files (2026-11-20)
+
+Two testers (pen with some touch: 145 attempts; mouse with typed atoms: 23 attempts), copies of the structures of the
+daily sets of 2026-11-13 to 2026-11-19, recorded with version 0.3.0. Stroke points and typed atoms are in
+`test/fixtures/drawings_2026-11-20.json` (no timing, pressure, pointer type or tester label; committed with the
+agreement of both testers); `test/test_recognize.js` fails when a reading changes or fewer than 62 are exact (20 of
+the aromatic ones). Read as exactly the structure asked:
+
+| Version | All (168) | Aromatic targets (69) | Other targets (99) | Pen and touch (145) | Mouse (23) |
+|---|---|---|---|---|---|
+| 0.3.0 | 45 | 10 | 35 | 33 | 12 |
+| 0.4.0 | 65 | 23 | 42 | 52 | 13 |
+
+Tasks with at least one attempt read exactly: 30 → 35 of 54; first attempt of a task: 20 → 25.
+
+Version 0.4.0 was tuned on these drawings (weakness cases 13 and 14): they are no longer an independent measure.
+Most are from one tester's hand; the rules are geometric and were kept only when the synthetic benchmark did not go
+down, but how they do on other hands is not known. Causes seen in the ink and not corrected in 0.4.0:
+
+- The corner between two ring bonds is rounded, so two sides are read as one bowed bond (a six-membered ring read
+  as five-membered).
+- The C of Cl closed like an O; N written in two strokes; "HO" with the H at the left when its first upright has a
+  tick; letters larger than 1.3 bond lengths taken for bonds.
+- A bond drawn to a hydrogen that is not written (O–H as a line) is read as a bond to a carbon, as the conventions
+  say; an aldehyde C–H drawn as a line likewise.
+- A bond that stops more than 0.45 L short of its letter is not attached to it.
+- A small drawing in which every stroke is shorter than a bond of the page is read as letters only.
+- Drawings that differ from the structure asked (a substituent on another position) count as not exact here.
+
 ## Known limits
 
-- Not read: wedge and hash bonds, aromatic circles, abbreviations (Me, Ph, OMe), written hydrogen counts and
-  subscripts (a label such as NH2 with a large 2 is misread), radicals, elements other than C, N, O, S, F, P, B, H, I, Cl, Br, Si.
+- Not read: wedge and hash bonds, aromatic circles, abbreviations (Me, Ph, OMe); written hydrogen counts are left
+  out only when they follow an H that was recognized (a label such as NH2 with a large 2 can still be misread), radicals, elements other than C, N, O, S, F, P, B, H, I, Cl, Br, Si.
 - A drawing whose bonds all run between two labels (Br–Br, H–O–O–H) or that has one bond only (CH3–I) is read
   unreliably: the bond length cannot be found.
 - Letters that touch a bond or each other, and bonds shorter than half the usual length, are often misread.
