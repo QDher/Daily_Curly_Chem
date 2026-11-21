@@ -14,15 +14,16 @@
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
 
-// Noise of one drawing, as fractions of the bond length L (angle in degrees).
+// Noise of one drawing, as fractions of the bond length L (angle in degrees). care: probability that an arrow bulges to
+// the side free of bonds and of the other arrows when one side is clearly freer (ink 0.3.0).
 const PRECISION = {
-  high: { end: 0.05, geometry: 0.04, wobble: 0.012, arrowStart: 0.07, arrowEnd: 0.07, click: 0.05, angle: 2 },
-  low: { end: 0.16, geometry: 0.12, wobble: 0.035, arrowStart: 0.22, arrowEnd: 0.25, click: 0.18, angle: 7 },
+  high: { end: 0.05, geometry: 0.04, wobble: 0.012, arrowStart: 0.07, arrowEnd: 0.07, click: 0.05, angle: 2, care: 0.95 },
+  low: { end: 0.16, geometry: 0.12, wobble: 0.035, arrowStart: 0.22, arrowEnd: 0.25, click: 0.18, angle: 7, care: 0.7 },
 };
 const CONSISTENCY = { high: 0.1, low: 1 };
 
@@ -121,7 +122,15 @@ function line(d, p, q, L) {
 // { kind: 'pair', a, b }. p: the ideal point (atom, middle of a bond); away: unit vector from the atom away from
 // its bonds; along: unit vector along the bond; a: atom of the source, b: atom that gets the new bond. Scene
 // units of the structure shown (L = 1.5).
-function arrow(d, from, to) {
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+}
+
+// ctx (ink 0.3.0, optional): { segs: [[{x, y}, {x, y}], ...] bonds of the scene, prev: [points, ...] arrows of the step
+// already drawn }.
+function arrow(d, from, to, ctx) {
   const L = L0, s = d.style, nz = d.noise;
   if (to.kind === 'pair') to = { kind: 'pair', p: add(to.a, mul(sub(to.b, to.a), s.pairToward)) };
   const toward = unit(sub(to.p, from.p));
@@ -147,8 +156,28 @@ function arrow(d, from, to) {
   }
   const chord = len(sub(end, start)) || 1e-9;
   const u = unit(sub(end, start));
-  const side = d.r.u() < s.arrowLeft ? -1 : 1; // -1: bulge to the left of the direction (y axis points down)
-  const h = side * s.arrowBend * chord * (short ? 1.6 : 1) * (1 + d.r.n() * 0.1);
+  const pick = d.r.u();
+  let side = pick < s.arrowLeft ? -1 : 1; // -1: bulge to the left of the direction (y axis points down)
+  const h0 = s.arrowBend * chord * (short ? 1.6 : 1);
+  // ink 0.3.0: a person bulges the arrow to the side that stays clear of the bonds and of the arrows already drawn
+  // (reviewers' notes of 2026-11-16 to 2026-11-20); the habit decides when both sides are alike or, for a less
+  // careful writer, sometimes regardless
+  if (ctx && (ctx.segs || ctx.prev)) {
+    const clash = (sd) => {
+      let n = 0;
+      for (let i = 2; i <= 8; i++) {
+        const t = i / 10, off = sd * h0 * 4 * t * (1 - t);
+        const p = { x: start.x + (end.x - start.x) * t - u.y * off, y: start.y + (end.y - start.y) * t + u.x * off };
+        for (const [a, b] of ctx.segs || []) if (segDist(p, a, b) < 0.2 * L) { n += 1; break; }
+        for (const st of ctx.prev || []) if (st.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 0.25 * L)) { n += 1; break; }
+      }
+      return n;
+    };
+    const cl = clash(-1), cr = clash(1);
+    const careful = (pick * 9301 + 0.37) % 1 < nz.care;
+    if (careful && cl !== cr) side = cl < cr ? -1 : 1;
+  }
+  const h = side * h0 * (1 + d.r.n() * 0.1);
   const n = Math.max(10, Math.round(chord / (0.06 * L)));
   const pts = [];
   for (let i = 0; i <= n; i++) {

@@ -72,6 +72,36 @@ test('copies: hydrogens of heteroatoms are drawn as bonds ending on a typed H, b
   }
 });
 
+test('arrows bulge to the side free of bonds and of the arrows already drawn (ink 0.3.0)', () => {
+  // a bond lies under the arrow from (0, 0) to (3, 0.5): count arrows that pass over it, with and without the scene
+  const bond = [{ x: 0.9, y: 0.95 }, { x: 2.1, y: 1.15 }];
+  const near = (pts) => pts.slice(3, -3).some((p) => {
+    const dx = bond[1].x - bond[0].x, dy = bond[1].y - bond[0].y, l2 = dx * dx + dy * dy;
+    const t = Math.max(0, Math.min(1, ((p.x - bond[0].x) * dx + (p.y - bond[0].y) * dy) / l2));
+    return Math.hypot(p.x - bond[0].x - t * dx, p.y - bond[0].y - t * dy) < 0.3;
+  });
+  const count = (name, withCtx) => {
+    const w = Ink.writer(name);
+    let n = 0;
+    for (let s = 0; s < 60; s++) {
+      const d = Ink.drawing(w, s);
+      const pts = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0.5 } }, withCtx ? { segs: [bond], prev: [] } : undefined);
+      if (near(pts)) n += 1;
+    }
+    return n;
+  };
+  for (const name of ['john0002', 'john0003']) {
+    const without = count(name, false), withScene = count(name, true);
+    ok(withScene <= 3 && withScene < without, name + ': over the bond ' + withScene + ' of 60 with the scene, ' + without + ' without');
+  }
+  // a second arrow keeps off the first one
+  const d = Ink.drawing(Ink.writer('john0002'), 7);
+  const first = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0 } }, { segs: [], prev: [] });
+  const second = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0.1 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0.1 } }, { segs: [], prev: [first] });
+  const mid = (pts) => pts[Math.floor(pts.length / 2)];
+  ok(Math.sign(mid(first).y - 0.05) !== Math.sign(mid(second).y - 0.05), 'the two arcs bulge to opposite sides');
+});
+
 test('consistency: habits vary much less between drawings of a consistent tester (john0002, john0004) than of a variable one (john0003, john0005)', () => {
   const spread = (key) => {
     const w = Ink.writer(key);

@@ -187,3 +187,11 @@ Observations:
   → 2 (2); john0005 3 (1) → 2 (1). The imprecise testers still lose the N of their NH2 and NH copies this way. Not
   changed in the page (synthetic evidence; thresholds are set on drawings of people). To watch in the test run:
   whether people draw X-H bonds short enough to hit it.
+- Round 1 (2026-11-21), from the judged agent entries of 2026-11-16 to 2026-11-20 (205 copies, 185 arrow attempts):
+  - Recognizer 0.4.1: copies judged readable by every reviewer who answered, read as the structure to copy: 75 → 80
+    of 90 (C–C≡N drawn in one line; short second line of C=N). Copies judged not readable but read as the structure
+    to copy: 20 → 28. People's fixtures unchanged in counts (`docs/RECOGNITION.md`).
+  - Ink 0.3.0: 11 reviewer notes said arrows were drawn over bonds or other arrows (all 11 read as intended). An
+    arrow now bulges to the side whose arc stays clear of the bonds and of the arrows of the step already drawn,
+    when one side is clearly freer (probability `care`: 0.95 precise, 0.7 imprecise); otherwise the habit
+    `arrowLeft` decides as before. Figures on the set of 2026-11-21 in the round-1 report (`docs/BOARD.md` B3).

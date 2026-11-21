@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-21 (people side, after page 0.6.0).
+Last updated: 2026-11-21 (agent side, after round 1).
 
 ## Links
 
@@ -25,7 +25,7 @@ Last updated: 2026-11-21 (people side, after page 0.6.0).
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `src/tasks.js` (placement of shown hydrogens only), `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
+| – | – | none in progress (round 1 of the agent side finished 2026-11-21) | – | – |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
@@ -37,9 +37,9 @@ were changed, not the rendering. No change is in progress on the people side.
 
 | # | Item | Owner | Status | Notes |
 |---|---|---|---|---|
-| B1 | Reading-rule fixes from judged agent entries | agent side | scheduled 2026-11-21 | Up to 2026-11-20: 17 distinct copy attempts judged readable that the page did not confirm, 27 judgements "page too permissive" on copies; check first what recognizer 0.4.0 already fixes; measure on both fixtures of people |
-| B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | scheduled 2026-11-21 | Hold lifted (decision 26); screenshots to the user before the distortion limits (proposed 15° and 15 %) are fixed |
-| B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | scheduled 2026-11-21 | 11 reviewer notes on overlapping arrows; all 11 attempts were read correctly by the page |
+| B1 | Reading-rule fixes from judged agent entries | agent side | done 2026-11-21 (recognizer 0.4.1, 6a7d00f) | Of 16 copies judged readable that the page had not confirmed, 6 are now read (C–C≡N drawn in one line; short second line of C=N); the 10 left are messy or crowded. People's fixtures unchanged in counts (5/14, 65/168). Copies judged not readable but read as the structure: 20 → 28 (see B16) |
+| B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | done 2026-11-21 (page 0.7.0, cac3580) | `node tools/overlaps.js`: 141 shown structures, 36 with an overlap on page 0.6.0 → 0. Step (b), distortion, not done: no structure needs it, so its limits stay a proposal |
+| B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | done 2026-11-21 | Set of 2026-11-21, four testers: arrows crossing a bond 32 → 17 of 103, crossing another arrow 6 → 2; arrow tasks accepted unchanged; copies confirmed 7, 7, 2, 4 → 8, 8, 2, 4 (recognizer 0.4.1). Scheduled runs use it from 2026-11-22 |
 | B4 | Calibrate the agents' ink on people's strokes, per device | agent side | planned | Strokes now in `test/fixtures/drawings_2026-11-20.json` (168 drawings; pen and touch 145, mouse 23). Check: agents should fail like people, category by category |
 | B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 fixed in its three causes (page 0.4.0, 0.5.0, solver 0.2.0), one entry not examined; 18 fixed (page 0.6.0); 19 new (request R2) | `docs/WEAKNESSES.md` |
 | B6 | Method of the evaluation of human drawings (who judges, questions, labels, storage) | people side | unknown to the agent side | Request R1 |
@@ -52,13 +52,14 @@ were changed, not the rendering. No change is in progress on the people side.
 | B13 | Arrow attempts judged "should not give the structure" that the page accepted (52 judgements up to 2026-11-20) | agent side | open | Examine before using them as labels (depends on B10) |
 | B14 | Merge of the Worker part (`mech_entries`) | user | at the start of stage 3, not before | Decision 7 |
 | B15 | Pages deploys of the two site repositories failed on 2026-11-21 ("No artifacts named github-pages", 01:35 to 02:31 UTC); today's problems were not live until new runs at 02:31 UTC | any side | done 2026-11-21 | Both workflows now have a build job and a deploy job (50cca04, a50b9f8; first runs succeeded, about 8 s between upload and deploy). A failed deploy can be re-run alone with "Re-run failed jobs" |
+| B16 | Agent copies judged not readable that the page reads as the structure to copy: 20 with recognizer 0.4.0, 28 with 0.4.1 | agent side, user | open | The page reads more loosely drawn second lines; whether this is a fault depends on what people draw (no change on synthetic evidence) |
 
 ## Requests between the sides
 
 | # | Date | From → to | Request | Status | Answer |
 |---|---|---|---|---|---|
 | R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | answered 2026-11-21 | `docs/handoff/human-drawing-evaluation_2026-11-21.md` |
-| R2 | 2026-11-21 | people side → agent side | Rendering (`src/canvas.js`, with item 6): mark a carbon that has a lone pair and an empty place (a carbene) so that it is not shown like an ordinary carbon; weakness case 19, 1 remark of a tester | open | – |
+| R2 | 2026-11-21 | people side → agent side | Rendering (`src/canvas.js`, with item 6): mark a carbon that has a lone pair and an empty place (a carbene) so that it is not shown like an ordinary carbon; weakness case 19, 1 remark of a tester | answered 2026-11-21 | Page 0.7.0: a carbon with an unshared pair and fewer than four bonds is written with its symbol and two dots (`Scene.labelPlan`, `src/canvas.js`) |
 
 ## Cycle
 

@@ -31,7 +31,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.5';
+const VERSION = '0.1.6';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -207,11 +207,14 @@ async function main() {
           const res = Arrows.apply(sc, Tasks.resolve(sc, ref));
           intended = res.ok ? Scene.canonical(app.R, res.scene) : null;
         } catch (e) { intended = null; }
-        return { arrows, intended };
+        const segs = sc.bonds.map((b) => [{ x: A(b.a).x, y: A(b.a).y }, { x: A(b.b).x, y: A(b.b).y }]);
+        return { arrows, intended, segs };
       }, task.reference);
       if (geo.missing) { rec.outcome = 'not-drawn'; rec.message = 'atom ' + geo.missing + ' not in the scene'; await page.click('#clear'); continue; }
       rec.intended = geo.intended;
-      const strokes = geo.arrows.map((a) => Ink.arrow(d, a.from, a.to));
+      // each arrow sees the bonds and the arrows of the step already drawn (ink 0.3.0)
+      const strokes = [];
+      for (const a of geo.arrows) strokes.push(Ink.arrow(d, a.from, a.to, { segs: geo.segs, prev: strokes.slice() }));
       await page.click('#m-arrow');
       await drawStrokes(strokes, d.style.speed);
       rec.strokes = strokes.length;
