@@ -1,4 +1,4 @@
-# Hand-drawn structure recognition, version 0.4.0 (component R0)
+# Hand-drawn structure recognition, version 0.4.1 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
@@ -52,7 +52,9 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    line between its ends). It goes to the nearest such bond, which becomes double over its whole length. Lines of
    a double or triple bond that spread out from a letter (C≡N): a bond from the letter to a free end within 0.6 L
    of another neighbour of the letter and within 32° of that bond is a further line of it. A line is cut where another bond ends
-   on its inside, and into two or three bonds when it is two or three bond lengths long.
+   on its inside, and into two or three bonds when it is two or three bond lengths long. A short straight stroke
+   whose wobble gives a corner, when every piece would be shorter than 0.25 L, is kept as one line (0.4.1: the short
+   second line of a C=N next to a typed N+ vanished).
 5. Labels: strokes closer than 0.2 L form one label. Removed in this order: + and − (small, raised, at the right), H
    written with the atom (0.4.0: in two strokes, an upright then the bar and the second upright, or in three; a
    smaller stroke set lower right after it is its count), H
@@ -60,14 +62,16 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    a hook). The capital: one stroke with two sharp reversals and no loop is N; otherwise it is matched against the
    templates (C, N, O, S, F, P, B, H, I) by point-cloud distance ($P).
 6. Atoms: ends of segments closer than 0.38 L are one atom; an end ends on a label when the nearest point of the
-   label's box is within 0.45 L, ahead of the end and within 0.2 L of the line of the bond. A lone + or − is given to
-   the nearest atom within 0.9 L.
+   label's box is within 0.45 L, ahead of the end and within 0.2 L of the line of the bond, except when another segment
+   goes on forward from that end (0.4.1: C–C≡N drawn as one straight line and cut where the triple-bond lines start;
+   the cut point was given to the N, which made one long bond and a second reading with a doubled bond length). A
+   lone + or − is given to the nearest atom within 0.9 L.
 7. Stray ink (0.4.0). An upright line as long as a bond, with both ends free, right of a letter, is the l of Cl.
    A label without a bond that reads H, or a smaller one set lower, right next to another label, is that atom's
    hydrogen or its count and is left out. A single straight stroke left as a label and joined to nothing is left
    out. A letter read as H that has two or more bonds is read as N and marked to check.
 
-## Benchmark (synthetic ink; figures of version 0.4.0, 2026-11-21)
+## Benchmark (synthetic ink; figures of version 0.4.1, 2026-11-21)
 
 `data/structures.json`: 390 structures of the published problems of both sites (no metals); 376 are used (the others
 have radicals or are not read back by RDKit). Each is redrawn by `src/ink.js` and must be read as exactly the same
@@ -76,9 +80,11 @@ structure.
 | Noise level of the synthetic ink | Exact structures |
 |---|---|
 | 0 (exact lines and letters) | 83.5 % |
-| 1 (neat) | 80.6 % |
-| 2 (ordinary) | 60.9 % |
-| 3 (careless) | 20.3 % |
+| 1 (neat) | 81.8 % |
+| 2 (ordinary) | 64.1 % |
+| 3 (careless) | 23.5 % |
+
+Version 0.4.0: 83.5, 80.6, 60.9 and 20.3 %.
 
 The letters of the synthetic ink are the recognizer's own templates with distortion: these figures say that the
 method is consistent, not how it performs on real handwriting. That is measured in the test run.
@@ -95,6 +101,7 @@ reading changes or fewer than 5 are exact. Read as exactly the structure asked:
 | 0.1.1 (as recorded) | 1 of 14 | 0 |
 | 0.3.0 | 5 of 14 | 3 (N read as P once; Br read as B or O) |
 | 0.4.0 | 5 of 14 | two readings changed, none of them to or from exact |
+| 0.4.1 | 5 of 14 | no reading changed |
 
 Of the other 6: three drawings are incomplete (a letter alone, or a bond that does not reach the letter), one writes
 methyl groups as "Me", two write "NH2+" with a subscript. Main causes found in version 0.1.1: letters written as
@@ -115,6 +122,9 @@ the aromatic ones). Read as exactly the structure asked:
 |---|---|---|---|---|---|
 | 0.3.0 | 45 | 10 | 35 | 33 | 12 |
 | 0.4.0 | 65 | 23 | 42 | 52 | 13 |
+| 0.4.1 | 65 | 23 | 42 | 52 | 13 |
+
+Version 0.4.1 changed one reading (drawing 47, wrong before and after).
 
 Tasks with at least one attempt read exactly: 30 → 35 of 54; first attempt of a task: 20 → 25.
 
@@ -144,3 +154,13 @@ down, but how they do on other hands is not known. Causes seen in the ink and no
 - Handwritten two-letter symbols (Br) and small letters are read unreliably with a mouse; atoms can be entered
   without handwriting (`labels`).
 - Failures at noise level 0 are mostly crowded layouts (cages, bridged rings) where atoms or bonds nearly overlap.
+
+## Judged agent copies (synthetic, 2026-11-21)
+
+Version 0.4.1 comes from the copies of the agent testers judged in the review page (ink 0.2.0, runs of 2026-11-16 to
+2026-11-20; 205 distinct copies judged, `docs/AGENT_TESTER.md`). These drawings are synthetic: they find faults, they
+are not a measure of the recognizer and they are not in the repository. Copies judged readable by every reviewer who
+answered: 90; read as the structure to copy with 0.4.0: 75, with 0.4.1: 80 (the 74 read before are still read). The 10
+left are messy or crowded drawings (a ring read with an I, chains cut short, a bromonium ring with Si and a boronate).
+Copies judged not readable that are read as the structure to copy: 20 with 0.4.0, 28 with 0.4.1 (short second lines
+kept are read as double bonds).

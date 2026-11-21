@@ -58,6 +58,17 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(smi(Rec.recognize([line(0, 0, 50, 0), line(50, 0, 100, 0), line(56, -7, 94, -7), line(56, 7, 94, 7)]).scene), can('CC#C'));
   });
 
+  test('C–C≡N drawn as one straight line to a typed N: the carbon where the triple-bond lines start is an atom (proportions of an agent copy, 2026-11-21)', () => {
+    const strokes = [poly(231.5, 162.4, 274.3, 138.6, 346.0, 189.0), line(239.8, 167.8, 274.3, 152.3), line(314.3, 177.8, 330.5, 195.1), line(326.2, 162.4, 347.8, 177.1)];
+    eq(smi(Rec.recognize(strokes, { labels: [{ el: 'N', q: 0, x: 346.0, y: 189.0 }] }).scene), can('C=CC#N'));
+  });
+
+  test('a short second line of a double bond with a kink is kept as one line (agent copies, 2026-11-21)', () => {
+    const strokes = [poly(0, 0, 43, -25, 73, -7.5), poly(45.5, -15.4, 52.1, -8.75, 61.1, -6.3), line(99, -7.5, 116, -17.5), line(86, 15, 86, 35)];
+    const labels = [{ el: 'N', q: 1, x: 86, y: 0 }, { el: 'H', q: 0, x: 129, y: -25 }, { el: 'H', q: 0, x: 86, y: 50 }];
+    eq(smi(Rec.recognize(strokes, { labels }).scene), can('CC=[NH2+]'));
+  });
+
   test('a bond that ends on the inside of a line makes an atom there', () => {
     eq(smi(Rec.recognize([line(0, 0, 100, 0), line(50, 0, 50, 50)]).scene), can('CC(C)C'));
   });

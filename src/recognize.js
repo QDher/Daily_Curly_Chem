@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.4.0';
+  const VERSION = '0.4.1';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -750,6 +750,10 @@
     let segs = [];
     for (const s of bondStrokes) {
       let poly = trimmed.has(s) ? trimmed.get(s) : corners(s, L).pts;
+      // a short straight stroke (second line of a double bond) whose wobble gives a corner: when every piece would be
+      // too short to keep, the stroke is kept as one line instead of vanishing
+      if (!trimmed.has(s) && poly.length > 2 && isStraight(s) && dist(s[0], s[s.length - 1]) >= P.shortBond * L &&
+        poly.every((q, k) => !k || dist(q, poly[k - 1]) < P.shortBond * L)) poly = [s[0], s[s.length - 1]];
       // drop short hooks at the ends, merge short pieces inside
       while (poly.length > 2 && dist(poly[0], poly[1]) < P.minSeg * L) poly.shift();
       while (poly.length > 2 && dist(poly[poly.length - 1], poly[poly.length - 2]) < P.minSeg * L) poly.pop();
@@ -927,10 +931,21 @@
       else nodes.push({ x: c.x, y: c.y, label: lab, pts: [] });
     }
     const boxDist = (b, p) => Math.hypot(Math.max(b.x0 - p.x, 0, p.x - b.x1), Math.max(b.y0 - p.y, 0, p.y - b.y1));
+    // An end from which another segment goes on forward (C–C≡N drawn as one straight line and cut where the lines of
+    // the triple bond start) is an atom of its own: the label further along belongs to the far end of that segment.
+    const goesOn = (p, ux, uy) => segs.some((T) => {
+      for (const [q, r] of [[T.a, T.b], [T.b, T.a]]) {
+        if (dist(q, p) > 0.05 * L) continue;
+        const lt = dist(q, r) || 1e-9;
+        if (((r.x - p.x) * ux + (r.y - p.y) * uy) / lt > 0.8) return true;
+      }
+      return false;
+    });
     const nodeFor = (p, other) => {
       // a bond ends on a label only if it points at it
       const len = dist(p, other) || 1e-9;
       const ux = (p.x - other.x) / len, uy = (p.y - other.y) / len;
+      const vertex = goesOn(p, ux, uy);
       const aims = (c) => {
         const ax = (c.x - p.x) * ux + (c.y - p.y) * uy;
         const pd = Math.abs((c.x - p.x) * uy - (c.y - p.y) * ux);
@@ -942,6 +957,7 @@
         if (n.atom && !n.label) d = dist(n, p) < P.anchor * L ? dist(n, p) : Infinity;
         else if (n.label) {
           const bx = boxDist(n.label.box, p);
+          if (vertex && bx > 0.1 * L && !(n.atom && dist(n, p) < P.anchor * L)) continue;
           // the nearest point of the label must lie ahead of the end, close to the line of the bond
           const q = { x: Math.max(n.label.box.x0, Math.min(n.label.box.x1, p.x)), y: Math.max(n.label.box.y0, Math.min(n.label.box.y1, p.y)) };
           const ax = (q.x - p.x) * ux + (q.y - p.y) * uy;
