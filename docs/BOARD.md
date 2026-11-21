@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-21 (people side, after page 0.3.0).
+Last updated: 2026-11-21 (people side, after page 0.4.0).
 
 ## Links
 
@@ -26,10 +26,10 @@ Last updated: 2026-11-21 (people side, after page 0.3.0).
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
 | `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
-| `index.html` (arrow entries, answer check), `src/tasks.js`, `src/solver.js` | people side | Weakness cases 16 and 17: strokes recorded as applied, answer check tolerant to hydrogen positions, solver plausibility rules. No change of `src/canvas.js`, `src/recognize.js`, `src/scene.js` | 2026-11-21 | pushed the same day |
 
-Note (people side, 2026-11-21): `index.html` and `src/tasks.js` were changed and pushed for page 0.3.0 (comparison
-before the confirmation in copy tasks, `Tasks.differences`); no change is in progress on the people side.
+Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
+`Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
+0.2.0) in `index.html`, `src/tasks.js`, `src/solver.js`. No change is in progress on the people side.
 
 ## Open items
 
@@ -39,7 +39,7 @@ before the confirmation in copy tasks, `Tasks.differences`); no change is in pro
 | B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | scheduled 2026-11-21 | Hold lifted (decision 26); screenshots to the user before the distortion limits (proposed 15° and 15 %) are fixed |
 | B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | scheduled 2026-11-21 | 11 reviewer notes on overlapping arrows; all 11 attempts were read correctly by the page |
 | B4 | Calibrate the agents' ink on people's strokes, per device | agent side | planned | Strokes now in `test/fixtures/drawings_2026-11-20.json` (168 drawings; pen and touch 145, mouse 23). Check: agents should fail like people, category by category |
-| B5 | Weakness cases 13 to 18 (people) | people side | 12 fixed (page 0.2.0); 13, 14 partly fixed (recognizer 0.4.0), rest in the next cycle (decision 34); 15 fixed (page 0.3.0); 16 to 18 open | `docs/WEAKNESSES.md` |
+| B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 partly fixed (open: where a step ends, with the user); 18 examined (details needed from the creator); 19 new (request R2) | `docs/WEAKNESSES.md` |
 | B6 | Method of the evaluation of human drawings (who judges, questions, labels, storage) | people side | unknown to the agent side | Request R1 |
 | B7 | Contact e-mail of the test run (`contact` in `data/config.json`, public) | user | open since 2026-11-13 | A dedicated address is suggested; needed before testers are invited |
 | B8 | More testers, with touch screens and pens | user | open | Today: one tester with pen and some touch, the creator with a mouse |
@@ -56,6 +56,7 @@ before the confirmation in copy tasks, `Tasks.differences`); no change is in pro
 | # | Date | From → to | Request | Status | Answer |
 |---|---|---|---|---|---|
 | R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | answered 2026-11-21 | `docs/handoff/human-drawing-evaluation_2026-11-21.md` |
+| R2 | 2026-11-21 | people side → agent side | Rendering (`src/canvas.js`, with item 6): mark a carbon that has a lone pair and an empty place (a carbene) so that it is not shown like an ordinary carbon; weakness case 19, 1 remark of a tester | open | – |
 
 ## Cycle
 

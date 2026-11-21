@@ -40,6 +40,7 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   the answer and never judge a tester's arrows.
 - Daily set (`tools/make_daily.js`, `src/solver.js`, `data/daily/`): built by the workflow, never by hand. A change
   of the solver rules increases `Solver.VERSION`; `node test/test_daily.js` must pass. Do not edit `data/daily/`.
+  Solver 0.2.0 refuses results no single step forms (`Solver.plausible`); sets built before are not rebuilt.
   The page lists the days from `data/daily/index.json` (written by the tool); the fixed set of `data/tasks.json`
   is shown only with `?set=standard` (tests, agent testers), not to testers.
 - Entries: collected as files saved by the testers. Sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
@@ -69,6 +70,9 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
 - Copy tasks (page 0.3.0): the reading is compared with the structure to copy before the confirmation and the
   difference is named (`Tasks.differences`); the tester still decides. A confirmed drawing is a correct label for
   training only when `target.match` is true.
+- Arrow entries hold the structure and strokes read by "Apply arrows" (page 0.4.0); a change afterwards closes the
+  result. The answer check is exact (`submitted.match`) and says apart when the structure is the expected one up
+  to the position of hydrogens (`submitted.hydrogens`).
 - Two separate choices on the page: confirming the structure given by the arrows (the recorded entry, never judged
   against the problem) and submitting a structure as an answer to the problem. Do not merge them.
 - The interpreter is deterministic and never guesses: an arrow with more than one reading is an error (`ambiguous`)

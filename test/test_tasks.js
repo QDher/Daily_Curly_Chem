@@ -97,6 +97,19 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(d('CCO', 'OCC'), '', 'same structure');
   });
 
+  test('same structure up to the position of hydrogens: proton transfers and tautomers, not other structures', () => {
+    const sc = (x) => Scene.fromSpecies(R, x.split('.'));
+    const same = (a, b) => Tasks.sameSkeletons(sc(a), sc(b));
+    eq(same('[O-]C([OH+]O)c1ccc(O)cc1', 'OOC(O)c1ccc(O)cc1'), true, 'zwitterion and neutral adduct');
+    eq(same('CC1=NN=C(C)C1.NN.O', 'Cc1cc(C)[nH]n1'), true, 'tautomer; other molecules ignored');
+    eq(same('O.OC(=[OH+])Cc1ccccc1.[NH2-]', 'O=C(O)Cc1ccccc1.[NH2-].[OH3+]'), true, 'proton on another molecule');
+    eq(same('COc1ccc2c(c1)CCNC2.[H+]', 'COC1=C[CH+]C2CNCCC2=C1'), true, 'a free proton gives no molecule');
+    eq(same('CC(=O)OS(=O)Cl.Cl', 'CC(=O)Cl'), false, 'another molecule');
+    eq(same('CCCO', 'CC(C)O'), false, 'another connection');
+    eq(same('CC=O', 'CC(=O)O'), false, 'an atom missing');
+    eq(same('CC(=O)O', 'CC(=O)O.CC(=O)O'), false, 'two molecules asked, one given');
+  });
+
   test('mechanisms used by T4 tasks exist', () => {
     for (const t of data.tasks.filter((x) => x.type === 'T4')) if (!data.mechanisms[t.mechanism]) throw new Error(t.id);
   });

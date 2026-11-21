@@ -152,6 +152,36 @@
     return out;
   }
 
+  // Skeletons of a scene: one key per molecule, from its atoms other than hydrogen and which of them are bonded
+  // (bond orders, charges and hydrogens left out). Two structures with the same skeletons differ only by the
+  // position of hydrogens and electrons: proton transfers, tautomers, resonance forms. The key is built by
+  // repeated refinement of atom labels; molecules of hydrogen alone (H+) give no key.
+  function skeletons(scene) {
+    const s = Scene.foldHydrogens(scene);
+    const atoms = s.atoms.filter((a) => a.el !== 'H');
+    const ids = new Set(atoms.map((a) => a.id));
+    const nb = new Map(atoms.map((a) => [a.id, []]));
+    for (const b of s.bonds) if (ids.has(b.a) && ids.has(b.b)) { nb.get(b.a).push(b.b); nb.get(b.b).push(b.a); }
+    const hash = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+    let inv = new Map(atoms.map((a) => [a.id, a.el]));
+    for (let round = 0; round < 12; round++) { // the same number for every scene, so that keys can be compared
+      const next = new Map();
+      for (const a of atoms) next.set(a.id, hash(a.el + '|' + nb.get(a.id).map((x) => inv.get(x)).sort().join(',')));
+      inv = next;
+    }
+    const comp = new Map(atoms.map((a) => [a.id, a.id]));
+    const root = (x) => { while (comp.get(x) !== x) x = comp.get(x); return x; };
+    for (const a of atoms) for (const x of nb.get(a.id)) comp.set(root(a.id), root(x));
+    const groups = new Map();
+    for (const a of atoms) { const r = root(a.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(inv.get(a.id)); }
+    return Array.from(groups.values()).map((g) => g.length + ':' + g.sort().join('.')).sort();
+  }
+  // true when every molecule of `asked` is in `result` up to the position of hydrogens and electrons
+  function sameSkeletons(result, asked) {
+    const have = skeletons(result);
+    return skeletons(asked).every((k) => { const i = have.indexOf(k); if (i < 0) return false; have.splice(i, 1); return true; });
+  }
+
   // true when every hydrogen of drawH is one that showHydrogens draws (nothing is left for the tester to draw)
   function hydrogensShown(scene, drawH) {
     return (drawH || []).every((id) => { const a = scene.atoms.find((x) => x.id === id); return !!a && a.el !== 'C' && a.el !== 'H'; });
@@ -186,5 +216,5 @@
     return addSpecies(R, { atoms: [], bonds: [] }, list);
   }
 
-  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, differences, runStep, runMechanism, startScene };
+  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, differences, skeletons, sameSkeletons, runStep, runMechanism, startScene };
 });

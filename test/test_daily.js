@@ -24,6 +24,18 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
   const onepot = Daily.setsOf(path.join(__dirname, 'fixtures', 'problems_onepot.json'));
   const namerxn = Daily.setsOf(path.join(__dirname, 'fixtures', 'problems_namerxn.json'));
 
+  test('solver: results a single step does not form are refused (HO+ with six electrons, an amide anion next to a new cation)', () => {
+    const sc = (x) => Scene.fromSpecies(R, x.split('.'));
+    // ids differ between two scenes built apart, so every atom of the result counts as new: the rules then
+    // look at the result alone
+    eq(Solver.plausible(sc('CC(=O)O.O=S(Cl)Cl'), sc('CC(=O)Cl.O=[S-]Cl.[OH+]')), false, 'HO+');
+    eq(Solver.plausible(sc('NC(O)(O)Cc1ccccc1.O'), sc('O=C(O)Cc1ccccc1.[NH2-].[OH3+]')), false, 'amide anion with hydronium');
+    eq(Solver.plausible(sc('CN(C)C.CBr'), sc('C[N+](C)(C)C.[Br-]')), true, 'ammonium and bromide');
+    eq(Solver.plausible(sc('CC(=O)C.[OH-]'), sc('CC(=O)[CH2-].O')), true, 'carbanion and water');
+    eq(Solver.plausible(sc('CC(C)[N-]C(C)C.CC(C)=O'), sc('CC(C)NC(C)C.CC(=O)[CH2-]')), true, 'an amide anion already there');
+    eq(Solver.solve(R, ['CC(=O)O', 'O=S(Cl)Cl'], ['CC(=O)Cl']), null, 'no step straight to the acid chloride');
+  });
+
   test('solver: every hand-written arrow task is found again, with at most three arrows', () => {
     for (const t of fixed.tasks.filter((x) => x.type === 'T1' || x.type === 'T3')) {
       const s = Solver.solve(R, t.draw ? t.start.concat([t.draw.smiles]) : t.start, t.expected);

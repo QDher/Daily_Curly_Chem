@@ -150,6 +150,39 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     if (!(await page.textContent('#msg')).includes('no room')) throw new Error('message');
   });
 
+  await test('arrows changed after "Apply arrows": the result is closed; the entry holds the strokes and readings of the last apply', async () => {
+    const { page, errors } = await open({ width: 1100, height: 900 });
+    const p = await page.evaluate((h) => {
+      const { sc, nb, C, mid } = eval('(' + h + ')')();
+      const O = sc.atoms.find((a) => a.id.startsWith('s1'));
+      const Cc = sc.atoms.find((a) => a.el === 'C' && nb(a).filter((n) => n.atom.el === 'O').length === 2);
+      const Oc = nb(Cc).find((n) => n.order === 2).atom;
+      return { O: C(O), Cc: C(Cc), m: C(mid(Cc, Oc)), Oc: C(Oc) };
+    }, helpers.toString());
+    await drag(page, p.O, p.Cc);
+    await page.click('#apply');
+    // one arrow alone may or may not give a structure; either way a second arrow closes any result
+    await drag(page, p.m, p.Oc, 10);
+    eq(await page.isHidden('#result'), true, 'result closed by the new arrow');
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#undo');
+    eq(await page.isHidden('#result'), true, 'result closed by undo');
+    await drag(page, p.m, p.Oc, 10);
+    await page.click('#apply');
+    await page.waitForSelector('#result:not([hidden])');
+    await page.click('#yes');
+    const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.4.0', 'page version');
+    // the entry replays: the stored strokes give the stored readings
+    const again = await page.evaluate((en) => {
+      const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
+      return out.readings.length === en.readings.length && out.readings.every((r, i) => JSON.stringify(r.arrows) === JSON.stringify(en.readings[i].arrows));
+    }, e);
+    eq(again, true, 'entry replays');
+    eq(errors.length, 0, 'page errors');
+  });
+
   await test('rejecting a reading shows the next one or asks to redraw', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     const p = await page.evaluate((h) => {
@@ -407,7 +440,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.3.0', 'page version');
+    eq(e.versions.page, '0.4.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');

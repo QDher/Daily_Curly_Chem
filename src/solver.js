@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Arrows, Scene) {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
   const HETERO = ['N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'I'];
 
   function neighbours(scene) {
@@ -86,6 +86,7 @@
     const startCharged = charged(scene);
     const matches = (result) => {
       if (result.atoms.some((a) => Math.abs(a.q) > 1) || charged(result) > startCharged + 2) return false;
+      if (!plausible(scene, result)) return false;
       const f = formulas(result);
       const possible = wantedFormulas.some((need) => need.every((x) => f.includes(x)));
       if (!possible) return false;
@@ -189,6 +190,27 @@
     return found ? Object.assign(found, { tried }) : null;
   }
 
+  // Species a single step does not form (0.2.0, from the entries of people: tasks whose reference jumped over
+  // intermediates): an N, O or F with an incomplete octet that did not have one at the start (HO+, a nitrenium),
+  // and an amide anion (N-) formed together with a new cation on O or N in another molecule (a base far too
+  // strong next to an acid).
+  function plausible(start, result) {
+    const second = new Set(['N', 'O', 'F']);
+    const before = new Map(start.atoms.map((a) => [a.id, a]));
+    for (const a of result.atoms) {
+      if (!second.has(a.el) || !Arrows.isVacant(result, a.id)) continue;
+      if (!before.has(a.id) || !Arrows.isVacant(start, a.id)) return false;
+    }
+    const q0 = (a) => (before.has(a.id) ? before.get(a.id).q : 0);
+    const anions = result.atoms.filter((a) => a.el === 'N' && a.q < 0 && q0(a) >= 0);
+    const cations = result.atoms.filter((a) => (a.el === 'N' || a.el === 'O') && a.q > 0 && q0(a) <= 0);
+    for (const n of anions) {
+      const comp = componentOf(result, n.id);
+      if (cations.some((c) => !comp.has(c.id))) return false;
+    }
+    return true;
+  }
+
   function componentOf(scene, atomId) {
     const nb = neighbours(scene);
     const seen = new Set([atomId]);
@@ -275,5 +297,5 @@
     });
   }
 
-  return { VERSION, solve, solveScene, species, formulas, acidicAtoms, toSpec };
+  return { VERSION, solve, solveScene, species, formulas, acidicAtoms, toSpec, plausible };
 });
