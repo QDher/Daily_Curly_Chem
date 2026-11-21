@@ -42,16 +42,115 @@
     return { atoms, bonds };
   }
 
+  // Overlaps in a laid-out scene (plan item 6, docs/PLAN_DRAWING.md): pairs of bonds with no atom in common that
+  // cross or come closer than 0.15 L, and atoms closer than 0.25 L to a bond they are not part of (they look like a
+  // junction). L: bond length (1.5 for laid-out scenes). Returns { crossings: [{ a, b, x, y }], near: [{ atom, bond }] }.
+  function overlaps(scene, L) {
+    const len = L || 1.5;
+    const at = new Map(scene.atoms.map((a) => [a.id, a]));
+    const segDist = (p, a, b) => {
+      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+    };
+    const cross = (p, q, r, s) => {
+      const d = (q.x - p.x) * (s.y - r.y) - (q.y - p.y) * (s.x - r.x);
+      if (Math.abs(d) < 1e-12) return null;
+      const t = ((r.x - p.x) * (s.y - r.y) - (r.y - p.y) * (s.x - r.x)) / d;
+      const u = ((r.x - p.x) * (q.y - p.y) - (r.y - p.y) * (q.x - p.x)) / d;
+      return t > 0 && t < 1 && u > 0 && u < 1 ? { x: p.x + t * (q.x - p.x), y: p.y + t * (q.y - p.y) } : null;
+    };
+    const crossings = [], near = [];
+    const bonds = scene.bonds.filter((b) => at.has(b.a) && at.has(b.b));
+    for (let i = 0; i < bonds.length; i++) {
+      const A = bonds[i], p = at.get(A.a), q = at.get(A.b);
+      for (let j = i + 1; j < bonds.length; j++) {
+        const B = bonds[j];
+        if (B.a === A.a || B.a === A.b || B.b === A.a || B.b === A.b) continue;
+        const r = at.get(B.a), s = at.get(B.b);
+        const x = cross(p, q, r, s);
+        const d = Math.min(segDist(p, r, s), segDist(q, r, s), segDist(r, p, q), segDist(s, p, q));
+        if (x || d < 0.15 * len) crossings.push({ a: A.id, b: B.id, x: x ? x.x : (p.x + q.x + r.x + s.x) / 4, y: x ? x.y : (p.y + q.y + r.y + s.y) / 4, touch: !x });
+      }
+      for (const c of scene.atoms) {
+        if (c.id === A.a || c.id === A.b) continue;
+        if (segDist(c, p, q) < 0.25 * len) near.push({ atom: c.id, bond: A.id });
+      }
+    }
+    return { crossings, near };
+  }
+  const overlapCount = (scene) => { const o = overlaps(scene); return 10 * o.crossings.length + o.near.length; };
+
+  // Coordinates from RDKit with the plan of item 6 (a): the default depiction, and when it has overlaps, the other
+  // depiction (CoordGen on or off); the first without overlap, else the one with fewer, is kept.
+  function depict(mol, prefix) {
+    mol.set_new_coords();
+    let best = fromRdkitJson(mol.get_json(), prefix);
+    if (!overlapCount(best)) return best;
+    try {
+      mol.set_new_coords(true);
+      const other = fromRdkitJson(mol.get_json(), prefix);
+      if (overlapCount(other) < overlapCount(best)) best = other;
+    } catch (e) { /* this build of RDKit has no second depiction */ }
+    return best;
+  }
+
   // R: RDKit module. Returns null when the SMILES is not valid.
   function fromSmiles(R, smiles, prefix) {
     const mol = R.get_mol(smiles);
     if (!mol) return null;
     try {
-      mol.set_new_coords();
-      return fromRdkitJson(mol.get_json(), prefix);
+      return depict(mol, prefix);
     } finally {
       mol.delete();
     }
+  }
+
+  // Where the hydrogens and the charge of each atom are written (plan item 6, extended on 2026-11-20 to labels and
+  // charge signs): the element symbol is centred on the atom; its hydrogens go to the right, else to the left, above
+  // or below, whichever side is free of bonds; the charge goes in the free direction nearest to the upper right, away
+  // from every bond and from the hydrogens. A carbon is written when it has no bond or an unshared pair with fewer
+  // than four bonds (a carbene, request R2 of docs/BOARD.md). Returns Map id -> { label, carbene, hSide, charge }:
+  // hSide 'right' | 'left' | 'up' | 'down' (screen axes, y down); charge: angle in radians, or null.
+  function labelPlan(scene) {
+    const at = new Map(scene.atoms.map((a) => [a.id, a]));
+    const dirs = new Map(scene.atoms.map((a) => [a.id, []]));
+    for (const b of scene.bonds) {
+      const A = at.get(b.a), B = at.get(b.b);
+      if (!A || !B) continue;
+      dirs.get(A.id).push(Math.atan2(B.y - A.y, B.x - A.x));
+      dirs.get(B.id).push(Math.atan2(A.y - B.y, A.x - B.x));
+    }
+    const gap = (t, list) => list.reduce((m, u) => Math.min(m, Math.abs(Math.atan2(Math.sin(t - u), Math.cos(t - u)))), Math.PI);
+    const SIDES = [['right', 0], ['left', Math.PI], ['up', -Math.PI / 2], ['down', Math.PI / 2]];
+    const out = new Map();
+    for (const a of scene.atoms) {
+      const ds = dirs.get(a.id);
+      const e = Arrows.electrons(scene, a.id);
+      const carbene = a.el === 'C' && ds.length > 0 && !a.q && !!e && e.nonbonding >= 2;
+      const label = a.el !== 'C' || ds.length === 0 || carbene ? a.el : null;
+      let hSide = null;
+      if (label && a.h > 0) {
+        const free = SIDES.find(([, t]) => gap(t, ds) >= (Math.PI * 65) / 180);
+        hSide = free ? free[0] : SIDES.reduce((m, s) => (gap(s[1], ds) > gap(m[1], ds) ? s : m))[0];
+      }
+      let charge = null;
+      if (a.q) {
+        const taken = ds.slice();
+        if (hSide) taken.push(SIDES.find((s) => s[0] === hSide)[1]);
+        const start = -Math.PI / 4;
+        let best = null, bestGap = -1;
+        for (let k = 0; k < 24; k++) {
+          const t = start + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 12);
+          const g = gap(t, taken);
+          if (g >= 0.75) { best = t; break; }
+          if (g > bestGap) { bestGap = g; best = t; }
+        }
+        charge = best;
+      }
+      out.set(a.id, { label, carbene, hSide, charge });
+    }
+    return out;
   }
 
   function bbox(scene) {
@@ -177,10 +276,8 @@
       const mol = R.get_mol(part.smiles);
       if (mol) {
         try {
-          mol.set_new_coords();
-          const m = JSON.parse(mol.get_json()).molecules[0];
-          const xy = m.conformers && m.conformers[0] ? m.conformers[0].coords : null;
-          if (xy && m.atoms.length === sub.atoms.length) sub.atoms.forEach((a, i) => { a.x = xy[i][0]; a.y = -xy[i][1]; });
+          const d = depict(mol, '');
+          if (d.atoms.length === sub.atoms.length) sub.atoms.forEach((a, i) => { a.x = d.atoms[i].x; a.y = d.atoms[i].y; });
         } finally {
           mol.delete();
         }
@@ -191,5 +288,5 @@
     return compose(parts.map((p) => p.sub), gap);
   }
 
-  return { foldHydrogens, relayout, fromRdkitJson, fromSmiles, fromSpecies, compose, bbox, canonical, canonicalSmiles, hydrogenPosition, drawHydrogen };
+  return { foldHydrogens, relayout, fromRdkitJson, fromSmiles, fromSpecies, compose, bbox, canonical, canonicalSmiles, hydrogenPosition, drawHydrogen, overlaps, labelPlan };
 });

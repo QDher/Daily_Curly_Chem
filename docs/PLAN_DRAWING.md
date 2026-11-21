@@ -1,6 +1,6 @@
 # Plan: drawing fixes and features after the first test run
 
-Recorded 2026-11-14 at the user's request. Status of every item: **planned, not started** (item 6: scheduled for round 1, 2026-11-21).
+Recorded 2026-11-14 at the user's request. Status of every item: **planned, not started**, except item 6 (done in page 0.7.0 on 2026-11-21, without step (b)).
 
 ## Rule while the first test run is open
 
@@ -30,7 +30,7 @@ Recorded 2026-11-14 at the user's request. Status of every item: **planned, not 
 | 3 | Rule for third-row atoms that can exceed the octet | `src/arrows.js`, `src/recognize.js` | – | readings of existing entries can change | `Arrows.VERSION`, `Recognize.VERSION` |
 | 4 | Select, move and rotate a fragment drawn separately | `src/canvas.js`, `index.html` | – | new field `moves` | `versions.page` |
 | 5 | Fragments snap together, within valence rules | `src/canvas.js`, `src/recognize.js` | 3, 4 | new field `snaps` | `versions.page`, `Recognize.VERSION` |
-| 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` |
+| 6 | Overlapping bonds: avoid, then distort within limits, then draw a bridge (with labels and charge signs, 2026-11-20) | `src/scene.js` (layout), `src/canvas.js` (rendering) | – | coordinates of shown structures only | `versions.page` (done in page 0.7.0, 2026-11-21, except step (b)) |
 | 7 | A hydrogen written right next to a heteroatom is bonded to it (OH as O–H) | `src/recognize.js` | – | readings of existing drawings can change | `Recognize.VERSION` |
 | 8 | Subscripts read correctly (NH2, NH3+, OH2+) | `src/recognize.js`, `src/glyphs.js`, `src/canvas.js` (typed input) | 7 | readings of existing drawings can change; typed labels may carry a count | `Recognize.VERSION` |
 | 9 | Arrows smoothed and drawn in a clean style once both ends snap | `src/canvas.js` (display), `src/readings.js` (candidates of one stroke) | – | display only; raw strokes kept; new field `snapShown` | `versions.page` |
@@ -238,6 +238,19 @@ and is not covered here; the reading panel and the arrow phase show laid-out str
 **Evidence needed.** Count of structures in `data/tasks.json` and in the daily sets (`data/daily/`) that have a
 crossing today (a script over all of them, run once, gives the size of the problem without changing the page);
 remarks or flags about structures that looked wrong.
+
+**Done (page 0.7.0, 2026-11-21).** `tools/overlaps.js` counts the shown structures (scenes of arrow tasks with their
+hydrogens, the structures their reference arrows give, structures to copy; fixed set and 11 daily sets, 141
+structures). Page 0.6.0: 0 with crossing bonds, 1 with bonds nearly touching and an atom on a bond (a shown hydrogen
+on the ester of `d20261119-a2`), 35 with a hydrogen text or a charge sign over a bond; page 0.7.0: none of these.
+Done: detection (`Scene.overlaps`); (a) the other RDKit depiction when the first has overlaps (`fromSmiles`,
+`relayout`); (c) the gap in the bond behind a remaining crossing (`src/canvas.js`); labels: the element symbol
+centred, its hydrogens on the free side (right, left, above, below), the charge sign in the free direction nearest to
+the upper right (`Scene.labelPlan`); a shown hydrogen of an atom other than carbon is placed at least half a bond
+from the rest of its molecule when there is room (`Tasks.showHydrogens`); a carbene carbon is written with its
+unshared pair (request R2 of `docs/BOARD.md`). Not done: (b) distortion, since no structure of the sets needs it;
+its limits (15 degrees, 15 %) stay a proposal until a structure needs them. Not done either: "an arrow ending at a
+crossing snaps to the front bond only" (no crossing is left to test it on).
 
 **Tests.** Unit: detection on constructed crossings and on known difficult structures (bridged bicycles, a
 macrocycle, a crowded quaternary centre); each step (a), (b), (c) reached by a test case; after (b), all angles
@@ -487,3 +500,5 @@ Add dated observations from the first test run here (counts and entry references
 
 | Date | Item | Observation | Source |
 |---|---|---|---|
+| 2026-11-21 | 6 | 141 shown structures: 36 with an overlap on page 0.6.0 (35 a hydrogen text or charge sign over a bond), 0 on page 0.7.0 | `node tools/overlaps.js` |
+| 2026-11-21 | 6 | Agent review: 11 reviewer notes on arrows drawn over bonds or other arrows; this is the agents' ink, not the page's rendering (all 11 read as intended) | review page answers, `docs/AGENT_TESTER.md` |

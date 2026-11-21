@@ -136,6 +136,29 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     eq(errors.length, 0, 'page errors');
   });
 
+  await test('shown structures (plan item 6): a bond behind a crossing is drawn with a gap; charge and hydrogens off the bonds', async () => {
+    const { page, errors } = await open({ width: 1200, height: 900 });
+    const res = await page.evaluate(() => {
+      const app = window.__app;
+      const svg = document.querySelector('#stage2 svg');
+      // two bonds that cross: four line pieces instead of two
+      app.output.setScene({ atoms: [{ id: 'a', el: 'C', q: 0, h: 3, x: 0, y: 0 }, { id: 'b', el: 'C', q: 0, h: 3, x: 3, y: 1.5 }, { id: 'c', el: 'C', q: 0, h: 3, x: 0, y: 1.5 }, { id: 'd', el: 'C', q: 0, h: 3, x: 1.5, y: -0.6 }],
+        bonds: [{ id: 'x', a: 'a', b: 'b', order: 1 }, { id: 'y', a: 'c', b: 'd', order: 1 }] });
+      const lines = svg.querySelectorAll('.cc-bond').length;
+      // ammonium with its bond to the upper right: the sign is not drawn along the bond, the hydrogens are written left
+      app.output.setScene({ atoms: [{ id: 'n', el: 'N', q: 1, h: 3, x: 0, y: 0 }, { id: 'c', el: 'C', q: 0, h: 3, x: 1.06, y: -1.06 }], bonds: [{ id: 'b', a: 'n', b: 'c', order: 1 }] });
+      const n = svg.querySelector('.cc-atom').getBBox();
+      const sign = svg.querySelector('.cc-charge').getBBox();
+      const texts = [...svg.querySelectorAll('.cc-atom')].map((t) => t.textContent);
+      return { lines, nx: n.x + n.width / 2, ny: n.y + n.height / 2, sx: sign.x + sign.width / 2, sy: sign.y + sign.height / 2, texts };
+    });
+    eq(res.lines, 3, 'line pieces: the longer bond in two, the other whole');
+    const ang = Math.atan2(res.sy - res.ny, res.sx - res.nx), off = Math.abs(Math.atan2(Math.sin(ang + Math.PI / 4), Math.cos(ang + Math.PI / 4)));
+    eq(off > 0.6, true, 'sign away from the bond to the upper right (' + off.toFixed(2) + ' rad)');
+    eq(res.texts.join(' '), 'N H3', 'symbol and its hydrogens');
+    eq(errors.join('; '), '', 'page errors');
+  });
+
   await test('one arrow to a full-octet atom: explanation, no result panel', async () => {
     const { page } = await open({ width: 1100, height: 900 });
     const p = await page.evaluate((h) => {
@@ -173,7 +196,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#result:not([hidden])');
     await page.click('#yes');
     const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
-    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.6.0', 'page version');
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.7.0', 'page version');
     // the entry replays: the stored strokes give the stored readings
     const again = await page.evaluate((en) => {
       const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
@@ -476,7 +499,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.6.0', 'page version');
+    eq(e.versions.page, '0.7.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');

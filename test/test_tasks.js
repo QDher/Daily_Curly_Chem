@@ -110,6 +110,48 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(same('CC(=O)O', 'CC(=O)O.CC(=O)O'), false, 'two molecules asked, one given');
   });
 
+  test('overlaps (plan item 6): crossing bonds and an atom on a bond are found; a ring and a chain have none', () => {
+    const cross = { atoms: [{ id: 'a', el: 'C', x: 0, y: 0 }, { id: 'b', el: 'C', x: 1.5, y: 1.5 }, { id: 'c', el: 'C', x: 0, y: 1.5 }, { id: 'd', el: 'C', x: 1.5, y: 0 }, { id: 'e', el: 'O', x: 0.75, y: 0.95 }],
+      bonds: [{ id: 'x', a: 'a', b: 'b', order: 1 }, { id: 'y', a: 'c', b: 'd', order: 1 }] };
+    const o = Scene.overlaps(cross);
+    eq(o.crossings.length, 1, 'crossing'); eq(o.crossings[0].touch, false, 'a real crossing');
+    eq(o.near.length >= 1, true, 'atom on a bond');
+    eq(Scene.overlaps(Scene.fromSpecies(R, ['c1ccccc1', 'CCCCCC'])).crossings.length, 0, 'ring and chain');
+  });
+
+  test('labels (plan item 6): hydrogens and charge on the free side, element centred; carbon written only alone or as a carbene', () => {
+    // ammonium with its bond to the right: the hydrogens go left, the charge away from the bond
+    const nh3 = { atoms: [{ id: 'n', el: 'N', q: 1, h: 3, x: 0, y: 0 }, { id: 'c', el: 'C', q: 0, h: 3, x: 1.5, y: 0 }], bonds: [{ id: 'b', a: 'n', b: 'c', order: 1 }] };
+    const p = Scene.labelPlan(nh3);
+    eq(p.get('n').label, 'N'); eq(p.get('n').hSide, 'left', 'hydrogens left of a bond to the right');
+    eq(Math.abs(p.get('n').charge) >= 0.75, true, 'charge away from the bond at 0 rad');
+    eq(p.get('c').label, null, 'carbon of a chain is a vertex');
+    // a charge on a carbon whose bond goes to the upper right is placed elsewhere
+    const cat = { atoms: [{ id: 'c1', el: 'C', q: 1, h: 2, x: 0, y: 0 }, { id: 'c2', el: 'C', q: 0, h: 3, x: 1.06, y: -1.06 }], bonds: [{ id: 'b', a: 'c1', b: 'c2', order: 1 }] };
+    const t = Scene.labelPlan(cat).get('c1').charge, d = Math.abs(Math.atan2(Math.sin(t + Math.PI / 4), Math.cos(t + Math.PI / 4)));
+    eq(d >= 0.75, true, 'charge not on the bond to the upper right (' + d.toFixed(2) + ' rad)');
+    // a carbene carbon (two bonds, no hydrogen, no charge) is written and marked (request R2)
+    const carbene = { atoms: [{ id: 'k', el: 'C', q: 0, h: 0, x: 0, y: 0 }, { id: 'm1', el: 'C', q: 0, h: 3, x: 1.3, y: 0.75 }, { id: 'm2', el: 'C', q: 0, h: 3, x: -1.3, y: 0.75 }],
+      bonds: [{ id: 'b1', a: 'k', b: 'm1', order: 1 }, { id: 'b2', a: 'k', b: 'm2', order: 1 }] };
+    eq(Scene.labelPlan(carbene).get('k').label, 'C', 'carbene written'); eq(Scene.labelPlan(carbene).get('k').carbene, true, 'carbene marked');
+  });
+
+  test('shown structures of all tasks and daily sets: no crossing, no atom on a bond; shown hydrogens clear of their own molecule', () => {
+    const fs = require('fs');
+    const sets = [data.tasks];
+    for (const f of fs.readdirSync(path.join(__dirname, '..', 'data', 'daily')).filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))) sets.push(require('../data/daily/' + f).tasks);
+    const bad = [];
+    for (const tasks of sets) for (const t of tasks) {
+      let sc = null;
+      if (t.type === 'T1') sc = Tasks.showHydrogens(Tasks.startScene(R, t), t.drawH);
+      else if (t.type === 'T2' && t.target) sc = Scene.fromSpecies(R, t.target.split('.'));
+      if (!sc) continue;
+      const o = Scene.overlaps(sc);
+      if (o.crossings.length || o.near.length) bad.push(t.id);
+    }
+    eq(bad.join(' '), '', 'structures with overlaps');
+  });
+
   test('mechanisms used by T4 tasks exist', () => {
     for (const t of data.tasks.filter((x) => x.type === 'T4')) if (!data.mechanisms[t.mechanism]) throw new Error(t.id);
   });

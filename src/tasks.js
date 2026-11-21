@@ -72,6 +72,14 @@
         }
       }
       const others = s.atoms.filter((a) => !comp.has(a.id));
+      // atoms and bonds of its own molecule that the hydrogen must not land on (plan item 6, page 0.7.0)
+      const own = s.atoms.filter((a) => comp.has(a.id) && a.id !== id);
+      const ownBonds = s.bonds.filter((b) => comp.has(b.a) && b.a !== id && b.b !== id).map((b) => [s.atoms.find((a) => a.id === b.a), s.atoms.find((a) => a.id === b.b)]);
+      const segDist = (p, a, b) => {
+        const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
+        const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+        return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+      };
       const cands = [];
       for (let k = 0; k < 24; k++) {
         const ang = -Math.PI / 2 + (k * Math.PI) / 12;
@@ -84,11 +92,18 @@
         const pt = { x: at0.x + L * Math.cos(ang), y: at0.y + L * Math.sin(ang) };
         let far = Infinity;
         for (const o of others) far = Math.min(far, Math.hypot(o.x - pt.x, o.y - pt.y));
-        cands.push({ pt, gap, far });
+        let clear = Infinity;
+        for (const o of own) clear = Math.min(clear, Math.hypot(o.x - pt.x, o.y - pt.y));
+        for (const [a, b] of ownBonds) clear = Math.min(clear, segDist(pt, a, b));
+        cands.push({ pt, gap, far, clear });
       }
       const best = Math.max(...cands.map((c) => c.gap));
       const need = Math.min(best, (2 * Math.PI) / 3) - 1e-9;
-      const ok = cands.filter((c) => c.gap >= need);
+      let ok = cands.filter((c) => c.gap >= need);
+      // half a bond (0.75) from the rest of its own molecule when possible, else as far from it as there is room
+      const roomy = ok.filter((c) => c.clear >= 0.75);
+      if (roomy.length) ok = roomy;
+      else { const m = Math.max(...ok.map((c) => c.clear)); ok = ok.filter((c) => c.clear >= m - 1e-9); }
       ok.sort((p, q) => (Math.abs(q.far - p.far) > 1e-9 ? q.far - p.far : q.gap - p.gap));
       return ok[0].pt;
     };

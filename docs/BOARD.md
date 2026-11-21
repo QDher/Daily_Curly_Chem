@@ -25,7 +25,7 @@ Last updated: 2026-11-21 (people side, after page 0.6.0).
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
+| `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `src/tasks.js` (placement of shown hydrogens only), `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver

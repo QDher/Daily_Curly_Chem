@@ -89,9 +89,23 @@
         degree.set(b.a, degree.get(b.a) + 1);
         degree.set(b.b, degree.get(b.b) + 1);
       }
-      const label = new Map(s.atoms.map((a) => [a.id, labelOf(a, degree.get(a.id))]));
+      // where hydrogens and charges are written, carbenes (plan item 6; root.Scene.labelPlan)
+      const plan = root.Scene && root.Scene.labelPlan ? root.Scene.labelPlan(s) : null;
+      const label = new Map(s.atoms.map((a) => [a.id, plan ? plan.get(a.id).label : labelOf(a, degree.get(a.id))]));
       gBonds.textContent = '';
       gAtoms.textContent = '';
+      // bonds that still cross after the layout: the longer one is drawn behind, with a gap where the other passes
+      const gaps = new Map();
+      if (root.Scene && root.Scene.overlaps) {
+        const len = (id) => { const b = s.bonds.find((x) => x.id === id); return Math.hypot(at.get(b.a).x - at.get(b.b).x, at.get(b.a).y - at.get(b.b).y); };
+        for (const c of root.Scene.overlaps(s).crossings) {
+          if (c.touch) continue;
+          const back = len(c.a) >= len(c.b) ? c.a : c.b;
+          if (!gaps.has(back)) gaps.set(back, []);
+          gaps.get(back).push({ x: c.x * UNIT, y: c.y * UNIT });
+        }
+      }
+      const GAP = 6; // half of the gap, pixels (about 0.15 of a bond in all)
       for (const b of s.bonds) {
         const A = at.get(b.a);
         const B = at.get(b.b);
@@ -101,29 +115,50 @@
         const cutA = label.get(b.a) ? 11 : 0;
         const cutB = label.get(b.b) ? 11 : 0;
         x1 += ux * cutA; y1 += uy * cutA; x2 -= ux * cutB; y2 -= uy * cutB;
+        // pieces along the bond (from 0 to its drawn length), cut around the crossings it lies behind
+        const total = Math.hypot(x2 - x1, y2 - y1);
+        let pieces = [[0, total]];
+        for (const g of gaps.get(b.id) || []) {
+          const t = (g.x - x1) * ux + (g.y - y1) * uy;
+          pieces = pieces.flatMap(([u, v]) => (t - GAP > u && t + GAP < v ? [[u, t - GAP], [t + GAP, v]] : [[u, v]]));
+        }
         const offs = b.order === 1 ? [0] : b.order === 2 ? [-3, 3] : [-5, 0, 5];
         for (const o of offs) {
-          el('line', { x1: x1 - uy * o, y1: y1 + ux * o, x2: x2 - uy * o, y2: y2 + ux * o, class: 'cc-bond' }, gBonds);
+          for (const [u, v] of pieces) {
+            el('line', { x1: x1 + ux * u - uy * o, y1: y1 + uy * u + ux * o, x2: x1 + ux * v - uy * o, y2: y1 + uy * v + ux * o, class: 'cc-bond' }, gBonds);
+          }
         }
       }
       for (const a of s.atoms) {
         const x = a.x * UNIT, y = a.y * UNIT;
         const lab = label.get(a.id);
+        const p = plan ? plan.get(a.id) : { hSide: 'right', charge: -Math.PI / 4, carbene: false };
         const charge = a.q === 0 ? '' : (Math.abs(a.q) > 1 ? Math.abs(a.q) : '') + (a.q > 0 ? '+' : '−');
+        const half = lab ? (lab.length > 1 ? 9.5 : 5.5) : 0; // half width of the element symbol, pixels
         if (lab) {
-          const t = el('text', { x, y, class: 'cc-atom', 'text-anchor': 'start' }, gAtoms);
-          const main = el('tspan', {}, t);
-          main.textContent = lab;
+          el('text', { x, y: y + 5.5, class: 'cc-atom', 'text-anchor': 'middle' }, gAtoms).textContent = lab;
           if (a.h > 0) {
+            // hydrogens on the free side: right "NH2", left "H2N", above or below
+            const side = p.hSide || 'right';
+            const pos = side === 'right' ? { x: x + half + 0.5, y: y + 5.5, anchor: 'start' }
+              : side === 'left' ? { x: x - half - 0.5, y: y + 5.5, anchor: 'end' }
+                : side === 'up' ? { x, y: y - 10, anchor: 'middle' } : { x, y: y + 21, anchor: 'middle' };
+            const t = el('text', { x: pos.x, y: pos.y, class: 'cc-atom', 'text-anchor': pos.anchor }, gAtoms);
             el('tspan', {}, t).textContent = 'H';
             if (a.h > 1) el('tspan', { class: 'cc-sub', dy: 4 }, t).textContent = String(a.h);
           }
-          if (charge) el('tspan', { class: 'cc-sup', dy: a.h > 1 ? -12 : -8 }, t).textContent = charge;
-          // centre the element symbol on the atom position
-          t.setAttribute('x', x - (lab.length > 1 ? 9 : 5.5));
-          t.setAttribute('y', y + 5.5);
-        } else if (charge) {
-          el('text', { x: x + 6, y: y - 6, class: 'cc-charge' }, gAtoms).textContent = charge;
+          if (p.carbene) {
+            // the unshared pair of a carbene: two dots on the free side opposite the charge place
+            const t = (p.charge !== null && p.charge !== undefined ? p.charge : -Math.PI / 4) + Math.PI;
+            const cx = x + Math.cos(t) * 12, cy = y + 1 + Math.sin(t) * 12;
+            for (const k of [-1, 1]) el('circle', { cx: cx - Math.sin(t) * 2.6 * k, cy: cy + Math.cos(t) * 2.6 * k, r: 1.4, class: 'cc-pair' }, gAtoms);
+          }
+        }
+        if (charge) {
+          // the sign in the free direction nearest to the upper right, beyond the symbol and its hydrogens
+          const t = p.charge !== null && p.charge !== undefined ? p.charge : -Math.PI / 4;
+          const r = (lab ? half + 7 : 9) + (lab && a.h > 0 && p.hSide === 'right' && Math.cos(t) > 0.5 ? (a.h > 1 ? 14 : 9) : 0);
+          el('text', { x: x + Math.cos(t) * r, y: y + Math.sin(t) * r + 4.5, class: 'cc-charge', 'text-anchor': 'middle' }, gAtoms).textContent = charge;
         }
       }
       renderInk();

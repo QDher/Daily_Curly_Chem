@@ -41,6 +41,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .cc-atom { fill: var(--ink); font: 16px system-ui, sans-serif; }
 .cc-sub { font-size: 11px; } .cc-sup { font-size: 12px; }
 .cc-charge { fill: var(--ink); font: 13px system-ui, sans-serif; }
+.cc-pair { fill: var(--ink); }
 .cc-arrow { fill: none; stroke: var(--arrow); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .cc-head { fill: var(--arrow); }
 .cc-hl { fill: none; stroke: var(--hl); stroke-width: 3; opacity: 0.9; }
@@ -383,7 +384,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // when the structure is the expected one up to the position of hydrogens.
   // 0.5.0 (2026-11-21): arrow tasks say how many arrows the step asked for uses.
   // 0.6.0 (2026-11-21): a typed atom placed between several bond ends goes to their middle.
-  const PAGE = '0.6.0';
+  const PAGE = '0.7.0';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
