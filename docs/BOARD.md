@@ -26,6 +26,7 @@ Last updated: 2026-11-21 (people side, after page 0.3.0).
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
 | `src/recognize.js`, `src/canvas.js`, `src/scene.js`, `index.html` | agent side | Round 1 (B1, B2): reading rules from judged agent entries; item 6 (overlaps in shown structures). Starts from recognizer 0.4.0 (people side, 29ceade) | 2026-11-21 | end of round 1 |
+| `index.html` (arrow entries, answer check), `src/tasks.js`, `src/solver.js` | people side | Weakness cases 16 and 17: strokes recorded as applied, answer check tolerant to hydrogen positions, solver plausibility rules. No change of `src/canvas.js`, `src/recognize.js`, `src/scene.js` | 2026-11-21 | pushed the same day |
 
 Note (people side, 2026-11-21): `index.html` and `src/tasks.js` were changed and pushed for page 0.3.0 (comparison
 before the confirmation in copy tasks, `Tasks.differences`); no change is in progress on the people side.
