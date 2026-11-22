@@ -25,7 +25,7 @@ Last updated: 2026-11-21 (agent side, after round 1).
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| – | – | none in progress (round 1 of the agent side finished 2026-11-21) | – | – |
+| `src/recognize.js` | agent side | Nitrile drawn in one straight line from a quaternary carbon (agent copy of 2026-11-21, john0002 d20261120-c5) | 2026-11-22 | when pushed |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
