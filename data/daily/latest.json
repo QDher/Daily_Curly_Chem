@@ -1,5 +1,5 @@
 {
- "date": "2026-11-20",
+ "date": "2026-11-21",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -7,36 +7,88 @@
  },
  "versions": {
   "solver": "0.2.0",
-  "recognize": "0.4.0"
+  "recognize": "0.4.2"
  },
  "tasks": [
   {
-   "id": "d20261120-a1",
+   "id": "d20261121-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
-    "date": "2026-11-19"
+    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
+    "date": "2026-11-20"
    },
-   "conditions": "DABCO (1,4-diazabicyclo[2.2.2]octane, catalytic), Acetaldehyde; neat, rt, several days",
+   "conditions": "N,N-Dimethylformamide (solvent and reagent), POCl₃ (1.1 equiv), added to the DMF at 0 °C before the indole; DMF; indole (in DMF) added below 10 °C, then 35 °C, 1 h",
    "start": [
-    "C=CC(=O)OCC",
-    "C1CN2CCN1CC2"
+    "CN(C)C(Cl)c1c[nH]c2ccccc12"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a2"
+      "lp": "s0a1"
      },
      "to": {
-      "atom": "s0a0"
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a0",
-       "s0a1"
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "atom": "s0a4"
+     }
+    }
+   ],
+   "expected": [
+    "C[N+](C)=Cc1c[nH]c2ccccc12",
+    "CN(C)C=C1C=Nc2ccccc21",
+    "C[N+](C)=Cc1c[nH]c2ccccc12.[Cl-]"
+   ]
+  },
+  {
+   "id": "d20261121-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
+    "date": "2026-11-20"
+   },
+   "target": "c1ccc2[nH]ccc2c1"
+  },
+  {
+   "id": "d20261121-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
+    "date": "2026-11-20"
+   },
+   "conditions": "Crushed ice, then aqueous NaOH (excess); water; heated to the boil, then cooled",
+   "start": [
+    "C[N+](C)=Cc1c[nH]c2ccccc12",
+    "[OH-]"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
       ]
      },
      "to": {
@@ -45,22 +97,22 @@
     }
    ],
    "expected": [
-    "CCOC([O-])=CC[N+]12CCN(CC1)CC2",
-    "CCOC(=O)[CH-]C[N+]12CCN(CC1)CC2"
+    "CN(C)C(O)c1c[nH]c2ccccc12",
+    "CN(C)C([O-])c1c[nH]c2ccccc12"
    ]
   },
   {
-   "id": "d20261120-c1",
+   "id": "d20261121-c2",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
-    "date": "2026-11-19"
+    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
+    "date": "2026-11-20"
    },
-   "target": "C=CC(=O)OCC"
+   "target": "O=Cc1c[nH]c2ccccc12"
   },
   {
-   "id": "d20261120-a2",
+   "id": "d20261121-a3",
    "type": "T1",
    "source": {
     "site": "onepot",
@@ -69,8 +121,7 @@
    },
    "conditions": "DABCO (1,4-diazabicyclo[2.2.2]octane, catalytic), Acetaldehyde; neat, rt, several days",
    "start": [
-    "CCOC([O-])=CC[N+]12CCN(CC1)CC2",
-    "CC=O"
+    "CCOC([O-])=C(C[N+]12CCN(CC1)CC2)C(C)O"
    ],
    "reference": [
     {
@@ -92,165 +143,146 @@
       ]
      },
      "to": {
-      "atom": "s1a1",
-      "via": "s0a5"
-     }
-    },
-    {
-     "from": {
       "bond": [
-       "s1a1",
-       "s1a2"
-      ]
-     },
-     "to": {
-      "atom": "s1a2"
-     }
-    }
-   ],
-   "expected": [
-    "CCOC(=O)C(C[N+]12CCN(CC1)CC2)C(C)[O-]",
-    "CCOC([O-])=C(C[N+]12CCN(CC1)CC2)C(C)O"
-   ]
-  },
-  {
-   "id": "d20261120-c2",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
-    "date": "2026-11-19"
-   },
-   "target": "C=C(C(=O)OCC)C(C)O"
-  },
-  {
-   "id": "d20261120-a3",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "os1921-benzoin-condensation-cyanide",
-    "date": "2026-11-19"
-   },
-   "conditions": "NaCN (ca. 0.2 equiv), Benzaldehyde (second equivalent); 95% EtOH/H₂O, reflux, 30 min; cooling, filtration",
-   "start": [
-    "OC(c1ccccc1)C([O-])(C#N)c1ccccc1"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a9"
-     },
-     "to": {
-      "bond": [
-       "s0a8",
-       "s0a9"
+       "s0a5",
+       "s0a6"
       ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a8",
-       "s0a10"
+       "s0a6",
+       "s0a7"
       ]
      },
      "to": {
-      "atom": "s0a10"
+      "atom": "s0a7"
      }
     }
    ],
    "expected": [
-    "O=C(c1ccccc1)C(O)c1ccccc1",
-    "O=C(c1ccccc1)C(O)c1ccccc1.[C-]#N"
+    "C=C(C(C)O)C(=O)OCC",
+    "C1CN2CCN1CC2.C=C(C(=O)OCC)C(C)O"
    ]
   },
   {
-   "id": "d20261120-c3",
+   "id": "d20261121-c3",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1921-benzoin-condensation-cyanide",
-    "date": "2026-11-19"
+    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
+    "date": "2026-11-20"
    },
-   "target": "O=C(c1ccccc1)C(O)c1ccccc1"
+   "target": "CN(C)C=O"
   },
   {
-   "id": "d20261120-a4",
+   "id": "d20261121-a4",
    "type": "T1",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-ritter-reaction-n-tert-butylacetamide",
-    "date": "2026-11-19"
+    "site": "onepot",
+    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
+    "date": "2026-11-12"
    },
-   "conditions": "acetonitrile, H₂SO₄ (sulfuric acid)",
+   "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
    "start": [
-    "CC(C)(C)O"
+    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC23)OP1([O-])(OC)OC"
    ],
    "reference": [
     {
      "from": {
       "bond": [
-       "s0a1",
-       "s0a4"
+       "s0a8",
+       "s0a22"
       ]
      },
      "to": {
-      "atom": "s0a4"
+      "bond": [
+       "s0a7",
+       "s0a8"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a23",
+       "s0a7"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a22",
+       "s0a23"
+      ]
      }
     }
    ],
    "expected": [
-    "C[C+](C)C",
-    "C[C+](C)C.[OH-]"
+    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC12",
+    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC21.COP(=O)([O-])OC"
    ]
   },
   {
-   "id": "d20261120-c4",
+   "id": "d20261121-c4",
    "type": "T2",
    "source": {
-    "site": "onepot",
-    "problem": "os1921-benzoin-condensation-cyanide",
-    "date": "2026-11-19"
+    "site": "namerxn",
+    "problem": "smn-hofmann-loffler-freytag-n-methylpyrrolidine",
+    "date": "2026-11-20"
    },
-   "target": "N#CC([O-])c1ccccc1"
+   "target": "CCCCN(C)Cl"
   },
   {
-   "id": "d20261120-a5",
+   "id": "d20261121-a5",
    "type": "T1",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-ritter-reaction-n-tert-butylacetamide",
-    "date": "2026-11-19"
+    "site": "onepot",
+    "problem": "ber1903-komppa-claisen-condensation-camphoric",
+    "date": "2026-11-09"
    },
-   "conditions": "acetonitrile, H₂SO₄ (sulfuric acid)",
+   "conditions": "Diethyl oxalate, NaOEt; EtOH, heat",
    "start": [
-    "C[C+](C)C",
-    "CC#N"
+    "CCOC(=O)C([O-])(OCC)C(C(=O)OCC)C(C)(C)CC(=O)OCC"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a2"
+      "lp": "s0a6"
      },
      "to": {
-      "atom": "s0a1"
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a7"
+      ]
+     },
+     "to": {
+      "atom": "s0a7"
      }
     }
    ],
    "expected": [
-    "CC#[N+]C(C)(C)C",
-    "C[C+]=NC(C)(C)C"
+    "CCOC(=O)C(=O)C(C(=O)OCC)C(C)(C)CC(=O)OCC",
+    "CCOC(=O)CC(C)(C)C(C(=O)OCC)C(=O)C(=O)OCC.CC[O-]"
    ]
   },
   {
-   "id": "d20261120-c5",
+   "id": "d20261121-c5",
    "type": "T2",
    "source": {
-    "site": "onepot",
-    "problem": "os1921-benzoin-condensation-cyanide",
-    "date": "2026-11-19"
+    "site": "namerxn",
+    "problem": "smn-hofmann-loffler-freytag-n-methylpyrrolidine",
+    "date": "2026-11-20"
    },
-   "target": "N#CC(O)(c1ccccc1)C([O-])c1ccccc1"
+   "target": "CN1CCCC1"
   }
  ]
 }
