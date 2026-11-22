@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.4.1';
+  const VERSION = '0.4.2';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -200,6 +200,9 @@
       }
       if (!lens.length) return null;
       lens.sort((a, b) => a - b);
+      // a line with no other line at least 0.45 of its length (several bonds drawn in one straight line, as
+      // Ph–C–C≡N through a carbon with four bonds) does not set the range: it is set aside (0.4.2)
+      while (lens.length > 2 && lens[lens.length - 2] < 0.45 * lens[lens.length - 1]) lens.pop();
       const top = lens[lens.length - 1];
       const long = lens.filter((l) => l >= 0.45 * top);
       // lines twice as long as the others are two bonds drawn in one line: not counted

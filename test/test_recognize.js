@@ -63,6 +63,11 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(smi(Rec.recognize(strokes, { labels: [{ el: 'N', q: 0, x: 346.0, y: 189.0 }] }).scene), can('C=CC#N'));
   });
 
+  test('Ph–C–C≡N drawn as one straight line through a carbon with four bonds: the line does not set the bond length (0.4.2, agent copy of 2026-11-21)', () => {
+    const strokes = [poly(50.0, 0.0, 25.0, 43.3, -25.0, 43.3, -50.0, 0.0, -25.0, -43.3, 25.0, -43.3, 50.0, -0.0), line(38.9, 5.5, 24.2, 30.9), line(-24.1, 30.9, -38.9, 5.5), line(-14.7, -36.4, 14.7, -36.4), line(50, 0, 190, 0, 28), line(100, 0, 100, -50), line(100, 0, 100, 50), line(155, -7, 185, -7), line(155, 7, 185, 7)];
+    eq(smi(Rec.recognize(strokes, { labels: [{ el: 'N', q: 0, x: 200, y: 0 }] }).scene), can('CC(C)(C#N)c1ccccc1'));
+  });
+
   test('a short second line of a double bond with a kink is kept as one line (agent copies, 2026-11-21)', () => {
     const strokes = [poly(0, 0, 43, -25, 73, -7.5), poly(45.5, -15.4, 52.1, -8.75, 61.1, -6.3), line(99, -7.5, 116, -17.5), line(86, 15, 86, 35)];
     const labels = [{ el: 'N', q: 1, x: 86, y: 0 }, { el: 'H', q: 0, x: 129, y: -25 }, { el: 'H', q: 0, x: 86, y: 50 }];

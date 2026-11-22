@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-21 (agent side, after round 1).
+Last updated: 2026-11-22 (agent side, recognizer 0.4.2).
 
 ## Links
 
@@ -25,7 +25,7 @@ Last updated: 2026-11-21 (agent side, after round 1).
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `src/recognize.js` | agent side | Nitrile drawn in one straight line from a quaternary carbon (agent copy of 2026-11-21, john0002 d20261120-c5) | 2026-11-22 | when pushed |
+| – | – | none in progress | – | – |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver

@@ -1,4 +1,4 @@
-# Hand-drawn structure recognition, version 0.4.1 (component R0)
+# Hand-drawn structure recognition, version 0.4.2 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
@@ -27,7 +27,9 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
 ## Steps
 
 1. Bond length L: the long straight pieces of the strokes; a straight stroke that points at a letter is counted up to
-   that letter; lines of two or three times the usual length are left out. After a first reading, if the atoms found
+   that letter; lines of two or three times the usual length are left out, and so is a line with no other line at
+   least 0.45 of its length (0.4.2: Ph–C–C≡N drawn as one straight line through a carbon with four bonds made L about one
+   and a half bond lengths, and the lines of the triple bond were then too short to count). After a first reading, if the atoms found
    are farther apart than L, the drawing is read again with the larger value. On a shown structure the drawing has
    its own scale: L is estimated from the strokes when the estimate is between 0.5 and 1.4 times the bond length of
    the structure, else that bond length is used.
@@ -71,7 +73,7 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    hydrogen or its count and is left out. A single straight stroke left as a label and joined to nothing is left
    out. A letter read as H that has two or more bonds is read as N and marked to check.
 
-## Benchmark (synthetic ink; figures of version 0.4.1, 2026-11-21)
+## Benchmark (synthetic ink; figures of version 0.4.2, 2026-11-22)
 
 `data/structures.json`: 390 structures of the published problems of both sites (no metals); 376 are used (the others
 have radicals or are not read back by RDKit). Each is redrawn by `src/ink.js` and must be read as exactly the same
@@ -79,12 +81,12 @@ structure.
 
 | Noise level of the synthetic ink | Exact structures |
 |---|---|
-| 0 (exact lines and letters) | 83.5 % |
-| 1 (neat) | 81.8 % |
-| 2 (ordinary) | 64.1 % |
-| 3 (careless) | 23.5 % |
+| 0 (exact lines and letters) | 83.8 % |
+| 1 (neat) | 82.4 % |
+| 2 (ordinary) | 65.0 % |
+| 3 (careless) | 24.1 % |
 
-Version 0.4.0: 83.5, 80.6, 60.9 and 20.3 %.
+Version 0.4.0: 83.5, 80.6, 60.9 and 20.3 %; version 0.4.1: 83.5, 81.8, 64.1 and 23.5 %.
 
 The letters of the synthetic ink are the recognizer's own templates with distortion: these figures say that the
 method is consistent, not how it performs on real handwriting. That is measured in the test run.
@@ -102,6 +104,7 @@ reading changes or fewer than 5 are exact. Read as exactly the structure asked:
 | 0.3.0 | 5 of 14 | 3 (N read as P once; Br read as B or O) |
 | 0.4.0 | 5 of 14 | two readings changed, none of them to or from exact |
 | 0.4.1 | 5 of 14 | no reading changed |
+| 0.4.2 | 5 of 14 | no reading changed |
 
 Of the other 6: three drawings are incomplete (a letter alone, or a bond that does not reach the letter), one writes
 methyl groups as "Me", two write "NH2+" with a subscript. Main causes found in version 0.1.1: letters written as
@@ -123,8 +126,10 @@ the aromatic ones). Read as exactly the structure asked:
 | 0.3.0 | 45 | 10 | 35 | 33 | 12 |
 | 0.4.0 | 65 | 23 | 42 | 52 | 13 |
 | 0.4.1 | 65 | 23 | 42 | 52 | 13 |
+| 0.4.2 | 65 | 23 | 42 | 52 | 13 |
 
-Version 0.4.1 changed one reading (drawing 47, wrong before and after).
+Version 0.4.1 changed one reading (drawing 47, wrong before and after); version 0.4.2 changed two (drawings 15 and
+166, wrong before and after).
 
 Tasks with at least one attempt read exactly: 30 → 35 of 54; first attempt of a task: 20 → 25.
 
@@ -164,3 +169,8 @@ answered: 90; read as the structure to copy with 0.4.0: 75, with 0.4.1: 80 (the 
 left are messy or crowded drawings (a ring read with an I, chains cut short, a bromonium ring with Si and a boronate).
 Copies judged not readable that are read as the structure to copy: 20 with 0.4.0, 28 with 0.4.1 (short second lines
 kept are read as double bonds).
+
+Version 0.4.2 (2026-11-22) comes from one copy of the reruns with ink 0.3.0 (2026-11-21, john0002, both attempts of
+the nitrile with a carbon of four bonds): both now read exactly; the other 50 copies of those reruns read as before.
+Judged copies (above): readable 80 of 90 read exactly, as with 0.4.1; judged not readable but read as the structure:
+29 (28 with 0.4.1).
