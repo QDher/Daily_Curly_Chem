@@ -25,7 +25,7 @@ Last updated: 2026-11-22 (agent side, recognizer 0.4.2).
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| – | – | none in progress | – | – |
+| `index.html`, `src/tasks.js` | agent side | Days dated Saturday or Sunday listed from the next Monday (`Tasks.releaseDate`), `?ahead=1` for agent testers; page 0.8.0 | 2026-11-23 | push |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
