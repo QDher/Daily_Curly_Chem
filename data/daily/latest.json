@@ -1,5 +1,5 @@
 {
- "date": "2026-11-21",
+ "date": "2026-11-22",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -11,59 +11,183 @@
  },
  "tasks": [
   {
-   "id": "d20261121-a1",
+   "id": "d20261122-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
-    "date": "2026-11-20"
+    "problem": "os1932-claisen-schmidt-dibenzalacetone",
+    "date": "2026-11-21"
    },
-   "conditions": "N,N-Dimethylformamide (solvent and reagent), POCl₃ (1.1 equiv), added to the DMF at 0 °C before the indole; DMF; indole (in DMF) added below 10 °C, then 35 °C, 1 h",
+   "conditions": "Benzaldehyde (2 equiv; first portion), Benzaldehyde (second equivalent), NaOH (aq.); H₂O/EtOH, 20–25 °C, about 45 min; the solid is filtered and washed with water. Draw the hydrogen you need first (button H).",
    "start": [
-    "CN(C)C(Cl)c1c[nH]c2ccccc12"
+    "CC(=O)CC(O)c1ccccc1",
+    "O=Cc1ccccc1"
+   ],
+   "drawH": [
+    "s0a3"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s0a1"
+      "lp": "s1a0"
      },
      "to": {
-      "bond": [
-       "s0a1",
-       "s0a3"
-      ]
+      "atom": "h1"
      }
     },
     {
      "from": {
       "bond": [
        "s0a3",
-       "s0a4"
+       "h1"
       ]
      },
      "to": {
-      "atom": "s0a4"
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
+     },
+     "to": {
+      "atom": "s0a5"
      }
     }
    ],
    "expected": [
-    "C[N+](C)=Cc1c[nH]c2ccccc12",
-    "CN(C)C=C1C=Nc2ccccc21",
-    "C[N+](C)=Cc1c[nH]c2ccccc12.[Cl-]"
+    "CC(=O)C=Cc1ccccc1",
+    "CC(=O)C=Cc1ccccc1.[OH+]=Cc1ccccc1.[OH-]"
    ]
   },
   {
-   "id": "d20261121-c1",
+   "id": "d20261122-c1",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
-    "date": "2026-11-20"
+    "problem": "os1932-claisen-schmidt-dibenzalacetone",
+    "date": "2026-11-21"
    },
-   "target": "c1ccc2[nH]ccc2c1"
+   "target": "CC(C)=O"
   },
   {
-   "id": "d20261121-a2",
+   "id": "d20261122-a2",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
+   },
+   "conditions": "I₂ (iodine), AgOAc (silver acetate)",
+   "start": [
+    "C=C",
+    "II"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a0",
+      "via": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a0",
+       "s1a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a1"
+     }
+    }
+   ],
+   "expected": [
+    "C1C[I+]1",
+    "C1C[I+]1.[I-]"
+   ]
+  },
+  {
+   "id": "d20261122-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1932-claisen-schmidt-dibenzalacetone",
+    "date": "2026-11-21"
+   },
+   "target": "O=C(C=Cc1ccccc1)C=Cc1ccccc1"
+  },
+  {
+   "id": "d20261122-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
+   },
+   "conditions": "I₂ (iodine), AgOAc (silver acetate)",
+   "start": [
+    "ICCOC(C)=O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a6"
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "CC1=[O+]CCO1",
+    "C[C+]1OCCO1",
+    "CC1=[O+]CCO1.[I-]"
+   ]
+  },
+  {
+   "id": "d20261122-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "os1932-claisen-schmidt-dibenzalacetone",
+    "date": "2026-11-21"
+   },
+   "target": "CC(=O)CC(O)c1ccccc1"
+  },
+  {
+   "id": "d20261122-a4",
    "type": "T1",
    "source": {
     "site": "onepot",
@@ -72,8 +196,11 @@
    },
    "conditions": "Crushed ice, then aqueous NaOH (excess); water; heated to the boil, then cooled",
    "start": [
-    "C[N+](C)=Cc1c[nH]c2ccccc12",
+    "CN(C)C(O)c1c[nH]c2ccccc12",
     "[OH-]"
+   ],
+   "drawH": [
+    "s0a4"
    ],
    "reference": [
     {
@@ -81,7 +208,21 @@
       "lp": "s1a0"
      },
      "to": {
-      "atom": "s0a3"
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
      }
     },
     {
@@ -97,144 +238,22 @@
     }
    ],
    "expected": [
-    "CN(C)C(O)c1c[nH]c2ccccc12",
-    "CN(C)C([O-])c1c[nH]c2ccccc12"
+    "O=Cc1c[nH]c2ccccc12",
+    "C[N-]C.O.O=Cc1c[nH]c2ccccc12"
    ]
   },
   {
-   "id": "d20261121-c2",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
-    "date": "2026-11-20"
-   },
-   "target": "O=Cc1c[nH]c2ccccc12"
-  },
-  {
-   "id": "d20261121-a3",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jcsp1982-dabco-acrylate-acetaldehyde-integerrinecic",
-    "date": "2026-11-19"
-   },
-   "conditions": "DABCO (1,4-diazabicyclo[2.2.2]octane, catalytic), Acetaldehyde; neat, rt, several days",
-   "start": [
-    "CCOC([O-])=C(C[N+]12CCN(CC1)CC2)C(C)O"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a4"
-     },
-     "to": {
-      "bond": [
-       "s0a3",
-       "s0a4"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a3",
-       "s0a5"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a5",
-       "s0a6"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a6",
-       "s0a7"
-      ]
-     },
-     "to": {
-      "atom": "s0a7"
-     }
-    }
-   ],
-   "expected": [
-    "C=C(C(C)O)C(=O)OCC",
-    "C1CN2CCN1CC2.C=C(C(=O)OCC)C(C)O"
-   ]
-  },
-  {
-   "id": "d20261121-c3",
-   "type": "T2",
-   "source": {
-    "site": "onepot",
-    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
-    "date": "2026-11-20"
-   },
-   "target": "CN(C)C=O"
-  },
-  {
-   "id": "d20261121-a4",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jacs1969-hwe-enone-corey-prostaglandin",
-    "date": "2026-11-12"
-   },
-   "conditions": "dimethyl (2-oxoheptyl)phosphonate, sodium salt; 1,2-dimethoxyethane (DME)",
-   "start": [
-    "CCCCCC(=O)C1C(C2C(OC(C)=O)CC3OC(=O)CC23)OP1([O-])(OC)OC"
-   ],
-   "reference": [
-    {
-     "from": {
-      "bond": [
-       "s0a8",
-       "s0a22"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a7",
-       "s0a8"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a23",
-       "s0a7"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a22",
-       "s0a23"
-      ]
-     }
-    }
-   ],
-   "expected": [
-    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC12",
-    "CCCCCC(=O)C=CC1C(OC(C)=O)CC2OC(=O)CC21.COP(=O)([O-])OC"
-   ]
-  },
-  {
-   "id": "d20261121-c4",
+   "id": "d20261122-c4",
    "type": "T2",
    "source": {
     "site": "namerxn",
-    "problem": "smn-hofmann-loffler-freytag-n-methylpyrrolidine",
-    "date": "2026-11-20"
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
    },
-   "target": "CCCCN(C)Cl"
+   "target": "OCCO"
   },
   {
-   "id": "d20261121-a5",
+   "id": "d20261122-a5",
    "type": "T1",
    "source": {
     "site": "onepot",
@@ -243,46 +262,46 @@
    },
    "conditions": "Diethyl oxalate, NaOEt; EtOH, heat",
    "start": [
-    "CCOC(=O)C([O-])(OCC)C(C(=O)OCC)C(C)(C)CC(=O)OCC"
+    "CCOC(=O)C1C(=O)C([O-])(OCC)C(C(=O)OCC)C1(C)C"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s0a6"
+      "lp": "s0a9"
      },
      "to": {
       "bond": [
-       "s0a5",
-       "s0a6"
+       "s0a8",
+       "s0a9"
       ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a5",
-       "s0a7"
+       "s0a8",
+       "s0a10"
       ]
      },
      "to": {
-      "atom": "s0a7"
+      "atom": "s0a10"
      }
     }
    ],
    "expected": [
-    "CCOC(=O)C(=O)C(C(=O)OCC)C(C)(C)CC(=O)OCC",
-    "CCOC(=O)CC(C)(C)C(C(=O)OCC)C(=O)C(=O)OCC.CC[O-]"
+    "CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C",
+    "CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C.CC[O-]"
    ]
   },
   {
-   "id": "d20261121-c5",
+   "id": "d20261122-c5",
    "type": "T2",
    "source": {
     "site": "namerxn",
-    "problem": "smn-hofmann-loffler-freytag-n-methylpyrrolidine",
-    "date": "2026-11-20"
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
    },
-   "target": "CN1CCCC1"
+   "target": "CC(=O)[O-]"
   }
  ]
 }
