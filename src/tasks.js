@@ -231,5 +231,19 @@
     return addSpecies(R, { atoms: [], bonds: [] }, list);
   }
 
-  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, differences, skeletons, sameSkeletons, runStep, runMechanism, startScene };
+  // Release of daily content (decision of 2026-11-23): the page and the review page change Monday to Friday; content
+  // dated a Saturday or a Sunday (built every day) is listed from the next Monday. Dates are YYYY-MM-DD in
+  // America/New_York.
+  function releaseDate(date) {
+    const t = Date.parse(date + 'T12:00:00Z');
+    const day = new Date(t).getUTCDay();
+    return day === 6 ? new Date(t + 2 * 864e5).toISOString().slice(0, 10) : day === 0 ? new Date(t + 864e5).toISOString().slice(0, 10) : date;
+  }
+  function todayNY(now) {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now || new Date());
+    const v = (k) => p.find((x) => x.type === k).value;
+    return v('year') + '-' + v('month') + '-' + v('day');
+  }
+
+  return { resolve, addSpecies, withHydrogens, showHydrogens, hydrogensShown, differences, skeletons, sameSkeletons, runStep, runMechanism, startScene, releaseDate, todayNY };
 });

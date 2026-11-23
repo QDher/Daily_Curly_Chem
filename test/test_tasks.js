@@ -152,6 +152,17 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     eq(bad.join(' '), '', 'structures with overlaps');
   });
 
+  test('release of daily content: Saturday and Sunday go to the next Monday; today in New York', () => {
+    eq(Tasks.releaseDate('2026-11-20'), '2026-11-20', 'Friday');
+    eq(Tasks.releaseDate('2026-11-21'), '2026-11-23', 'Saturday');
+    eq(Tasks.releaseDate('2026-11-22'), '2026-11-23', 'Sunday');
+    eq(Tasks.releaseDate('2026-11-23'), '2026-11-23', 'Monday');
+    eq(Tasks.releaseDate('2026-12-26'), '2026-12-28', 'Saturday before a month change');
+    eq(Tasks.releaseDate('2027-02-28'), '2027-03-01', 'Sunday at the end of February');
+    eq(Tasks.todayNY(new Date('2026-11-23T03:30:00Z')), '2026-11-22', '03:30 UTC is the evening before in New York');
+    eq(Tasks.todayNY(new Date('2026-07-01T04:30:00Z')), '2026-07-01', 'summer time');
+  });
+
   test('mechanisms used by T4 tasks exist', () => {
     for (const t of data.tasks.filter((x) => x.type === 'T4')) if (!data.mechanisms[t.mechanism]) throw new Error(t.id);
   });

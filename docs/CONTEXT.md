@@ -135,6 +135,11 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   appears only with `?set=standard` in the address, which the tests and the agent testers (script 0.1.5) use.
   Task ids of a daily set start with `d<date>-`. The answer check accepts a result that contains all species
   of an expected structure (by-products not listed by the problem do not count against it).
+- Weekdays (decision of 2026-11-23): a set is still built every day, but the page lists a day dated Saturday or
+  Sunday from the next Monday (`Tasks.releaseDate`, `Tasks.todayNY` in `src/tasks.js`; page 0.8.0), so the page
+  changes Monday to Friday. When the newest set is not listed yet, the newest listed day is marked "latest".
+  `?ahead=1` lists every day at once (agent testers, script 0.1.7, and tests). The workflow is named "Daily curly
+  chem" (before: "Deploy GitHub Pages").
 - The set of 2026-11-13 was first built with that day's problems, then rebuilt with the tool under the date rule
   (problems of 2026-11-11 and 2026-11-12). It is the only set made in a session.
 - To check after the first scheduled run (night of 2026-11-14, New York): a commit "Daily set <date>" by

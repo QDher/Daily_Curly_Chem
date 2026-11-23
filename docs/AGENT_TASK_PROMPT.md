@@ -1,10 +1,15 @@
-# Scheduled task: daily agent tester run
+# Scheduled task: Daily tester
 
-Backup of the prompt of the Claude Code scheduled task "Agent tester daily run (Daily Curly Chem)"
-(`trig_011K8tD5cD824NjmCTRhhYFb`), which starts a fresh session every day at 06:17 America/New_York and runs every
-agent tester of the rotation (decisions of the user, 2026-11-16; plan in `docs/AGENT_TESTER.md`). A change of the prompt is made in the scheduled task and here, with identical text.
+Backup of the prompt of the Claude Code scheduled task "Daily tester" (`trig_011K8tD5cD824NjmCTRhhYFb`; before
+2026-11-23 "Agent tester daily run (Daily Curly Chem)"), which starts a fresh session every day at 06:17
+America/New_York and runs every agent tester of the rotation (decisions of the user, 2026-11-16; plan in
+`docs/AGENT_TESTER.md`). Runs dated Saturday or Sunday are listed on the review page from the next Monday (decision of
+2026-11-23; `visibleFrom` written by `tools/agent_review_data.js`). A change of the prompt is made in the scheduled
+task and here, with identical text.
 
-Backed up on 2026-11-16 (all testers every day, user request of 2026-11-16).
+Backed up on 2026-11-23: renamed "Daily tester"; DATE computed with an explicit command in America/New_York; runs of
+Saturday and Sunday listed from Monday. Previous backup: 2026-11-16 (all testers every day, user request of
+2026-11-16).
 
 ```text
 Daily agent tester runs of Daily Curly Chem (scheduled task; plan: docs/AGENT_TESTER.md of QDher/Daily_Curly_Chem).
@@ -14,8 +19,10 @@ Setup. Work in a clone of QDher/Daily_Curly_Chem: use the one in the working dir
 origin/main`, then `npm ci` and `npm run setup`. Do not change, commit or push any file of the repository: agent
 outputs are never committed. Review page (claude.ai artifact): https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4
 
-1. DATE = today's date in America/New_York (YYYY-MM-DD). TESTERS = output of
-   `node -e "console.log(require('./tools/agent_testers.json').rotation.join(' '))"`: every agent tester runs every day.
+1. DATE = output of `TZ=America/New_York date +%F` (today in America/New_York, never the UTC date). TESTERS = output of
+   `node -e "console.log(require('./tools/agent_testers.json').rotation.join(' '))"`: every agent tester runs every day,
+   Saturday and Sunday included; the review page lists the runs of Saturday and Sunday from the next Monday (field
+   visibleFrom, written in step 3d), so the steps are the same every day.
 2. Read the review page's published file runs/index.json with the Artifact tool (action "read", the url above,
    path "runs/index.json") and save its content as agent-runs/DATE/site/runs/index.json. A tester whose run
    DATE_TESTER is already listed there is skipped. If no tester is left, stop.

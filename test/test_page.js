@@ -196,7 +196,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#result:not([hidden])');
     await page.click('#yes');
     const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
-    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.7.0', 'page version');
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.8.0', 'page version');
     // the entry replays: the stored strokes give the stored readings
     const again = await page.evaluate((en) => {
       const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
@@ -499,7 +499,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.7.0', 'page version');
+    eq(e.versions.page, '0.8.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');
@@ -978,7 +978,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       dailyMode = mode;
       const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
       const page = await ctx.newPage();
-      await page.goto(url + '#t=' + CODE);
+      await page.goto(url + '?ahead=1#t=' + CODE);
       await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
       eq(await page.textContent('#daily-info'), 'No new task today.', mode);
       eq(await page.isHidden('#start-daily'), true, mode + ': no start button');
@@ -1001,7 +1001,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     if (!daily.tasks.length || index.length < 2) throw new Error('needs a daily set and an earlier day in the repository');
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
     const page = await ctx.newPage();
-    await page.goto(url + '#t=' + CODE);
+    await page.goto(url + '?ahead=1#t=' + CODE);
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     eq(await page.isHidden('#start'), true, 'fixed set hidden');
     eq(await page.inputValue('#day'), daily.date, 'newest day selected');
@@ -1025,13 +1025,49 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
       for (let i = 1; i <= d.copies; i++) e.push({ seq: 100 + i, kind: 'drawing', step: 'd' + d.date.replace(/-/g, '') + '-c' + i, accepted: true });
       localStorage.setItem(key, JSON.stringify(e));
     }, { d: prev, key: await page.evaluate(() => window.__app.storeKey) });
-    await page.goto(url + '?set=standard');
+    await page.goto(url + '?set=standard&ahead=1');
     await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
     eq(await page.isHidden('#start'), false, 'fixed set shown with ?set=standard');
     const marks = await page.locator('#day option').allTextContents();
     eq(marks.filter((t) => t.includes('✓ done')).length, 1, 'one day marked done');
     if (!marks[index.length - 2].includes('✓ done')) throw new Error('the wrong day is marked');
     await ctx.close();
+  });
+
+  await test('days dated Saturday or Sunday are listed from the next Monday; ?ahead=1 lists them at once', async () => {
+    const Tasks = require(path.join(rootDir, 'src', 'tasks.js'));
+    const index = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'index.json'), 'utf8')).days;
+    const daily = JSON.parse(fs.readFileSync(path.join(rootDir, 'data', 'daily', 'latest.json'), 'utf8'));
+    const sat = index.map((d) => d.date).filter((d) => new Date(d + 'T12:00:00Z').getUTCDay() === 6).pop();
+    if (!sat) throw new Error('needs a day dated Saturday in data/daily/index.json');
+    const plus = (d, n) => new Date(Date.parse(d + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+    // the page clock is moved to noon in New York (17:00 UTC) of the given day
+    const open = async (day, query) => {
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      await ctx.addInitScript((shift) => {
+        const D = Date;
+        class Shifted extends D { constructor(...a) { if (a.length) super(...a); else super(D.now() + shift); } static now() { return D.now() + shift; } }
+        window.Date = Shifted;
+      }, Date.parse(day + 'T17:00:00Z') - Date.now());
+      const page = await ctx.newPage();
+      await page.goto(url + (query || '') + '#t=' + CODE);
+      await page.waitForSelector('body[data-ready="1"]', { timeout: 30000 });
+      const shown = await page.$$eval('#day option', (o) => o.map((x) => x.value));
+      const latest = await page.$$eval('#day option', (o) => o.filter((x) => x.textContent.includes('(latest)')).map((x) => x.value));
+      const value = await page.inputValue('#day');
+      await ctx.close();
+      return { shown, latest, value };
+    };
+    for (const [day, query] of [[sat, ''], [plus(sat, 1), ''], [plus(sat, 2), ''], [sat, '?ahead=1']]) {
+      const want = index.filter((d) => query || Tasks.releaseDate(d.date) <= day).map((d) => d.date);
+      const got = await open(day, query);
+      eq(got.shown.join(' '), want.join(' '), 'days listed on ' + day + (query ? ' with ' + query : ''));
+      const newest = query || Tasks.releaseDate(daily.date) <= day ? daily.date : want[want.length - 1];
+      eq(got.latest.join(' '), newest, 'latest on ' + day);
+      eq(got.value, newest, 'selected on ' + day);
+    }
+    eq((await open(sat, '')).shown.includes(sat), false, 'a Saturday is not listed on that Saturday');
+    eq((await open(plus(sat, 2), '')).shown.includes(sat), true, 'a Saturday is listed on the next Monday');
   });
 
   await test('a replaced code says so; a pasted link with stray characters still opens; a failure of the page is shown', async () => {

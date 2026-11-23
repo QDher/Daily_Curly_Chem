@@ -93,11 +93,16 @@ Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agen
 
 ## Daily run: Claude Code scheduled task (2026-11-16)
 
-- Scheduled task "Agent tester daily run (Daily Curly Chem)", a fresh session every day at 06:17 America/New_York,
+- Scheduled task "Daily tester" (before 2026-11-23: "Agent tester daily run (Daily Curly Chem)"), a fresh session
+  every day at 06:17 America/New_York, Saturday and Sunday included,
   after the daily set is built (03:30 UTC). Prompt: `docs/AGENT_TASK_PROMPT.md` (identical to the stored one; a
   change is made in both). Every tester of `rotation` runs once per date; a run already in `runs/index.json` is not
   run again (a second firing on the same date adds only the missing testers). One publish adds all runs of the
   date. Time: about 2 minutes per tester for the script, plus the report.
+- Runs dated Saturday or Sunday are listed on the review page from the next Monday (decision of 2026-11-23): review
+  data 0.4.0 writes `visibleFrom` (`Tasks.releaseDate`) in each line of `runs/index.json`, and the page leaves out a
+  run whose `visibleFrom` is after today in New York ("waiting" count in the status line). The agents open the test
+  page with `?ahead=1` (script 0.1.7), so a run on Sunday tests the set dated Saturday.
 - The session changes nothing in the repository and commits nothing; its outputs go to the review page only.
 - `console/` (Managed Agents agent, environment and deployment of 2026-11-14) is kept but not used: it was never
   applied.

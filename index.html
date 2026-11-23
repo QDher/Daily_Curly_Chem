@@ -101,7 +101,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
       <button id="start-daily" class="primary" hidden>Start the tasks</button>
       <button id="start" hidden>Start the standard set</button>
     </div>
-    <p class="muted">Each day: 5 arrow tasks and 5 structures to copy, new when enough are available. Earlier days stay available in the list. You can skip a task with &ldquo;Next task&rdquo;.</p>
+    <p class="muted">Each day: 5 arrow tasks and 5 structures to copy, new when enough are available; the sets of Saturday and Sunday are listed from Monday. Earlier days stay available in the list. You can skip a task with &ldquo;Next task&rdquo;.</p>
     <p class="muted" id="intro-data"></p>
     <p id="intro-msg" role="status"></p>
   </section>
@@ -267,6 +267,9 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   const CODE_KEY = 'curly:code';
   // ?set=standard shows the button of the fixed set (tests and agent testers); it is not offered to testers
   const showStandard = new URLSearchParams(location.search).get('set') === 'standard';
+  // ?ahead=1 lists the days dated Saturday or Sunday before the next Monday (agent testers, tests); read here, before
+  // the address bar is cleaned
+  const ahead = new URLSearchParams(location.search).get('ahead') === '1';
   const fromLink = new URLSearchParams(location.hash.replace(/^#/, '')).get('t') || new URLSearchParams(location.search).get('t');
   let stored = null;
   try { stored = localStorage.getItem(CODE_KEY); } catch (e) { /* storage unavailable */ }
@@ -325,6 +328,12 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     days.push({ date: daily.date, arrows: daily.tasks.filter((t) => t.type === 'T1').length, copies: daily.tasks.filter((t) => t.type === 'T2').length });
   }
   days.sort((a, b) => (a.date < b.date ? -1 : 1));
+  // Days dated Saturday or Sunday are listed from the next Monday (decision of 2026-11-23); ?ahead=1 lists them at
+  // once (agent testers, tests). When the newest set is not listed yet, the newest listed day is the latest.
+  const today = Tasks.todayNY();
+  const listed = (date) => ahead || Tasks.releaseDate(date) <= today;
+  days = days.filter((d) => listed(d.date));
+  const latest = hasDaily ? (listed(daily.date) ? daily.date : (days.length ? days[days.length - 1].date : null)) : null;
   const TYPE = {
     T1: { label: 'Arrows', text: 'Draw the arrows for this step, then press \u201cApply arrows\u201d.' },
     T2: { label: 'Copy', text: 'Copy the structure by hand.' },
@@ -384,7 +393,9 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // when the structure is the expected one up to the position of hydrogens.
   // 0.5.0 (2026-11-21): arrow tasks say how many arrows the step asked for uses.
   // 0.6.0 (2026-11-21): a typed atom placed between several bond ends goes to their middle.
-  const PAGE = '0.7.0';
+  // 0.7.0 (2026-11-21): no overlap of bonds, labels and charge signs in shown structures; carbene marked.
+  // 0.8.0 (2026-11-23): days dated Saturday or Sunday are listed from the next Monday.
+  const PAGE = '0.8.0';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
@@ -991,9 +1002,9 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     const keep = $('day').value;
     $('day').textContent = '';
     const add = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; $('day').appendChild(o); };
-    days.forEach((d, i) => add(d.date, dayName(d.date) + (hasDaily && d.date === daily.date ? ' (latest)' : '') + (dayDone(d) ? ' · ✓ done' : '')));
-    if (!hasDaily) add(NONE, 'today · no new task');
-    $('day').value = keep || (hasDaily ? daily.date : NONE);
+    days.forEach((d, i) => add(d.date, dayName(d.date) + (d.date === latest ? ' (latest)' : '') + (dayDone(d) ? ' · ✓ done' : '')));
+    if (!latest) add(NONE, 'today · no new task');
+    $('day').value = keep || latest || NONE;
   };
   const showDay = () => {
     const v = $('day').value;

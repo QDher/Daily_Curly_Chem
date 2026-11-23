@@ -4,7 +4,9 @@
 //   runs/<runId>.json   the run: tester, traits, dates, versions, figures, tasks, report, attempts (ink, structure
 //                       drawn on, readings, outcome, habits) and the structures it shows: laid out by RDKit
 //                       ({ smiles: scene }, drawn by the page) and as RDKit drawings ({ smiles: svg }, fallback)
-//   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names), newest last
+//   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names, visibleFrom),
+//                       newest last; visibleFrom = the date from which the review page lists the run (a run dated
+//                       Saturday or Sunday: the next Monday, decision of 2026-11-23; Tasks.releaseDate)
 //   entries/<name>      the entries file saved by the page during the run (synthetic, never committed)
 // runId = <date>_<tester>, or <date>_<tester>_<suffix> for a further run of the same tester and date (--suffix, e.g.
 // ink0.2.0 for a run made again with a new ink; the first run is kept). The reviewers' answers are kept by the page
@@ -19,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
@@ -157,7 +159,7 @@ function write(out, built, opt) {
   fs.writeFileSync(path.join(out, file), JSON.stringify(Object.assign({}, built.runDoc, { attempts: built.attempts, svg, scenes })));
   const r = built.runDoc;
   index.push({
-    runId, date: r.date, tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit, ink: r.ink, script: r.script,
+    runId, date: r.date, visibleFrom: Tasks.releaseDate(r.date), tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit, ink: r.ink, script: r.script,
     summary: r.summary, replay: r.replay, errors: (r.errors || []).length, attemptCount: r.attemptCount,
     report: r.report, source: r.source, file, entries: r.entries, added: r.added,
   });

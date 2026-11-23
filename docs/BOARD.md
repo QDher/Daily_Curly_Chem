@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-22 (agent side, recognizer 0.4.2).
+Last updated: 2026-11-23 (agent side: names of the daily jobs; content of Saturday and Sunday listed from Monday, page 0.8.0, decisions 48 and 49).
 
 ## Links
 
@@ -19,13 +19,13 @@ Last updated: 2026-11-22 (agent side, recognizer 0.4.2).
 | Workflow of the two sides (flow chart, 15 steps; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/XxThPg1cfRoqeTtsEGNHoR |
 | Review page of the agent testers (claude.ai artifact) | https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 |
 | Test page (unlisted, opened with a tester link) | https://qdher.github.io/Daily_Curly_Chem/ |
-| Deployments (GitHub Actions, "Deploy GitHub Pages") | https://github.com/QDher/Daily_Curly_Chem/actions/workflows/pages.yml · https://github.com/QDher/Daily-organic-chemistry-puzzles/actions/workflows/pages.yml · https://github.com/QDher/Daily-name-reaction-puzzle/actions/workflows/pages.yml |
+| Deployments (GitHub Actions: "Daily curly chem" here, "Deploy GitHub Pages" in the two site repositories) | https://github.com/QDher/Daily_Curly_Chem/actions/workflows/pages.yml · https://github.com/QDher/Daily-organic-chemistry-puzzles/actions/workflows/pages.yml · https://github.com/QDher/Daily-name-reaction-puzzle/actions/workflows/pages.yml |
 
 ## Shared files being changed
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `index.html`, `src/tasks.js` | agent side | Days dated Saturday or Sunday listed from the next Monday (`Tasks.releaseDate`), `?ahead=1` for agent testers; page 0.8.0 | 2026-11-23 | push |
+| – | – | none in progress | – | – |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
@@ -64,8 +64,11 @@ were changed, not the rendering. No change is in progress on the people side.
 ## Cycle
 
 Daily:
-1. 03:30 UTC: the workflow builds the daily set from the problems of the two site repositories (`docs/INTERFACES.md` I1).
-2. 06:17 New York: the scheduled task runs the agent testers and publishes the runs to the review page (I3).
+Scheduled tasks and workflow (names of 2026-11-23): "Daily puzzle" (One-Pot Puzzles, sets dated Monday to Friday,
+prepared ahead every day), "Daily name reaction" (a question every day), "Daily curly chem" (workflow of this
+repository), "Daily tester" (agent testers). Content dated Saturday or Sunday of the last two is listed from Monday.
+1. 03:30 UTC: the workflow "Daily curly chem" builds the daily set from the problems of the two site repositories (`docs/INTERFACES.md` I1).
+2. 06:17 New York: the scheduled task "Daily tester" runs the agent testers and publishes the runs to the review page (I3).
 3. Reviewers judge the new attempts in the review page (I4).
 
 Weekly:

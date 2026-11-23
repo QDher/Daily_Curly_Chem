@@ -460,6 +460,14 @@ details.habits dd { margin: 0; }
   // are kept.
   const HIDDEN_INK = ['0.1.0'];
   let hiddenRuns = 0;
+  // Runs dated Saturday or Sunday are listed from the next Monday (visibleFrom of runs/index.json, decision of
+  // 2026-11-23): the page changes Monday to Friday, the agent testers run every day.
+  const todayNY = (() => {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const v = (k) => p.find((x) => x.type === k).value;
+    return v('year') + '-' + v('month') + '-' + v('day');
+  })();
+  let laterRuns = 0;
   let day = null;
   const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
   const runsOf = (d) => [...runs.values()].filter((r) => r.date === d).map((r) => r.runId).sort();
@@ -522,7 +530,7 @@ details.habits dd { margin: 0; }
     const rb = $('report-box');
     rb.textContent = '';
     if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
-    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.' + (hiddenRuns ? ' Runs drawn with ink ' + HIDDEN_INK.join(', ') + ' are not listed (' + hiddenRuns + ').' : '');
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.' + (hiddenRuns ? ' Runs drawn with ink ' + HIDDEN_INK.join(', ') + ' are not listed (' + hiddenRuns + ').' : '') + (laterRuns ? ' Runs of Saturday and Sunday are listed from Monday (' + laterRuns + ' waiting).' : '');
   }
 
   async function loadSelected() {
@@ -627,6 +635,7 @@ details.habits dd { margin: 0; }
       for (const r of list) {
         if (!r || !r.runId) continue;
         if (HIDDEN_INK.includes(r.ink)) { hiddenRuns += 1; continue; }
+        if (r.visibleFrom && r.visibleFrom > todayNY) { laterRuns += 1; continue; }
         runs.set(r.runId, r);
       }
       if (!runs.size) $('runs-status').textContent = 'No run is kept yet.';
