@@ -1,5 +1,5 @@
 {
- "date": "2026-11-22",
+ "date": "2026-11-23",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -11,83 +11,79 @@
  },
  "tasks": [
   {
-   "id": "d20261122-a1",
+   "id": "d20261123-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "os1932-claisen-schmidt-dibenzalacetone",
-    "date": "2026-11-21"
+    "problem": "molecules2021-tmsn3-curtius-oxazolidinone-cytoxazone",
+    "date": "2026-11-22"
    },
-   "conditions": "Benzaldehyde (2 equiv; first portion), Benzaldehyde (second equivalent), NaOH (aq.); H₂O/EtOH, 20–25 °C, about 45 min; the solid is filtered and washed with water. Draw the hydrogen you need first (button H).",
+   "conditions": "Me₃SiN₃ (3.0 equiv); THF (0.04 M), reflux (90 °C), 5 h; cooled to 25 °C, water added, extracted with CH₂Cl₂",
    "start": [
-    "CC(=O)CC(O)c1ccccc1",
-    "O=Cc1ccccc1"
-   ],
-   "drawH": [
-    "s0a3"
+    "COc1ccc(cc1)C(C(O)COCc1ccccc1)C(=O)[N-][N+]#N"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a0"
+      "lp": "s0a22"
      },
      "to": {
-      "atom": "h1"
+      "atom": "s0a8"
      }
     },
     {
      "from": {
       "bond": [
-       "s0a3",
-       "h1"
+       "s0a8",
+       "s0a20"
       ]
      },
      "to": {
       "bond": [
-       "s0a3",
-       "s0a4"
+       "s0a20",
+       "s0a22"
       ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a4",
-       "s0a5"
+       "s0a22",
+       "s0a23"
       ]
      },
      "to": {
-      "atom": "s0a5"
+      "atom": "s0a23"
      }
     }
    ],
    "expected": [
-    "CC(=O)C=Cc1ccccc1",
-    "CC(=O)C=Cc1ccccc1.[OH+]=Cc1ccccc1.[OH-]"
+    "COc1ccc(cc1)C(N=C=O)C(O)COCc1ccccc1",
+    "COc1ccc(C(N=C=O)C(O)COCc2ccccc2)cc1.N#N"
    ]
   },
   {
-   "id": "d20261122-c1",
+   "id": "d20261123-c1",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1932-claisen-schmidt-dibenzalacetone",
-    "date": "2026-11-21"
+    "problem": "molecules2021-tmsn3-curtius-oxazolidinone-cytoxazone",
+    "date": "2026-11-22"
    },
-   "target": "CC(C)=O"
+   "target": "C[Si](C)(C)N=[N+]=[N-]"
   },
   {
-   "id": "d20261122-a2",
+   "id": "d20261123-a2",
    "type": "T1",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
-    "date": "2026-11-21"
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
    },
-   "conditions": "I₂ (iodine), AgOAc (silver acetate)",
+   "conditions": "Ethylene glycol (2.0 equiv), p-TsOH·H₂O (0.2 g for 0.2 mol, catalytic); Toluene, reflux with a Dean–Stark trap, 1 h; washed with cold aqueous NaOH and water, dried over MgSO₄, toluene distilled off",
    "start": [
-    "C=C",
-    "II"
+    "CCOC(=O)CC(C)=O",
+    "OCCO"
    ],
    "reference": [
     {
@@ -95,19 +91,19 @@
       "lp": "s1a0"
      },
      "to": {
-      "atom": "s0a0"
+      "atom": "s0a6"
      }
     },
     {
      "from": {
       "bond": [
-       "s0a0",
-       "s0a1"
+       "s0a6",
+       "s0a8"
       ]
      },
      "to": {
-      "atom": "s1a0",
-      "via": "s0a1"
+      "atom": "s1a1",
+      "via": "s0a8"
      }
     },
     {
@@ -118,46 +114,78 @@
       ]
      },
      "to": {
-      "atom": "s1a1"
+      "atom": "s1a0"
      }
     }
    ],
    "expected": [
-    "C1C[I+]1",
-    "C1C[I+]1.[I-]"
+    "CCOC(=O)CC(C)(O)OCCO"
    ]
   },
   {
-   "id": "d20261122-c2",
+   "id": "d20261123-c2",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1932-claisen-schmidt-dibenzalacetone",
-    "date": "2026-11-21"
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
    },
-   "target": "O=C(C=Cc1ccccc1)C=Cc1ccccc1"
+   "target": "CCOC(=O)CC(C)=O"
   },
   {
-   "id": "d20261122-a3",
+   "id": "d20261123-a3",
    "type": "T1",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
-    "date": "2026-11-21"
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
    },
-   "conditions": "I₂ (iodine), AgOAc (silver acetate)",
+   "conditions": "Ethylene glycol (2.0 equiv), p-TsOH·H₂O (0.2 g for 0.2 mol, catalytic); Toluene, reflux with a Dean–Stark trap, 1 h; washed with cold aqueous NaOH and water, dried over MgSO₄, toluene distilled off",
    "start": [
-    "ICCOC(C)=O"
+    "CCOC(=O)CC(C)(O)OCCO"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s0a6"
+      "bond": [
+       "s0a6",
+       "s0a8"
+      ]
      },
      "to": {
-      "atom": "s0a1"
+      "atom": "s0a8"
      }
-    },
+    }
+   ],
+   "expected": [
+    "CCOC(=O)CC(C)=[O+]CCO",
+    "CCOC(=O)C[C+](C)OCCO",
+    "CCOC(=O)C[C+](C)OCCO.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261123-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "target": "CCOC(=O)CC1(C)OCCO1"
+  },
+  {
+   "id": "d20261123-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
+   },
+   "conditions": "dimethylamine hydrochloride (Me₂NH·HCl), acetone, HCl (catalytic)",
+   "start": [
+    "OCN(C)C"
+   ],
+   "reference": [
     {
      "from": {
       "bond": [
@@ -171,57 +199,53 @@
     }
    ],
    "expected": [
-    "CC1=[O+]CCO1",
-    "C[C+]1OCCO1",
-    "CC1=[O+]CCO1.[I-]"
+    "C=[N+](C)C",
+    "[CH2+]N(C)C",
+    "[CH2+]N(C)C.[OH-]"
    ]
   },
   {
-   "id": "d20261122-c3",
+   "id": "d20261123-c4",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "os1932-claisen-schmidt-dibenzalacetone",
-    "date": "2026-11-21"
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
    },
-   "target": "CC(=O)CC(O)c1ccccc1"
+   "target": "CCOC(=O)CC(C)(O)OCCO"
   },
   {
-   "id": "d20261122-a4",
+   "id": "d20261123-a5",
    "type": "T1",
    "source": {
-    "site": "onepot",
-    "problem": "os1959-vilsmeier-haack-indole-3-aldehyde",
-    "date": "2026-11-20"
+    "site": "namerxn",
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
    },
-   "conditions": "Crushed ice, then aqueous NaOH (excess); water; heated to the boil, then cooled",
+   "conditions": "H₂O, dilute acid (H₃O⁺)",
    "start": [
-    "CN(C)C(O)c1c[nH]c2ccccc12",
-    "[OH-]"
-   ],
-   "drawH": [
-    "s0a4"
+    "CC1(O)OCCO1"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a0"
+      "lp": "s0a2"
      },
      "to": {
-      "atom": "h1"
+      "atom": "s0a4"
      }
     },
     {
      "from": {
       "bond": [
-       "s0a4",
-       "h1"
+       "s0a3",
+       "s0a4"
       ]
      },
      "to": {
       "bond": [
-       "s0a3",
-       "s0a4"
+       "s0a1",
+       "s0a3"
       ]
      }
     },
@@ -229,79 +253,28 @@
      "from": {
       "bond": [
        "s0a1",
-       "s0a3"
+       "s0a2"
       ]
      },
      "to": {
-      "atom": "s0a1"
+      "atom": "s0a2"
      }
     }
    ],
    "expected": [
-    "O=Cc1c[nH]c2ccccc12",
-    "C[N-]C.O.O=Cc1c[nH]c2ccccc12"
+    "OCCOC(C)=O",
+    "CC(=O)OCCO"
    ]
   },
   {
-   "id": "d20261122-c4",
+   "id": "d20261123-c5",
    "type": "T2",
    "source": {
     "site": "namerxn",
-    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
-    "date": "2026-11-21"
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
    },
-   "target": "OCCO"
-  },
-  {
-   "id": "d20261122-a5",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "ber1903-komppa-claisen-condensation-camphoric",
-    "date": "2026-11-09"
-   },
-   "conditions": "Diethyl oxalate, NaOEt; EtOH, heat",
-   "start": [
-    "CCOC(=O)C1C(=O)C([O-])(OCC)C(C(=O)OCC)C1(C)C"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a9"
-     },
-     "to": {
-      "bond": [
-       "s0a8",
-       "s0a9"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a8",
-       "s0a10"
-      ]
-     },
-     "to": {
-      "atom": "s0a10"
-     }
-    }
-   ],
-   "expected": [
-    "CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C",
-    "CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C.CC[O-]"
-   ]
-  },
-  {
-   "id": "d20261122-c5",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
-    "date": "2026-11-21"
-   },
-   "target": "CC(=O)[O-]"
+   "target": "CC(=O)CCN(C)C"
   }
  ]
 }

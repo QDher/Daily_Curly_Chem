@@ -1,0 +1,280 @@
+{
+ "date": "2026-11-23",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.2.0",
+  "recognize": "0.4.2"
+ },
+ "tasks": [
+  {
+   "id": "d20261123-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "molecules2021-tmsn3-curtius-oxazolidinone-cytoxazone",
+    "date": "2026-11-22"
+   },
+   "conditions": "Me₃SiN₃ (3.0 equiv); THF (0.04 M), reflux (90 °C), 5 h; cooled to 25 °C, water added, extracted with CH₂Cl₂",
+   "start": [
+    "COc1ccc(cc1)C(C(O)COCc1ccccc1)C(=O)[N-][N+]#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a22"
+     },
+     "to": {
+      "atom": "s0a8"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a8",
+       "s0a20"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a20",
+       "s0a22"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a22",
+       "s0a23"
+      ]
+     },
+     "to": {
+      "atom": "s0a23"
+     }
+    }
+   ],
+   "expected": [
+    "COc1ccc(cc1)C(N=C=O)C(O)COCc1ccccc1",
+    "COc1ccc(C(N=C=O)C(O)COCc2ccccc2)cc1.N#N"
+   ]
+  },
+  {
+   "id": "d20261123-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "molecules2021-tmsn3-curtius-oxazolidinone-cytoxazone",
+    "date": "2026-11-22"
+   },
+   "target": "C[Si](C)(C)N=[N+]=[N-]"
+  },
+  {
+   "id": "d20261123-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "conditions": "Ethylene glycol (2.0 equiv), p-TsOH·H₂O (0.2 g for 0.2 mol, catalytic); Toluene, reflux with a Dean–Stark trap, 1 h; washed with cold aqueous NaOH and water, dried over MgSO₄, toluene distilled off",
+   "start": [
+    "CCOC(=O)CC(C)=O",
+    "OCCO"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a6",
+       "s0a8"
+      ]
+     },
+     "to": {
+      "atom": "s1a1",
+      "via": "s0a8"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a0",
+       "s1a1"
+      ]
+     },
+     "to": {
+      "atom": "s1a0"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC(=O)CC(C)(O)OCCO"
+   ]
+  },
+  {
+   "id": "d20261123-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "target": "CCOC(=O)CC(C)=O"
+  },
+  {
+   "id": "d20261123-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "conditions": "Ethylene glycol (2.0 equiv), p-TsOH·H₂O (0.2 g for 0.2 mol, catalytic); Toluene, reflux with a Dean–Stark trap, 1 h; washed with cold aqueous NaOH and water, dried over MgSO₄, toluene distilled off",
+   "start": [
+    "CCOC(=O)CC(C)(O)OCCO"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a6",
+       "s0a8"
+      ]
+     },
+     "to": {
+      "atom": "s0a8"
+     }
+    }
+   ],
+   "expected": [
+    "CCOC(=O)CC(C)=[O+]CCO",
+    "CCOC(=O)C[C+](C)OCCO",
+    "CCOC(=O)C[C+](C)OCCO.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261123-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "target": "CCOC(=O)CC1(C)OCCO1"
+  },
+  {
+   "id": "d20261123-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
+   },
+   "conditions": "dimethylamine hydrochloride (Me₂NH·HCl), acetone, HCl (catalytic)",
+   "start": [
+    "OCN(C)C"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    }
+   ],
+   "expected": [
+    "C=[N+](C)C",
+    "[CH2+]N(C)C",
+    "[CH2+]N(C)C.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261123-c4",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "target": "CCOC(=O)CC(C)(O)OCCO"
+  },
+  {
+   "id": "d20261123-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-woodward-cis-dihydroxylation-ethane-1-2-diol",
+    "date": "2026-11-21"
+   },
+   "conditions": "H₂O, dilute acid (H₃O⁺)",
+   "start": [
+    "CC1(O)OCCO1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a2"
+     },
+     "to": {
+      "atom": "s0a4"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     },
+     "to": {
+      "atom": "s0a2"
+     }
+    }
+   ],
+   "expected": [
+    "OCCOC(C)=O",
+    "CC(=O)OCCO"
+   ]
+  },
+  {
+   "id": "d20261123-c5",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
+   },
+   "target": "CC(=O)CCN(C)C"
+  }
+ ]
+}

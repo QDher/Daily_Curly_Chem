@@ -49,7 +49,12 @@
   "C=C.II>C1C[I+]1.[I-]",
   "CC(=O)OCCI>CC1=[O+]CCO1.[I-]",
   "CN(C)C(O)c1c[nH]c2ccccc12.[OH-]>C[N-]C.O.O=Cc1c[nH]c2ccccc12",
-  "CCOC(=O)C1C(=O)C([O-])(OCC)C(C(=O)OCC)C1(C)C>CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C.CC[O-]"
+  "CCOC(=O)C1C(=O)C([O-])(OCC)C(C(=O)OCC)C1(C)C>CCOC(=O)C1C(=O)C(=O)C(C(=O)OCC)C1(C)C.CC[O-]",
+  "COc1ccc(C(C(=O)[N-][N+]#N)C(O)COCc2ccccc2)cc1>COc1ccc(C(N=C=O)C(O)COCc2ccccc2)cc1.N#N",
+  "CCOC(=O)CC(C)=O.OCCO>CCOC(=O)CC(C)(O)OCCO",
+  "CCOC(=O)CC(C)(O)OCCO>CCOC(=O)C[C+](C)OCCO.[OH-]",
+  "CN(C)CO>[CH2+]N(C)C.[OH-]",
+  "CC1(O)OCCO1>CC(=O)OCCO"
  ],
  "copies": [
   "CC(=O)OC1CC2OC(=O)CC2C1C=O",
@@ -106,6 +111,11 @@
   "O=C(C=Cc1ccccc1)C=Cc1ccccc1",
   "CC(=O)CC(O)c1ccccc1",
   "OCCO",
-  "CC(=O)[O-]"
+  "CC(=O)[O-]",
+  "C[Si](C)(C)N=[N+]=[N-]",
+  "CCOC(=O)CC(C)=O",
+  "CCOC(=O)CC1(C)OCCO1",
+  "CCOC(=O)CC(C)(O)OCCO",
+  "CC(=O)CCN(C)C"
  ]
 }
