@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-23 (agent side: names of the daily jobs; content of Saturday and Sunday listed from Monday, page 0.8.0, decisions 48 and 49).
+Last updated: 2026-11-24 (agent side: label "page misread", decision 50, counts in B17).
 
 ## Links
 
@@ -49,9 +49,10 @@ were changed, not the rendering. No change is in progress on the people side.
 | B10 | Written convention for reviewers on arrows | user, reviewers | proposed 2026-11-20 | Arrows: kappa 0.38 on 92 attempts judged by both; the notes show different criteria (start at the charge or the lone pair, end on the bond or the atom) |
 | B11 | Review of the agent testers after two weeks: cost, report quality, calibration, more testers per day | user | due about 2026-11-30 | `docs/PLAN.md` F |
 | B12 | Retirement check (98 % bound) of the agent testers | agent side | no tester reached it on 2026-11-20 | Closest: john0002, lower bound 0.87 for "correct" (threshold 0.90) |
-| B13 | Arrow attempts judged "should not give the structure" that the page accepted (52 judgements up to 2026-11-20) | agent side | open | Examine before using them as labels (depends on B10) |
+| B13 | Arrow attempts judged "should not give the structure" that the page accepted (52 judgements up to 2026-11-20; 93 up to 2026-11-24, and 53 for copies) | agent side | open | Examine before using them as labels (depends on B10) |
 | B14 | Merge of the Worker part (`mech_entries`) | user | at the start of stage 3, not before | Decision 7 |
 | B15 | Pages deploys of the two site repositories failed on 2026-11-21 ("No artifacts named github-pages", 01:35 to 02:31 UTC); today's problems were not live until new runs at 02:31 UTC | any side | done 2026-11-21 | Both workflows now have a build job and a deploy job (50cca04, a50b9f8; first runs succeeded, about 8 s between upload and deploy). A failed deploy can be re-run alone with "Re-run failed jobs" |
+| B17 | "Page misread" (decision 50): another structure read, judged "should not give the right structure" and outcome "wrong" | agent side | open; counted 2026-11-24 | 142 judgements on 122 attempts (copies 139, arrows 3), runs of 2026-11-15 to 2026-11-24 (by ink: 0.1.0 9, 0.2.0 85, 0.3.0 48 judgements); 65 % of the copy judgements where another structure was read. Attempts with another structure judged by both reviewers: 58; both "misread" 20, one of them 24 (the other mostly "should not give", outcome "right": 12). Next: group by cause (missing bond, extra bond, atom) before any rule, then check against people's fixtures |
 | B16 | Agent copies judged not readable that the page reads as the structure to copy: 20 with recognizer 0.4.0, 28 with 0.4.1 | agent side, user | open | The page reads more loosely drawn second lines; whether this is a fault depends on what people draw (no change on synthetic evidence) |
 
 ## Requests between the sides

@@ -271,6 +271,22 @@ for phase 3. Its entries (people, and judged agent entries below) are the data f
 | should not give the right structure | right structure | page too permissive |
 | should not give the right structure | other structure or rejected | correct rejection; negative example |
 
+  When the page did not give the right structure, the reviewer also answers whether the page's outcome was right
+  (`outcome`: "Reading of the drawing" or "Outcome of the arrows" when the page gave another structure, "Is the no
+  reading correct?" when it gave none). This answer refines the label (decision of 2026-11-24):
+
+| Judgement of the drawing | Page | Outcome judged | Label |
+|---|---|---|---|
+| should not give the right structure | other structure | right | correct rejection; the structure read is what was drawn |
+| should not give the right structure | other structure | wrong | page misread: the drawing should give no reading (or another one); negative example for the right structure and for the structure read |
+| should not give the right structure | no reading | right | correct rejection |
+| should not give the right structure | no reading | wrong | the drawing shows another structure that the page did not read |
+| should give the right structure | other structure or no reading | any | weakness of the page (as above) |
+
+  A "page misread" or a "page too permissive" label can only lead to a stricter reading (no reading, or a choice
+  offered to the tester); it never makes the recognition looser. A stricter rule is adopted only when it keeps every
+  drawing of people read today (fixtures of 2026-11-13 and 2026-11-20); judged agent entries find the cases, they do
+  not measure the change.
   Answers "unsure" and attempts not judged carry no label. Judged agent entries are used to find and correct
   weaknesses and as labelled training examples. The strokes stay synthetic: these entries carry their own labels,
   are kept apart from the entries of people, are never counted in the readiness criteria above, in the phase-4
