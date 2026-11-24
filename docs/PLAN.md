@@ -273,7 +273,8 @@ for phase 3. Its entries (people, and judged agent entries below) are the data f
 
   When the page did not give the right structure, the reviewer also answers whether the page's outcome was right
   (`outcome`: "Reading of the drawing" or "Outcome of the arrows" when the page gave another structure, "Is the no
-  reading correct?" when it gave none). This answer refines the label (decision of 2026-11-24):
+  reading correct?" when it gave none, also for a copy whose reading is not a valid structure). This answer refines
+  the label (decision of 2026-11-24):
 
 | Judgement of the drawing | Page | Outcome judged | Label |
 |---|---|---|---|
@@ -287,6 +288,10 @@ for phase 3. Its entries (people, and judged agent entries below) are the data f
   offered to the tester); it never makes the recognition looser. A stricter rule is adopted only when it keeps every
   drawing of people read today (fixtures of 2026-11-13 and 2026-11-20); judged agent entries find the cases, they do
   not measure the change.
+  Each answer records the question it answered (`asked`). Before 2026-11-24 a copy whose reading was not a valid
+  structure (valence error) was asked "Reading of the drawing"; those answers are kept and shown to the reviewer
+  but carry no label until the reviewer answers "Is the no reading correct?" (51 answers on 37 attempts on
+  2026-11-24).
   Answers "unsure" and attempts not judged carry no label. Judged agent entries are used to find and correct
   weaknesses and as labelled training examples. The strokes stay synthetic: these entries carry their own labels,
   are kept apart from the entries of people, are never counted in the readiness criteria above, in the phase-4

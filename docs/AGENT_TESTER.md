@@ -139,7 +139,8 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   with another reviewer) and can show one reviewer's answers (read only). The page stores reviewer ids, never names.
 - Each answer has `drawing` ("not-person" when a person would not draw it), `expected` (yes, no, unsure), `outcome`
   (right, wrong, unsure; asked only when the right structure was not found; for "no reading" the question is whether
-  the no reading is correct), `note`, `reviewer`. `outcome` refines the label (`docs/PLAN.md` F, decision of
+  the no reading is correct, also for a copy whose reading is not a valid structure, from 2026-11-24), `asked` (the
+  question `outcome` answers), `note`, `reviewer`. `outcome` refines the label (`docs/PLAN.md` F, decision of
   2026-11-24): "should not give the right structure" with another structure read and the outcome judged wrong is a
   "page misread", a negative example for both structures. Every judgement counts on its own: an attempt can be "correct" for
   one reviewer and "incorrect" for another, and all judgements count in the 98 % bound of the replacement rule

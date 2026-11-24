@@ -171,7 +171,7 @@ details.habits dd { margin: 0; }
   const OUT = {
     accepted: ['ok', (a) => 'accepted, reading ' + a.rank + (a.rank > 1 ? ' (earlier rejected)' : '')],
     confirmed: ['ok', () => 'confirmed'],
-    flagged: ['bad', () => 'flagged as a wrong reading'],
+    flagged: ['bad', (a) => (a.reading ? 'flagged as a wrong reading' : 'no valid structure read')],
     'none-intended': ['bad', () => 'no reading as intended'],
     'no-reading': ['warn', () => 'no reading'],
     'not-drawn': ['warn', () => 'not drawn'],
@@ -349,7 +349,14 @@ details.habits dd { margin: 0; }
   // ---------- reviews ----------
   const keyOf = (a) => a.runId + '__' + a.set + '__' + a.task + '__' + a.attempt;
   const found = (a) => a.outcome === 'accepted' || a.outcome === 'confirmed';
-  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return !!r.expected && (found(a) || !!r.outcome); };
+  // No structure from the page: arrows with no reading, or a copy whose reading is not a valid structure (valence
+  // error). Both ask "Is the no reading correct?" (copies from 2026-11-24; before, "Reading of the drawing").
+  const noStructure = (a) => a.outcome === 'no-reading' || (a.type === 'T2' && a.outcome === 'flagged' && !a.reading);
+  const askedOf = (a) => (noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
+  // an answer to the outcome question counts only when it was given to the question shown now; answers saved before
+  // the field "asked" existed were given to the question then shown, which differs only for copies with no structure
+  const outcomeOf = (a, r) => (r && r.outcome && (r.asked ? r.asked === askedOf(a) : !(a.type === 'T2' && noStructure(a))) ? r.outcome : null);
+  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return !!r.expected && (found(a) || !!outcomeOf(a, r)); };
   const refreshers = new Map();
   const shownAttempts = () => [].concat(...selected.filter((id) => loaded.has(id)).map((id) => loaded.get(id).attempts));
   function setProgress() {
@@ -366,12 +373,13 @@ details.habits dd { margin: 0; }
       const g = el('div', { class: 'readings' });
       a.readings.forEach((s, i) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (i + 1) })])));
       box.appendChild(g);
-    } else if (a.type === 'T2' && a.outcome === 'flagged') {
+    } else if (a.type === 'T2' && a.outcome === 'flagged' && a.reading) {
       box.appendChild(el('p', { class: 'note', text: 'Structure read from this drawing:' }));
       box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(a.reading))));
       if (a.reasons) box.appendChild(el('p', { class: 'note muted', text: 'Differences from the structure to copy: ' + a.reasons.map((r) => REASON[r] || r).join(', ') }));
     } else {
-      box.appendChild(el('p', { class: 'note', text: a.type === 'T1' ? 'No structure: the page gave no reading of these arrows.' : 'No structure: the page could not read this drawing.' }));
+      box.appendChild(el('p', { class: 'note', text: a.type === 'T1' ? 'No structure: the page gave no reading of these arrows.' : a.outcome === 'flagged' ? 'No structure: the page read no valid structure from this drawing (valence error in the reading).' : 'No structure: the page could not read this drawing.' }));
+      if (a.type === 'T2' && a.reasons) box.appendChild(el('p', { class: 'note muted', text: 'What the page read differs from the structure to copy: ' + a.reasons.map((r) => REASON[r] || r).join(', ') }));
       if (a.message) box.appendChild(el('p', { class: 'note muted', text: 'Page message: ' + a.message }));
     }
     return box;
@@ -388,21 +396,27 @@ details.habits dd { margin: 0; }
     ];
     if (!found(a)) {
       // stored as right / wrong / unsure in every case; for "no reading" the question is whether that is correct
-      const none = a.outcome === 'no-reading';
+      const none = noStructure(a);
       qs.push(['outcome', none ? 'Is the “no reading” correct?' : T1 ? 'Outcome of the arrows' : 'Reading of the drawing',
         none ? [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']] : [['right', 'right'], ['wrong', 'wrong'], ['unsure', 'unsure']], resultOf(a)]);
     }
     const buttons = {};
+    const valueOf = (r, field) => (field === 'outcome' ? outcomeOf(a, r) : (r || {})[field]);
+    let earlier = null;
     for (const [field, title, opts, before] of qs) {
       if (before) box.appendChild(before);
       const q = el('div', { class: 'q' }, title ? el('span', { text: title }) : null);
       buttons[field] = opts.map(([v, t]) => {
         const b = el('button', { class: field === 'drawing' ? 'opt flag' : 'opt', type: 'button', 'aria-pressed': 'false', text: t });
-        b.onclick = () => save({ [field]: (reviews.get(k) || {})[field] === v ? null : v });
+        b.onclick = () => {
+          const now = valueOf(reviews.get(k), field) === v ? null : v;
+          save(field === 'outcome' ? { outcome: now, asked: now ? askedOf(a) : null } : { [field]: now });
+        };
         q.appendChild(b);
         return [v, b];
       });
       box.appendChild(q);
+      if (field === 'outcome') { earlier = el('p', { class: 'note muted' }); box.appendChild(earlier); }
     }
     const ta = el('textarea', { id: 'note-' + k, rows: '2', maxlength: '1000', placeholder: 'Note (optional)' });
     const saveBtn = el('button', { class: 'save', type: 'button', text: 'Save note' });
@@ -426,7 +440,12 @@ details.habits dd { margin: 0; }
     }
     function refresh() {
       const r = reviews.get(k) || {};
-      for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(r[f] === v)); b.disabled = !writable(); }
+      for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(valueOf(r, f) === v)); b.disabled = !writable(); }
+      if (earlier) {
+        const old = r.outcome && !outcomeOf(a, r) ? r.outcome : null;
+        earlier.hidden = !old;
+        earlier.textContent = old ? 'Earlier answer, to the question “Reading of the drawing”: ' + old + '. Please answer this question.' : '';
+      }
       if (document.activeElement !== ta) ta.value = r.note || '';
       ta.disabled = !writable(); saveBtn.disabled = !writable();
     }
