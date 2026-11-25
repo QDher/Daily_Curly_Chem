@@ -1,0 +1,299 @@
+{
+ "date": "2026-11-24",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.2.0",
+  "recognize": "0.4.2"
+ },
+ "tasks": [
+  {
+   "id": "d20261124-a1",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-wolff-kishner-propane",
+    "date": "2026-11-23"
+   },
+   "conditions": "hydrazine (N₂H₄), NaOEt (sodium ethoxide); EtOH, heated",
+   "start": [
+    "CC(C)(O)NN",
+    "NN"
+   ],
+   "drawH": [
+    "s0a4"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a4"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    }
+   ],
+   "expected": [
+    "CC(C)=NN",
+    "CC(C)N=N",
+    "CC(C)=NN.N[NH3+].[OH-]"
+   ]
+  },
+  {
+   "id": "d20261124-c1",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-wolff-kishner-propane",
+    "date": "2026-11-23"
+   },
+   "target": "CC(C)(O)NN"
+  },
+  {
+   "id": "d20261124-a2",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate",
+    "date": "2026-11-09"
+   },
+   "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
+   "start": [
+    "C=CC(=O)OC",
+    "CN(C)C"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a1"
+     },
+     "to": {
+      "atom": "s0a0"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    }
+   ],
+   "expected": [
+    "C[N+](C)(C)CC=C([O-])OC",
+    "C[N+](C)(C)C[CH-]C(=O)OC",
+    "COC(=O)[CH-]C[N+](C)(C)C"
+   ]
+  },
+  {
+   "id": "d20261124-c2",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-wolff-kishner-propane",
+    "date": "2026-11-23"
+   },
+   "target": "CC(C)=NN"
+  },
+  {
+   "id": "d20261124-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate",
+    "date": "2026-11-09"
+   },
+   "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
+   "start": [
+    "C[N+](C)(C)CC=C([O-])OC",
+    "CC=O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a7"
+     },
+     "to": {
+      "bond": [
+       "s0a6",
+       "s0a7"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s1a1",
+      "via": "s0a5"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s1a1",
+       "s1a2"
+      ]
+     },
+     "to": {
+      "atom": "s1a2"
+     }
+    }
+   ],
+   "expected": [
+    "C[N+](C)(C)CC(C(=O)OC)C(C)[O-]",
+    "C[N+](C)(C)CC(=C([O-])OC)C(C)O",
+    "C[N+](C)(C)C[C-](C(=O)OC)C(C)O",
+    "COC(=O)C(C[N+](C)(C)C)C(C)[O-]"
+   ]
+  },
+  {
+   "id": "d20261124-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
+    "date": "2026-11-22"
+   },
+   "target": "CCOC(=O)CC(C)=[O+]CCO"
+  },
+  {
+   "id": "d20261124-a4",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jcs1917-robinson-tropinone-double-mannich",
+    "date": "2026-11-08"
+   },
+   "conditions": "MeNH₂ (aq.), Acetone-1,3-dicarboxylic acid (calcium salt); H₂O, rt",
+   "start": [
+    "CN1C(O)CCC1O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a1"
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a2",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    }
+   ],
+   "expected": [
+    "C[N+]1=CCCC1O",
+    "C[N+]1=CCCC1O.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261124-c4",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
+   },
+   "target": "CN(C)CO"
+  },
+  {
+   "id": "d20261124-a5",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jcs1917-robinson-tropinone-double-mannich",
+    "date": "2026-11-08"
+   },
+   "conditions": "MeNH₂ (aq.), Acetone-1,3-dicarboxylic acid (calcium salt); H₂O, rt",
+   "start": [
+    "CN1C(O)CCC1C(C(=O)O)C(=O)CC(=O)O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a1"
+     },
+     "to": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a2",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    }
+   ],
+   "expected": [
+    "C[N+]1=CCCC1C(C(=O)O)C(=O)CC(=O)O",
+    "C[N+]1=CCCC1C(C(=O)O)C(=O)CC(=O)O.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261124-c5",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
+    "date": "2026-11-22"
+   },
+   "target": "C=[N+](C)C"
+  }
+ ]
+}

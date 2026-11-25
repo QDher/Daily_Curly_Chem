@@ -54,7 +54,12 @@
   "CCOC(=O)CC(C)=O.OCCO>CCOC(=O)CC(C)(O)OCCO",
   "CCOC(=O)CC(C)(O)OCCO>CCOC(=O)C[C+](C)OCCO.[OH-]",
   "CN(C)CO>[CH2+]N(C)C.[OH-]",
-  "CC1(O)OCCO1>CC(=O)OCCO"
+  "CC1(O)OCCO1>CC(=O)OCCO",
+  "CC(C)(O)NN.NN>CC(C)=NN.N[NH3+].[OH-]",
+  "C=CC(=O)OC.CN(C)C>COC(=O)[CH-]C[N+](C)(C)C",
+  "CC=O.COC([O-])=CC[N+](C)(C)C>COC(=O)C(C[N+](C)(C)C)C(C)[O-]",
+  "CN1C(O)CCC1O>C[N+]1=CCCC1O.[OH-]",
+  "CN1C(O)CCC1C(C(=O)O)C(=O)CC(=O)O>C[N+]1=CCCC1C(C(=O)O)C(=O)CC(=O)O.[OH-]"
  ],
  "copies": [
   "CC(=O)OC1CC2OC(=O)CC2C1C=O",
@@ -116,6 +121,11 @@
   "CCOC(=O)CC(C)=O",
   "CCOC(=O)CC1(C)OCCO1",
   "CCOC(=O)CC(C)(O)OCCO",
-  "CC(=O)CCN(C)C"
+  "CC(=O)CCN(C)C",
+  "CC(C)(O)NN",
+  "CC(C)=NN",
+  "CCOC(=O)CC(C)=[O+]CCO",
+  "CN(C)CO",
+  "C=[N+](C)C"
  ]
 }
