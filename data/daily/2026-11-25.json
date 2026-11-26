@@ -1,0 +1,265 @@
+{
+ "date": "2026-11-25",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.2.0",
+  "recognize": "0.5.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261125-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "start": [
+    "CC(C)COC1=CC(O)(CCCC2(C)OCCO2)CC1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a7",
+       "s0a8"
+      ]
+     },
+     "to": {
+      "atom": "s0a8"
+     }
+    }
+   ],
+   "expected": [
+    "CC(C)C[O+]=C1C=C(CCCC2(C)OCCO2)CC1",
+    "CC(C)CO[C+]1C=C(CCCC2(C)OCCO2)CC1",
+    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1",
+    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261125-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(C)COC1=CC(=O)CC1"
+  },
+  {
+   "id": "d20261125-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "start": [
+    "CC(C)COC1(O)C=C(CCCC2(C)OCCO2)CC1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "O=C1C=C(CCCC2(C)OCCO2)CC1",
+    "CC1(CCCC2=CC(=O)CC2)OCCO1.[CH2+]C(C)C.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261125-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(=O)CCCC1=CC(=O)CC1"
+  },
+  {
+   "id": "d20261125-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
+   },
+   "conditions": "H₂SO₄ (sulfuric acid)",
+   "start": [
+    "CC(C)(O)C(C)(C)O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    }
+   ],
+   "expected": [
+    "CC(C)(O)[C+](C)C",
+    "C[C+](C)C(C)(C)O.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261125-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(C)COC1=CC([O-])(CCCC2(C)OCCO2)CC1"
+  },
+  {
+   "id": "d20261125-a4",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate",
+    "date": "2026-11-09"
+   },
+   "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
+   "start": [
+    "C[N+](C)(C)CC(=C([O-])OC)C(C)O"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a7"
+     },
+     "to": {
+      "bond": [
+       "s0a6",
+       "s0a7"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    }
+   ],
+   "expected": [
+    "C=C(C(=O)OC)C(C)O",
+    "C=C(C(=O)OC)C(C)O.CN(C)C"
+   ]
+  },
+  {
+   "id": "d20261125-c4",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(C)(O)C(C)(C)O"
+  },
+  {
+   "id": "d20261125-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-staudinger-reduction-methylamine",
+    "date": "2026-11-08"
+   },
+   "conditions": "PMe₃ (trimethylphosphine)",
+   "start": [
+    "CN=[N+]=[N-]",
+    "CP(C)C"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a1"
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a2",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a2"
+     }
+    }
+   ],
+   "expected": [
+    "CN1N=NP1(C)(C)C",
+    "CN=NN=P(C)(C)C",
+    "CN=N[N-][P+](C)(C)C"
+   ]
+  },
+  {
+   "id": "d20261125-c5",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(=O)C(C)(C)C"
+  }
+ ]
+}

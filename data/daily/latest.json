@@ -1,5 +1,5 @@
 {
- "date": "2026-11-24",
+ "date": "2026-11-25",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -7,48 +7,118 @@
  },
  "versions": {
   "solver": "0.2.0",
-  "recognize": "0.4.2"
+  "recognize": "0.5.0"
  },
  "tasks": [
   {
-   "id": "d20261124-a1",
+   "id": "d20261125-a1",
    "type": "T1",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-wolff-kishner-propane",
-    "date": "2026-11-23"
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
    },
-   "conditions": "hydrazine (N₂H₄), NaOEt (sodium ethoxide); EtOH, heated",
+   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
    "start": [
-    "CC(C)(O)NN",
-    "NN"
-   ],
-   "drawH": [
-    "s0a4"
+    "CC(C)COC1=CC(O)(CCCC2(C)OCCO2)CC1"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s1a0"
+      "bond": [
+       "s0a7",
+       "s0a8"
+      ]
      },
      "to": {
-      "atom": "h1"
+      "atom": "s0a8"
+     }
+    }
+   ],
+   "expected": [
+    "CC(C)C[O+]=C1C=C(CCCC2(C)OCCO2)CC1",
+    "CC(C)CO[C+]1C=C(CCCC2(C)OCCO2)CC1",
+    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1",
+    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261125-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(C)COC1=CC(=O)CC1"
+  },
+  {
+   "id": "d20261125-a2",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "start": [
+    "CC(C)COC1(O)C=C(CCCC2(C)OCCO2)CC1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
      }
     },
     {
      "from": {
       "bond": [
-       "s0a4",
-       "h1"
+       "s0a5",
+       "s0a6"
       ]
      },
      "to": {
-      "bond": [
-       "s0a1",
-       "s0a4"
-      ]
+      "atom": "s0a6"
      }
-    },
+    }
+   ],
+   "expected": [
+    "O=C1C=C(CCCC2(C)OCCO2)CC1",
+    "CC1(CCCC2=CC(=O)CC2)OCCO1.[CH2+]C(C)C.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261125-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "target": "CC(=O)CCCC1=CC(=O)CC1"
+  },
+  {
+   "id": "d20261125-a3",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
+   },
+   "conditions": "H₂SO₄ (sulfuric acid)",
+   "start": [
+    "CC(C)(O)C(C)(C)O"
+   ],
+   "reference": [
     {
      "from": {
       "bond": [
@@ -62,23 +132,22 @@
     }
    ],
    "expected": [
-    "CC(C)=NN",
-    "CC(C)N=N",
-    "CC(C)=NN.N[NH3+].[OH-]"
+    "CC(C)(O)[C+](C)C",
+    "C[C+](C)C(C)(C)O.[OH-]"
    ]
   },
   {
-   "id": "d20261124-c1",
+   "id": "d20261125-c3",
    "type": "T2",
    "source": {
-    "site": "namerxn",
-    "problem": "smn-wolff-kishner-propane",
-    "date": "2026-11-23"
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
    },
-   "target": "CC(C)(O)NN"
+   "target": "CC(C)COC1=CC([O-])(CCCC2(C)OCCO2)CC1"
   },
   {
-   "id": "d20261124-a2",
+   "id": "d20261125-a4",
    "type": "T1",
    "source": {
     "site": "namerxn",
@@ -87,58 +156,7 @@
    },
    "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
    "start": [
-    "C=CC(=O)OC",
-    "CN(C)C"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a1"
-     },
-     "to": {
-      "atom": "s0a0"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a0",
-       "s0a1"
-      ]
-     },
-     "to": {
-      "atom": "s0a1"
-     }
-    }
-   ],
-   "expected": [
-    "C[N+](C)(C)CC=C([O-])OC",
-    "C[N+](C)(C)C[CH-]C(=O)OC",
-    "COC(=O)[CH-]C[N+](C)(C)C"
-   ]
-  },
-  {
-   "id": "d20261124-c2",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-wolff-kishner-propane",
-    "date": "2026-11-23"
-   },
-   "target": "CC(C)=NN"
-  },
-  {
-   "id": "d20261124-a3",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate",
-    "date": "2026-11-09"
-   },
-   "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
-   "start": [
-    "C[N+](C)(C)CC=C([O-])OC",
-    "CC=O"
+    "C[N+](C)(C)CC(=C([O-])OC)C(C)O"
    ],
    "reference": [
     {
@@ -160,61 +178,59 @@
       ]
      },
      "to": {
-      "atom": "s1a1",
-      "via": "s0a5"
+      "bond": [
+       "s0a4",
+       "s0a5"
+      ]
      }
     },
     {
      "from": {
       "bond": [
-       "s1a1",
-       "s1a2"
+       "s0a1",
+       "s0a4"
       ]
      },
      "to": {
-      "atom": "s1a2"
+      "atom": "s0a1"
      }
     }
    ],
    "expected": [
-    "C[N+](C)(C)CC(C(=O)OC)C(C)[O-]",
-    "C[N+](C)(C)CC(=C([O-])OC)C(C)O",
-    "C[N+](C)(C)C[C-](C(=O)OC)C(C)O",
-    "COC(=O)C(C[N+](C)(C)C)C(C)[O-]"
+    "C=C(C(=O)OC)C(C)O",
+    "C=C(C(=O)OC)C(C)O.CN(C)C"
    ]
   },
   {
-   "id": "d20261124-c3",
+   "id": "d20261125-c4",
    "type": "T2",
    "source": {
-    "site": "onepot",
-    "problem": "cureus2025-tsoh-ethylene-glycol-ketalization-fructone",
-    "date": "2026-11-22"
+    "site": "namerxn",
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
    },
-   "target": "CCOC(=O)CC(C)=[O+]CCO"
+   "target": "CC(C)(O)C(C)(C)O"
   },
   {
-   "id": "d20261124-a4",
+   "id": "d20261125-a5",
    "type": "T1",
    "source": {
-    "site": "onepot",
-    "problem": "jcs1917-robinson-tropinone-double-mannich",
+    "site": "namerxn",
+    "problem": "smn-staudinger-reduction-methylamine",
     "date": "2026-11-08"
    },
-   "conditions": "MeNH₂ (aq.), Acetone-1,3-dicarboxylic acid (calcium salt); H₂O, rt",
+   "conditions": "PMe₃ (trimethylphosphine)",
    "start": [
-    "CN1C(O)CCC1O"
+    "CN=[N+]=[N-]",
+    "CP(C)C"
    ],
    "reference": [
     {
      "from": {
-      "lp": "s0a1"
+      "lp": "s1a1"
      },
      "to": {
-      "bond": [
-       "s0a1",
-       "s0a2"
-      ]
+      "atom": "s0a3"
      }
     },
     {
@@ -225,75 +241,25 @@
       ]
      },
      "to": {
-      "atom": "s0a3"
+      "atom": "s0a2"
      }
     }
    ],
    "expected": [
-    "C[N+]1=CCCC1O",
-    "C[N+]1=CCCC1O.[OH-]"
+    "CN1N=NP1(C)(C)C",
+    "CN=NN=P(C)(C)C",
+    "CN=N[N-][P+](C)(C)C"
    ]
   },
   {
-   "id": "d20261124-c4",
+   "id": "d20261125-c5",
    "type": "T2",
    "source": {
     "site": "namerxn",
-    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
-    "date": "2026-11-22"
+    "problem": "smn-pinacol-rearrangement-pinacolone",
+    "date": "2026-11-24"
    },
-   "target": "CN(C)CO"
-  },
-  {
-   "id": "d20261124-a5",
-   "type": "T1",
-   "source": {
-    "site": "onepot",
-    "problem": "jcs1917-robinson-tropinone-double-mannich",
-    "date": "2026-11-08"
-   },
-   "conditions": "MeNH₂ (aq.), Acetone-1,3-dicarboxylic acid (calcium salt); H₂O, rt",
-   "start": [
-    "CN1C(O)CCC1C(C(=O)O)C(=O)CC(=O)O"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a1"
-     },
-     "to": {
-      "bond": [
-       "s0a1",
-       "s0a2"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a2",
-       "s0a3"
-      ]
-     },
-     "to": {
-      "atom": "s0a3"
-     }
-    }
-   ],
-   "expected": [
-    "C[N+]1=CCCC1C(C(=O)O)C(=O)CC(=O)O",
-    "C[N+]1=CCCC1C(C(=O)O)C(=O)CC(=O)O.[OH-]"
-   ]
-  },
-  {
-   "id": "d20261124-c5",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-mannich-4-dimethylaminobutan-2-one",
-    "date": "2026-11-22"
-   },
-   "target": "C=[N+](C)C"
+   "target": "CC(=O)C(C)(C)C"
   }
  ]
 }
