@@ -61,6 +61,8 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   atoms; recognizers 0.4.0 and 0.5.0 were tuned on them, so they are a regression test, not an independent measure). After a change of the recognizer, rebuild its `reads` and `recognizer` fields
   (`node tools/update_fixture.js --write`, and the same with `test/fixtures/drawings_2026-11-20.json` as first
   argument) and report the counts.
+  Agreement of 2026-11-26 (decision 60): the tester and the reviewer agreed to the use of their data; the entries
+  file of 2026-11-25 (read from the review page) may be used the same way, stroke points only.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Arrow tasks show every hydrogen of an atom other than carbon as an atom with a bond (`Tasks.showHydrogens`,
