@@ -7,8 +7,12 @@ It receives the entries the page sends (`POST /mech_entries`) and gives them bac
 State on 2026-11-26: the D1 database `curly-entries` exists with the table `mech_entries` (empty). The Worker is
 deployed (2026-11-26 15:40 UTC, through the Cloudflare API connector; deployed `index.js` and `rows.js` identical to
 `main` at 8b475d5 by SHA-256), at https://curly-entries.dailyorgchem.workers.dev, with the bindings of
-`wrangler.toml`. Not done: the secret `MECH_EXPORT_KEY`, the checks of step 3 (the network of the cloud environment
-refuses the host) and steps 4 to 6; the page sends nothing (`worker: null` in `data/config.json`).
+`wrangler.toml`. Same day: the user set the secret `MECH_EXPORT_KEY` (the export with the key of the cloud environment
+answers 200) and allowed the host; the checks of step 3 passed (`GET /` 200, unknown label 400, export without or
+with a wrong key 403, origin other than `ALLOWED_ORIGINS` 403); step 4 done: `worker` set in `data/config.json`
+(decision 67). Step 5: from the page under its origin, an entry with the session label was refused (400 "unknown
+visitor") and the page saved the file; a row of an accepted label stored and read back is pending (the user sends
+one from the live page).
 
 Tests: `cd worker && npm ci && npm test` (local database, 8 tests; also run by `.github/workflows/worker.yml`).
 

@@ -44,10 +44,10 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   Solver 0.2.0 refuses results no single step forms (`Solver.plausible`); sets built before are not rebuilt.
   The page lists the days from `data/daily/index.json` (written by the tool); the fixed set of `data/tasks.json`
   is shown only with `?set=standard` (tests, agent testers), not to testers.
-- Entries: collected as files saved by the testers. From decision 64 (2026-11-26) the page will send them to the
-  separate Worker `curly-entries` of this repository (`worker/`, `worker/README.md`: database made, Worker not
-  deployed yet, `worker: null` until then). Earlier rule, kept for the shared Worker: sending to the Worker of QDher/Daily-organic-chemistry-puzzles is
-  switched off (`data/config.json`, `worker: null`) until its branch is merged, which the user does at the
+- Entries: from decision 67 (2026-11-26) the page sends them to the separate Worker `curly-entries` of this
+  repository (`worker/`, `worker/README.md`; `worker` set in `data/config.json`) and still saves the file at the end
+  when sending fails. Earlier rule, kept for the shared Worker: the page does not send to the Worker of
+  QDher/Daily-organic-chemistry-puzzles (`puzzle-feedback`) until its branch is merged, which the user does at the
   start of stage 3 of `docs/PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
   rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
   `MECH_EXPORT_KEY` (never in a repository).
