@@ -116,6 +116,13 @@ Decisions 53 to 55 (`docs/DECISIONS.md`), rules in `docs/handoff/arrow-conventio
   that ends at the middle of a new bond whose atoms are farther apart than `pairReach` (4.5 units; `t1-cc-bond`,
   5.1 units) gives no reading as intended although it follows the convention (known since 2026-11-14; not changed,
   thresholds are set on drawings of people).
+- Comparison run (2026-11-26): the four testers with ink 0.4.0 on the seeds and the daily set (2026-11-24) of the
+  scheduled run of 2026-11-25 (ink 0.3.0), arrow tasks only (`--types T1`), published as
+  `2026-11-25_<tester>_ink0.4.0`. Arrow tasks on the first attempt and first reading / accepted, of 11 per tester,
+  ink 0.3.0 → 0.4.0: john0002 6/10 → 7/11, john0003 6/10 → 6/9, john0004 5/10 → 5/10, john0005 8/10 → 7/11; 10 of
+  47 attempts broke a rule on purpose. `t1-cc-bond` gave no reading for all four with ink 0.3.0; with 0.4.0 it is
+  read when the arrow ends on the receiving carbon or between (2 testers) and not when it ends at the middle
+  (`pairReach`). New with 0.4.0: john0003 `d20261124-a1` (board item B19, lone pair of an atom with three bonds).
 - Retirement rule (`docs/PLAN.md` F, board item B12): with one rule broken in 20 % of the arrow attempts, a precise
   tester's arrows cannot all be judged "correct" when reviewers answer "should not give the right structure" for the
   broken ones; copies have no rule breaking. The bound is still computed over all judged attempts, as decided.
