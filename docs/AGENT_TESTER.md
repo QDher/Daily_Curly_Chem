@@ -144,6 +144,8 @@ Decisions 53 to 55 (`docs/DECISIONS.md`), rules in `docs/handoff/arrow-conventio
    copies the entries file; the session publishes them with the review page (below).
 
 Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agent-runs/<date>/`, ignored by git).
+`--types T1` (script 0.1.9) does the arrow tasks only: used for a run made again with a new arrow ink, whose
+copies would be drawn with the same strokes as the first run (ink 0.4.0 draws copies as 0.3.0 did).
 
 ## Daily run: Claude Code scheduled task (2026-11-16)
 

@@ -22,7 +22,9 @@
 // that code and are never tester data.
 //
 // Run: node tools/agent_tester.js [--agent john0002|...|auto] [--date YYYY-MM-DD] [--sets standard,daily]
-//                                 [--out DIR] [--tasks N] [--chromium PATH]
+//                                 [--types T1,T2] [--out DIR] [--tasks N] [--chromium PATH]
+// --types T1: arrow tasks only (script 0.1.9), e.g. for a run made again with a new arrow ink, whose copies would be
+// drawn with the same strokes as in the first run.
 // --agent auto (default): the tester of the day in the rotation of tools/agent_testers.json.
 // Exit code 1 when the page reported an error or an entry does not replay.
 'use strict';
@@ -34,7 +36,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.8';
+const VERSION = '0.1.9';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -48,6 +50,7 @@ function args() {
     agent: get('agent') || 'auto',
     date: get('date'),
     sets: (get('sets') || 'standard,daily').split(',').map((s) => s.trim()).filter(Boolean),
+    types: (get('types') || 'T1,T2').split(',').map((s) => s.trim()).filter(Boolean),
     out: get('out'),
     tasks: get('tasks') ? Number(get('tasks')) : Infinity,
     chromium: get('chromium') || process.env.AGENT_CHROMIUM || undefined,
@@ -129,7 +132,7 @@ async function main() {
     tool: 'tools/agent_tester.js', version: VERSION, ink: Ink.VERSION, date, started: new Date().toISOString(), commit,
     tester: name, label, traits: w.traits, habits: round(w.habits),
     noise: Ink.PRECISION[w.traits.precision], consistency: Ink.CONSISTENCY[w.traits.consistency],
-    versions: null, sets: [], attempts: [], errors, file: null, device: null, replay: null,
+    versions: null, sets: [], types: opt.types, attempts: [], errors, file: null, device: null, replay: null,
   };
 
   const centre = () => page.evaluate(() => document.getElementById('stage').scrollIntoView({ block: 'center' }));
@@ -328,6 +331,7 @@ async function main() {
     run.sets.push(info);
     for (let i = 0; i < tasks.length && info.done < opt.tasks; i++) {
       const task = tasks[i];
+      if ((task.type === 'T1' || task.type === 'T2') && !opt.types.includes(task.type)) continue;
       if (task.type !== 'T1' && task.type !== 'T2') {
         run.attempts.push({ set, task: task.id, type: task.type, attempt: 0, outcome: 'not-done', message: task.type === 'T3' ? 'drawing a species next to a structure is not built' : 'votes on a mechanism are not part of the agent tester' });
         continue;
