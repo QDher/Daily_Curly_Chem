@@ -164,7 +164,9 @@ pointer type (john0006 and later); the others draw as with ink 0.4.0 (same strok
   john0006 75 %, john0007 40 %, john0008 67 %, john0009 42 % (copies with handwritten letters 68 %, 35 %, 61 %, 36 %;
   typed only 100 %, 72 %, 95 %, 77 %). People (`node tools/measure.js`): 49 % on the tuning set (46 % with
   handwritten letters), 24 % held-out. Most copies not read exactly have an atom read wrong, with handwritten
-  letters, as for people.
+  letters, as for people. In the browser (`tools/agent_tester.js`, date 2026-11-26, standard set and daily set of
+  2026-11-25): copies confirmed on the first attempt 7, 3, 5, 6 of 9 (john0006 to john0009), arrow tasks on the first
+  reading 10, 9, 9, 8 of 11; no page error; every entry replays.
 
 ## One run
 
