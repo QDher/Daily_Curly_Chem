@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: recognizer 0.5.0, decision 56; decisions 53 to 55 and request R3).
+Last updated: 2026-11-26 (people side: analysis of the two tasks linked, item B18; recognizer 0.5.0; decisions 53 to 56).
 
 ## Links
 
@@ -19,6 +19,7 @@ Last updated: 2026-11-26 (people side: recognizer 0.5.0, decision 56; decisions 
 | Workflow of the two sides (flow chart, 15 steps; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/XxThPg1cfRoqeTtsEGNHoR |
 | Order of the six stages with results so far (flow chart of 2026-11-26; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/AfNdFJjebW9KjvzS78mJVH |
 | How people's entries and agent testers feed one fix round and improve each other (flow chart of 2026-11-26; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/VRLAevQny7GNWRHCpffyzD |
+| Analysis and improvement proposals for the two parallel tasks, people and agents (2026-11-26; 7 proposals, none decided) | `docs/handoff/review-of-the-two-tasks_2026-11-26.md` |
 | Review page of the agent testers (claude.ai artifact) | https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 |
 | Test page (unlisted, opened with a tester link) | https://qdher.github.io/Daily_Curly_Chem/ |
 | Deployments (GitHub Actions: "Daily curly chem" here, "Deploy GitHub Pages" in the two site repositories) | https://github.com/QDher/Daily_Curly_Chem/actions/workflows/pages.yml · https://github.com/QDher/Daily-organic-chemistry-puzzles/actions/workflows/pages.yml · https://github.com/QDher/Daily-name-reaction-puzzle/actions/workflows/pages.yml |
@@ -65,6 +66,7 @@ This upload route is not described in `docs/INTERFACES.md`.
 | B14 | Merge of the Worker part (`mech_entries`) | user | at the start of stage 3, not before | Decision 7 |
 | B15 | Pages deploys of the two site repositories failed on 2026-11-21 ("No artifacts named github-pages", 01:35 to 02:31 UTC); today's problems were not live until new runs at 02:31 UTC | any side | done 2026-11-21 | Both workflows now have a build job and a deploy job (50cca04, a50b9f8; first runs succeeded, about 8 s between upload and deploy). A failed deploy can be re-run alone with "Re-run failed jobs" |
 | B17 | "Page misread" (decision 50): another structure read, judged "should not give the right structure" and outcome "wrong" | agent side | open; counted 2026-11-24 | 142 judgements on 122 attempts (copies 139, arrows 3), runs of 2026-11-15 to 2026-11-24 (by ink: 0.1.0 9, 0.2.0 85, 0.3.0 48 judgements); 65 % of the copy judgements where another structure was read. Attempts with another structure judged by both reviewers: 58; both "misread" 20, one of them 24 (the other mostly "should not give", outcome "right": 12). Next: group by cause (missing bond, extra bond, atom) before any rule, then check against people's fixtures. Copies with no valid structure now ask "Is the no reading correct?" (decision 51): 51 earlier answers on 37 attempts wait to be answered again |
+| B18 | Choice among the 7 proposals of the analysis of the two tasks (more people first; ink calibration and handwritten letters for the agents; reviewers on people's drawings; agents as a targeted instrument; one shared measure; letters by typing or a small trained classifier; record what the tester did after a failure) | user | waiting for the user's choice, 2026-11-26 | `docs/handoff/review-of-the-two-tasks_2026-11-26.md`; nothing is implemented before the choice |
 | B16 | Agent copies judged not readable that the page reads as the structure to copy: 20 with recognizer 0.4.0, 28 with 0.4.1 | agent side, user | open | The page reads more loosely drawn second lines; whether this is a fault depends on what people draw (no change on synthetic evidence) |
 
 ## Requests between the sides
