@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: decisions 53 to 55, request R3, convention for the agents' arrows).
+Last updated: 2026-11-26 (people side: decisions 53 to 55; request R3 to the agent side: agent ink and reviewer sheet).
 
 ## Links
 
@@ -48,7 +48,7 @@ were changed, not the rendering. No change is in progress on the people side.
 | B7 | Contact e-mail of the test run (`contact` in `data/config.json`, public) | user | open since 2026-11-13 | A dedicated address is suggested; needed before testers are invited |
 | B8 | More testers, with touch screens and pens | user | open | Today: one tester with pen and some touch, the creator with a mouse |
 | B9 | Use only labels on which both reviewers agree | user | proposed 2026-11-20, not decided | Copies: kappa 0.74 on 103 attempts judged by both (up to 2026-11-20) |
-| B10 | Written convention for reviewers on arrows | user, reviewers | proposed 2026-11-20 | Arrows: kappa 0.38 on 92 attempts judged by both; the notes show different criteria (start at the charge or the lone pair, end on the bond or the atom) |
+| B10 | Written convention for reviewers on arrows | agent side (sheet), reviewers | rules decided 2026-11-26 (decisions 53 to 55); reviewer sheet to draw (request R3) | Arrows: kappa 0.38 on 92 attempts judged by both up to 2026-11-20; 47 disagreements on 204 up to 2026-11-25, 9 with a note (6 on where an arrow starts or ends, 3 on precision). Rules: `docs/handoff/arrow-convention_2026-11-26.md` |
 | B11 | Review of the agent testers after two weeks: cost, report quality, calibration, more testers per day | user | due about 2026-11-30 | `docs/PLAN.md` F |
 | B12 | Retirement check (98 % bound) of the agent testers | agent side | no tester reached it on 2026-11-20 | Closest: john0002, lower bound 0.87 for "correct" (threshold 0.90) |
 | B13 | Arrow attempts judged "should not give the structure" that the page accepted (52 judgements up to 2026-11-20; 93 up to 2026-11-24, and 53 for copies) | agent side | open | Examine before using them as labels (depends on B10) |
@@ -63,7 +63,7 @@ were changed, not the rendering. No change is in progress on the people side.
 |---|---|---|---|---|---|
 | R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | answered 2026-11-21 | `docs/handoff/human-drawing-evaluation_2026-11-21.md` |
 | R2 | 2026-11-21 | people side → agent side | Rendering (`src/canvas.js`, with item 6): mark a carbon that has a lone pair and an empty place (a carbene) so that it is not shown like an ordinary carbon; weakness case 19, 1 remark of a tester | answered 2026-11-21 | Page 0.7.0: a carbon with an unshared pair and fewer than four bonds is written with its symbol and two dots (`Scene.labelPlan`, `src/canvas.js`) |
-| R3 | 2026-11-26 | people side → agent side | Agent ink: draw arrows by the convention of decision 53 (three cases), with a chance of breaking one rule for every tester and the intent recorded per arrow (`convention`); reviewer sheet for B10 from the same rules. Rates per attempt: 20 % precise, 40 % imprecise; charge sign and both ends of a new single bond count as right (decision 55). Comment on the rules before implementing | open | `docs/handoff/arrow-convention_2026-11-26.md` |
+| R3 | 2026-11-26 | people side → agent side | Two deliverables, both for the agent side (user, 2026-11-26; the user asks the agent side directly): (1) implement the convention of decisions 53 to 55 in the agent ink (`tools/agent_ink.js`, new `VERSION`): three cases, rule breaking in 20 % of the attempts of the precise testers and 40 % of the imprecise ones, one arrow and one rule per such attempt, intent recorded per attempt (`convention`); (2) the reviewer sheet with drawn right and wrong pairs for the three cases (B10). The rules have no open point. Take the 98 % retirement rule (B12) into account: with deliberate rule breaking no tester stays always correct | open | `docs/handoff/arrow-convention_2026-11-26.md` |
 
 ## Cycle
 
