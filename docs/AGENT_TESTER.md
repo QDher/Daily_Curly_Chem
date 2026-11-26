@@ -9,6 +9,7 @@ it saw on the page.
 Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (ink from the traits),
 `tools/agent_tester.js` (drives the page), `test/test_agent.js` (`npm run test:agent`),
 `tools/agent_review_data.js` (run record to review files), `tools/agent_review_page.html` (review page),
+`tools/agent_convention_sheet.js` (reviewer sheet of the arrow convention, written to `tools/agent_convention_sheet.html`),
 `docs/AGENT_TASK_PROMPT.md` (prompt of the scheduled task), `console/` (Console resources, not used).
 
 ## What the data are and are not
@@ -51,11 +52,16 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 | john0005 | `cdf81363` | low | low | 4409 |
 
 - **Precision** (noise of one drawing, fractions of the bond length L): high = bond ends 0.05, atom positions
-  0.04, arrow start and end 0.07, clicks 0.05, rotation 2°; low = 0.16, 0.12, 0.22 and 0.25, 0.18, 7°.
+  0.04, arrow start and end 0.07, clicks 0.05, rotation 2°; low = 0.16, 0.12, 0.22 and 0.25, 0.18, 7°. From ink
+  0.4.0 the noise moves an arrow end only inside the place the convention allows, and a rule of the convention is
+  broken on purpose in 20 % (high) or 40 % (low) of the arrow attempts (below).
 - **Consistency** (reproducibility): each tester has fixed habits drawn from its seed: drawing scale and rotation,
   how many bonds go into one stroke, stroke direction, side and gap of the second line of a double bond, gap left
   before an atom label, arrow bend and side, where an arrow from a lone pair starts, how short of the target it
-  stops, where an arrow "between two atoms" ends, where a charge is clicked, drawing speed. At each drawing the
+  stops, whether a new single bond ends at the middle or on the receiving atom, where a charge is clicked, drawing
+  speed; from ink 0.4.0 also where an arrow starts on a bond or a multiple bond and how often it starts at a charge
+  sign (drawn from a random stream of their own, so the other habits and the copies are those of ink 0.3.0 for the
+  same seed). At each drawing the
   habits move towards a new random set by a factor of 0.1 (high consistency) or 1 (low: drawn anew each time).
 - **Label**: first 8 hex digits of the SHA-256 of `agent-<name>`. That code opens only the page served locally by
   the script (with its own tester list); it is not valid on the live site and is not in `data/testers.json`.
@@ -66,6 +72,53 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 - **More testers**: add a name, traits and seed to `tools/agent_testers.json` and to `rotation`. Never reuse a
   name and never change the seed or traits of a tester that has run. A tester listed in `rotation` runs from the
   next day on; one removed from it stops (its runs stay on the review page). The run id is `<date>_<tester>`.
+
+## Arrow convention (ink 0.4.0, 2026-11-26)
+
+Decisions 53 to 55 (`docs/DECISIONS.md`), rules in `docs/handoff/arrow-convention_2026-11-26.md`, request R3 of
+`docs/BOARD.md`; implementation: decision 57. L: bond length of the structure shown (1.5 units).
+
+| Case | Start | End |
+|---|---|---|
+| 1. From a lone pair or a charge | in a direction at least 30° from each bond of the atom (the habit of facing the target is kept inside that sector), 0.15 to 0.3 L from the atom and at least 0.15 L from every bond line; on a charged atom, at the charge sign (habit, 0 to 60 % of the arrows; the sign's place as written by the test page) | – |
+| 2. From or to a single bond | on the line (within 0.1 L), 25 % to 75 % of the bond; a short arrow (bond to one of its own atoms) keeps its start on the bond and has an arc at least 0.3 L high | on an atom: within 0.2 L, in a direction at least 30° from each bond of that atom, nearest to the start |
+| 3. From or to a multiple bond | to another atom (new bond): 55 % to 75 % toward the atom that forms the new bond, the arc bulging on that atom's side; toward its own atom or an adjacent bond: as case 2 | on a bond that gains an order: 30 % to 70 % of its line (middle half, and 0.3 L from both atoms for implicit carbons); a new single bond: at the middle (45 % to 55 %) or on the receiving atom (habit), both right |
+
+- Noise of the precision level is applied inside these places (a few draws, else the noiseless point); the ends of
+  a stroke are not moved by the wobble of the line. Every arrow is at least 0.6 units long along its path (the page
+  drops strokes shorter than 0.5 units).
+- Rule breaking (decision 55): an arrow attempt breaks one rule with probability 20 % (john0002, john0003) or 40 %
+  (john0004, john0005), drawn from a stream of its own. The rule is drawn among those that apply to the arrows of
+  the step, then the arrow among those it applies to; the other arrows follow the convention. Rules:
+  `lp-start-on-bond` (start 0.15 to 0.3 L along a bond of the atom), `lp-start-far` (0.5 to 0.65 L from the atom,
+  in the free sector), `bond-start-outer` (6 % to 20 % or 80 % to 94 % of the bond), `short-off-bond` (0.3 to
+  0.45 L off the bond line), `multiple-start-far-half` (25 % to 45 % toward the atom that forms the bond),
+  `pair-end-between` (62 % of the way to the receiving atom up to 0.3 L from it). Copies are not affected.
+- Record: each arrow attempt of the run record has `convention` (`'ok'`, or `{ arrow, rule, text }`, arrow counted
+  from 1 in the order of the reference) and `arrowCases` (start and end of each arrow: `lp`, `charge-sign`, `bond`,
+  `bond-short`, `multiple-toward`; `atom`, `bond`, `pair-middle`, `pair-atom`, `pair-between`); the run summary
+  counts `arrows.ruleBroken`. Review data 0.5.0 keeps both fields in `runs/<runId>.json`. This is the generator's
+  intent, not a judgement; the review page does not show it, and reviewers answer on what they see.
+- Reviewer sheet (board item B10): `node tools/agent_convention_sheet.js` draws, with this ink without noise, a right
+  and a wrong arrow for each rule that is broken on purpose, plus the right variants (start at the charge sign, end
+  on the receiving atom, end on a bond or an atom), on two small steps; the place each rule allows is shaded. It is
+  published with the review page as `convention.html` and shown in its "Arrow convention" panel. A change of the ink
+  or of the convention: run it again (`npm run test:agent` checks that the file is current).
+- Check of the rules (`npm run test:agent`): on the sheet's two steps, 600 attempts per step (four testers), every
+  arrow that follows the convention starts and ends where the rules allow, and in a broken attempt exactly one
+  arrow breaks exactly the rule stated; rates within 5 points of 20 % and 40 % over 600 attempts per tester. The
+  same check on the arrow tasks of the standard set and of the daily sets of 2026-11-19 to 2026-11-24 (4,080
+  attempts, session of 2026-11-26): no deviation.
+- What the page does with them (same 4,080 attempts, read by `src/readings.js` in Node, not in the browser): the
+  intended structure among the readings for 98 % of the attempts that follow the convention (first reading 87 %);
+  for the rules broken: `lp-start-on-bond` 95 % (first reading 39 %), `lp-start-far` 85 %, `bond-start-outer`
+  98 %, `short-off-bond` 99 %, `multiple-start-far-half` 91 % (35 attempts), `pair-end-between` 4 of 6. An arrow
+  that ends at the middle of a new bond whose atoms are farther apart than `pairReach` (4.5 units; `t1-cc-bond`,
+  5.1 units) gives no reading as intended although it follows the convention (known since 2026-11-14; not changed,
+  thresholds are set on drawings of people).
+- Retirement rule (`docs/PLAN.md` F, board item B12): with one rule broken in 20 % of the arrow attempts, a precise
+  tester's arrows cannot all be judged "correct" when reviewers answer "should not give the right structure" for the
+  broken ones; copies have no rule breaking. The bound is still computed over all judged attempts, as decided.
 
 ## One run
 
@@ -83,7 +136,8 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 3. The page saves the entries file as for a tester; the script replays it (`tools/replay.js`) and writes the run
    record `run-<date>-<tester>.json`: tester, label, traits, habits, commit, tool versions, and for each attempt
    the seed, the habits used, the intended answer, the strokes as the page recorded them (and, for arrows,
-   the structure they were drawn on), the readings, the outcome, the entries recorded and the screenshot. Exit code 1 if the page reported an error or an entry does not replay.
+   the structure they were drawn on, `convention` and `arrowCases`), the readings, the outcome, the entries recorded
+   and the screenshot. Exit code 1 if the page reported an error or an entry does not replay.
 4. The session replays the file, opens the screenshots of the attempts that did not end as intended (at most 12),
    reviews the reference steps of the daily set (sound, doubtful or wrong) and writes `report.md`.
 5. `tools/agent_review_data.js` turns the run record into `runs/<runId>.json`, adds the run to `runs/index.json` and
@@ -117,8 +171,13 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   bond and hydrogens of carbon implicit (user, 2026-11-16, for clarity of the review). Geometry: one heavy
   neighbour and one H bent at 120 degrees on the side away from the neighbour's other bonds (C=N-H, C-O-H); two H at
   +-120 degrees; three at 90, 180, 270 degrees; with two or more heavy neighbours the H go into the largest gaps;
-  lone H2O as a V, H3O+ as a Y; bonds to H are two thirds of a bond. Charge signs go in the free direction nearest
-  to the upper right, away from every bond. Layouts come from `tools/agent_review_data.js` (`scenes` in the run file,
+  lone H2O as a V, H3O+ as a Y; bonds to H are two thirds of a bond. Charge signs go in the direction the test page
+  uses (`Scene.labelPlan`: the free direction nearest to the upper right, tried from -45° in steps of 15°, at least
+  0.75 rad from every bond; from 2026-11-26, so that an arrow drawn from a charge sign is seen where the tester saw
+  the sign; before, the first free of eight directions, which differed for 17 of the 36 charged atoms of the arrow
+  tasks up to 2026-11-24).
+- "Arrow convention" panel (2026-11-26): opened, it loads `convention.html` (the reviewer sheet, published with the
+  page) and shows its drawings. The page does not show the `convention` of an attempt. Layouts come from `tools/agent_review_data.js` (`scenes` in the run file,
   RDKit 2D coordinates); runs published before 2026-11-16 have them in `runs/<runId>.scenes.json`; RDKit drawings
   (`svg`) are the fallback. The test page itself still shows hydrogens in labels (OH, NH2); drawing arrows with N-H
   as a bond on the test page is to be explored later (user, 2026-11-16).

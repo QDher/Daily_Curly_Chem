@@ -119,6 +119,9 @@ details.habits dd { margin: 0; }
 .runs button.link { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
 .report { background: var(--soft); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; font-size: 13px; max-height: 420px; overflow: auto; margin-top: 10px; }
 .colhead small { display: block; }
+details.convention > summary { cursor: pointer; }
+details.convention > summary h2 { display: inline; }
+details.convention[open] > summary { margin-bottom: 12px; }
 </style>
 
 <div class="wrap">
@@ -127,6 +130,11 @@ details.habits dd { margin: 0; }
     <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
     <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session.</p>
   </header>
+
+  <details class="panel convention" id="convention-panel">
+    <summary><h2>Arrow convention</h2> <span class="muted">where an arrow starts and ends; right and wrong examples (decisions 53 to 55)</span></summary>
+    <div id="convention"><p class="status">Loading the sheet&hellip;</p></div>
+  </details>
 
   <section class="panel">
     <div class="runs-head">
@@ -293,13 +301,21 @@ details.habits dd { margin: 0; }
       t.textContent = at.el === 'C' && deg.get(at.id) > 0 ? 'C' : at.el;
       g.appendChild(t);
       if (at.q) {
-        // the free direction nearest to the upper right, away from every bond of the atom
+        // the direction the test page writes the sign in (Scene.labelPlan of src/scene.js): the free direction nearest
+        // to the upper right, tried from -45 degrees in steps of 15 degrees on either side, at least 0.75 rad from every
+        // bond (else the widest); so that an arrow drawn from the charge sign (decision 55) is seen where the tester
+        // saw the sign. Distance: that of the test page ((half width of the symbol + 7) px at 34 px per unit), at least
+        // enough to clear the larger label drawn here
         const bondDirs = sc.bonds.filter((b) => b.a === at.id || b.b === at.id).map((b) => { const o = A.get(b.a === at.id ? b.b : b.a); return Math.atan2(o.y - at.y, o.x - at.x); });
-        const cands = [-Math.PI / 4, -3 * Math.PI / 4, Math.PI / 4, 3 * Math.PI / 4, -Math.PI / 2, Math.PI / 2, 0, Math.PI];
-        const dist = (th) => bondDirs.reduce((m, d) => Math.min(m, Math.abs(Math.atan2(Math.sin(th - d), Math.cos(th - d)))), Math.PI);
-        let th = cands.find((c) => dist(c) >= 0.75);
-        if (th === undefined) th = cands.reduce((b, c) => (dist(c) > dist(b) ? c : b), cands[0]);
-        const r = 0.46 + 0.06 * (at.el.length - 1), cx = at.x + r * Math.cos(th), cy = at.y + r * Math.sin(th);
+        const dist = (t) => bondDirs.reduce((m, d) => Math.min(m, Math.abs(Math.atan2(Math.sin(t - d), Math.cos(t - d)))), Math.PI);
+        let th = null, bestGap = -1;
+        for (let k = 0; k < 24; k++) {
+          const t = -Math.PI / 4 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 12);
+          const gp = dist(t);
+          if (gp >= 0.75) { th = t; break; }
+          if (gp > bestGap) { bestGap = gp; th = t; }
+        }
+        const r = Math.max(((at.el.length > 1 ? 9.5 : 5.5) + 7) / 34, 0.42 + 0.06 * (at.el.length - 1)), cx = at.x + r * Math.cos(th), cy = at.y + r * Math.sin(th);
         const sign = sv('text', { x: cx, y: cy + 0.11, 'text-anchor': 'middle', 'font-size': 0.34, 'font-family': 'IBM Plex Sans, sans-serif', fill: elColor(at.el) });
         sign.textContent = (Math.abs(at.q) > 1 ? Math.abs(at.q) : '') + (at.q > 0 ? '+' : '−');
         g.appendChild(sign);
@@ -664,6 +680,28 @@ details.habits dd { margin: 0; }
     chooseDefault();
     if (!day) { renderRuns(); render(); }
   })();
+
+  // ---------- arrow convention: the sheet published with the page (convention.html, written by
+  // tools/agent_convention_sheet.js), loaded into its panel when the panel is first opened ----------
+  let sheetLoaded = false;
+  $('convention-panel').addEventListener('toggle', async () => {
+    if (!$('convention-panel').open || sheetLoaded) return;
+    sheetLoaded = true;
+    const box = $('convention');
+    try {
+      const res = await fetch('convention.html', { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+      const sheet = doc.getElementById('sheet');
+      if (!sheet) throw new Error('no sheet in the file');
+      box.textContent = '';
+      box.appendChild(document.importNode(sheet, true));
+    } catch (e) {
+      sheetLoaded = false;
+      box.textContent = '';
+      box.appendChild(el('p', { class: 'status', text: 'The sheet could not be read (' + ((e && e.message) || 'error') + '); it is published with this page as convention.html.' }));
+    }
+  });
 
   // ---------- reviewers (owner and Editors see them all) ----------
   async function renderReviewers() {

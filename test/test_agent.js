@@ -27,7 +27,8 @@ const ring = (() => {
   return { atoms, bonds };
 })();
 const box = { x: 0, y: 0, w: 16, h: 9 };
-const arrowOf = (d) => Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0.5 } });
+const { SN2, ALDOL, build: buildSheet } = require('../tools/agent_convention_sheet.js');
+const arrowOf = (d) => Ink.arrows(d, SN2.scene, SN2.reference);
 
 test('the same writer and seed give the same ink; another seed gives other ink', () => {
   const w = Ink.writer('john0002');
@@ -85,7 +86,7 @@ test('arrows bulge to the side free of bonds and of the arrows already drawn (in
     let n = 0;
     for (let s = 0; s < 60; s++) {
       const d = Ink.drawing(w, s);
-      const pts = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0.5 } }, withCtx ? { segs: [bond], prev: [] } : undefined);
+      const pts = Ink.arc(d, { x: 0, y: 0 }, { x: 3, y: 0.5 }, withCtx ? { segs: [bond], prev: [] } : undefined);
       if (near(pts)) n += 1;
     }
     return n;
@@ -96,8 +97,8 @@ test('arrows bulge to the side free of bonds and of the arrows already drawn (in
   }
   // a second arrow keeps off the first one
   const d = Ink.drawing(Ink.writer('john0002'), 7);
-  const first = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0 } }, { segs: [], prev: [] });
-  const second = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0.1 }, away: { x: -1, y: 0 } }, { kind: 'atom', p: { x: 3, y: 0.1 } }, { segs: [], prev: [first] });
+  const first = Ink.arc(d, { x: 0, y: 0 }, { x: 3, y: 0 }, { segs: [], prev: [] });
+  const second = Ink.arc(d, { x: 0, y: 0.1 }, { x: 3, y: 0.1 }, { segs: [], prev: [first] });
   const mid = (pts) => pts[Math.floor(pts.length / 2)];
   ok(Math.sign(mid(first).y - 0.05) !== Math.sign(mid(second).y - 0.05), 'the two arcs bulge to opposite sides');
 });
@@ -114,29 +115,141 @@ test('consistency: habits vary much less between drawings of a consistent tester
   ok(spread('john0004') * 4 < spread('john0005'), 'john0004 ' + spread('john0004') + ' john0005 ' + spread('john0005'));
 });
 
-test('precision: arrow ends of an imprecise tester (john0004) lie farther from the target than those of a precise one (john0002)', () => {
+test('precision: inside the place the convention allows, arrow ends of an imprecise tester (john0004) spread more than those of a precise one (john0002)', () => {
+  const C2 = SN2.scene.atoms.find((a) => a.id === 'c2');
   const err = (key) => {
     const w = Ink.writer(key);
-    let sum = 0;
-    for (let s = 0; s < 80; s++) {
+    let sum = 0, n = 0;
+    for (let s = 0; s < 200; s++) {
       const d = Ink.drawing(w, s);
       d.style.undershoot = 0; // the habit is not the noise
-      const pts = arrowOf(d);
-      const e = pts[pts.length - 1];
-      sum += Math.hypot(e.x - 3, e.y - 0.5);
+      const out = arrowOf(d);
+      if (out.convention !== 'ok') continue;
+      const e = out.strokes[0][out.strokes[0].length - 1];
+      sum += Math.hypot(e.x - C2.x, e.y - C2.y);
+      n += 1;
     }
-    return sum / 80;
+    return sum / n;
   };
-  ok(err('john0004') > 2 * err('john0002'), 'john0002 ' + err('john0002') + ' john0004 ' + err('john0004'));
+  ok(err('john0004') > 1.5 * err('john0002'), 'john0002 ' + err('john0002') + ' john0004 ' + err('john0004'));
 });
 
-test('arrow from a lone pair to its own bond is long enough to be kept by the page (0.5 units)', () => {
-  for (let s = 0; s < 40; s++) {
-    const d = Ink.drawing(Ink.writer('john0003'), s);
-    const pts = Ink.arrow(d, { kind: 'lp', p: { x: 0, y: 0 }, away: { x: -1, y: 0 } }, { kind: 'bond', p: { x: 0.75, y: 0 } });
-    const a = pts[0], b = pts[pts.length - 1];
-    ok(Math.hypot(b.x - a.x, b.y - a.y) >= 0.5, 'chord ' + Math.hypot(b.x - a.x, b.y - a.y));
+test('arrow from a lone pair to its own bond, and short arrows, are long enough to be kept by the page (0.5 units)', () => {
+  const pathLen = (pts) => pts.slice(1).reduce((m, q, i) => m + Math.hypot(q.x - pts[i].x, q.y - pts[i].y), 0);
+  for (const name of ['john0002', 'john0003', 'john0004', 'john0005']) for (let s = 0; s < 40; s++) {
+    for (const step of [SN2, ALDOL]) {
+      const out = Ink.arrows(Ink.drawing(Ink.writer(name), s), step.scene, step.reference);
+      for (const st of out.strokes) ok(pathLen(st) >= 0.5, name + ' seed ' + s + ': stroke of ' + pathLen(st).toFixed(2));
+    }
   }
+});
+
+// The rules of docs/handoff/arrow-convention_2026-11-26.md, checked from the geometry alone (L = 1.5).
+const L = 1.5;
+const at = (sc, id) => sc.atoms.find((a) => a.id === id);
+const bondDirs = (sc, id) => sc.bonds.filter((b) => b.a === id || b.b === id).map((b) => { const o = at(sc, b.a === id ? b.b : b.a), a = at(sc, id); return Math.atan2(o.y - a.y, o.x - a.x); });
+const gapDeg = (v, dirs) => dirs.reduce((m, t) => Math.min(m, Math.abs(Math.atan2(Math.sin(Math.atan2(v.y, v.x) - t), Math.cos(Math.atan2(v.y, v.x) - t)))), Math.PI) * 180 / Math.PI;
+const segD = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy; const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2)); return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy); };
+// fraction of p along a->b and distance from the line
+const along = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy); return { f: ((p.x - a.x) * dx + (p.y - a.y) * dy) / (l * l), perp: Math.abs((p.x - a.x) * dy - (p.y - a.y) * dx) / l }; };
+const E = 1e-6;
+// which rule an arrow breaks at its start or end (null: none); ref: the reference arrow; sign: charge sign of the atom
+function broken(sc, ref, st, sign) {
+  const s = st[0], e = st[st.length - 1];
+  const out = [];
+  if (ref.from.lp) {
+    const a = at(sc, ref.from.lp), dirs = bondDirs(sc, a.id), v = { x: s.x - a.x, y: s.y - a.y }, r = Math.hypot(v.x, v.y);
+    const atSign = sign && Math.hypot(s.x - sign.x, s.y - sign.y) <= 0.05 * L + E;
+    if (r >= 0.5 * L) out.push('lp-start-far');
+    else if (dirs.length && sc.bonds.some((b) => (b.a === a.id || b.b === a.id) && segD(s, at(sc, b.a), at(sc, b.b)) <= 0.05 * L)) out.push('lp-start-on-bond');
+    else if (!atSign && (r < 0.15 * L - E || r > 0.3 * L + E || (dirs.length && gapDeg(v, dirs) < 30 - E) || sc.bonds.some((b) => segD(s, at(sc, b.a), at(sc, b.b)) < 0.15 * L - E))) out.push('lp-start-other');
+  } else {
+    const [x, y] = ref.from.bond, t = ref.to;
+    const toward = t.atom && (t.atom === x || t.atom === y) ? t.atom : t.atom ? t.via : t.bond ? [x, y].find((u) => t.bond.includes(u)) : [x, y].find((u) => t.pair.includes(u));
+    const T = at(sc, toward), O = at(sc, toward === x ? y : x);
+    const order = sc.bonds.find((b) => [b.a, b.b].sort().join() === [x, y].sort().join()).order;
+    const forms = !!(t.pair || (t.atom && t.atom !== x && t.atom !== y));
+    const g = along(s, O, T);
+    if (order >= 2 && forms) {
+      if (g.f < 0.5) out.push('multiple-start-far-half');
+      else if (g.f < 0.55 - E || g.f > 0.75 + E || g.perp > 0.1 * L + E) out.push('multiple-start-other');
+    } else if (g.perp >= 0.25 * L) out.push('short-off-bond');
+    else if (g.f < 0.25 - E || g.f > 0.75 + E) out.push('bond-start-outer');
+    else if (g.perp > 0.1 * L + E) out.push('bond-start-other');
+  }
+  const atomOk = (id) => { const X = at(sc, id), v = { x: e.x - X.x, y: e.y - X.y }, r = Math.hypot(v.x, v.y); return r <= 0.2 * L + E && (r < 0.05 * L || !bondDirs(sc, id).length || gapDeg(v, bondDirs(sc, id)) >= 30 - E); };
+  if (ref.to.atom && !atomOk(ref.to.atom)) out.push('atom-end');
+  if (ref.to.bond) { const g = along(e, at(sc, ref.to.bond[0]), at(sc, ref.to.bond[1])); if (g.f < 0.3 - E || g.f > 0.7 + E || g.perp > 0.1 * L + E) out.push('bond-end'); }
+  if (ref.to.pair) {
+    const src = ref.from.lp ? [ref.from.lp] : ref.from.bond;
+    const F = ref.to.pair.find((u) => src.includes(u)), Z = ref.to.pair.find((u) => u !== F);
+    const g = along(e, at(sc, F), at(sc, Z));
+    const middle = g.f >= 0.45 - E && g.f <= 0.55 + E && g.perp <= 0.1 * L + E;
+    if (!middle && !atomOk(Z)) out.push(g.f > 0.55 ? 'pair-end-between' : 'pair-end-other');
+  }
+  return out;
+}
+
+test('convention: arrows that follow it start and end where the rules allow; in a broken attempt one arrow breaks exactly the rule stated', () => {
+  const seen = new Set();
+  for (const name of ['john0002', 'john0003', 'john0004', 'john0005']) for (let s = 0; s < 150; s++) {
+    for (const step of [SN2, ALDOL]) {
+      const out = Ink.arrows(Ink.drawing(Ink.writer(name), Ink.seedOf(name, 'conv', s)), step.scene, step.reference);
+      const signs = Ink.chargeSigns(step.scene);
+      const found = out.strokes.map((st, i) => broken(step.scene, step.reference[i], st, step.reference[i].from.lp ? signs[step.reference[i].from.lp] : null));
+      const where = name + ' seed ' + s + ' ' + step.name;
+      if (out.convention === 'ok') ok(found.every((f) => !f.length), where + ': ' + JSON.stringify(found));
+      else {
+        seen.add(out.convention.rule);
+        const k = out.convention.arrow - 1;
+        ok(found.every((f, i) => (i === k ? f.length === 1 && f[0] === out.convention.rule : !f.length)), where + ': stated ' + out.convention.rule + ' on arrow ' + out.convention.arrow + ', found ' + JSON.stringify(found));
+      }
+    }
+  }
+  ok(Object.keys(Ink.BREAKS).every((k) => seen.has(k)), 'rules never broken: ' + Object.keys(Ink.BREAKS).filter((k) => !seen.has(k)).join(', '));
+});
+
+test('rule breaking per attempt: about 20 % for precise testers and 40 % for imprecise ones (decision 55); rules drawn among those that apply', () => {
+  for (const [name, rate] of [['john0002', 0.2], ['john0003', 0.2], ['john0004', 0.4], ['john0005', 0.4]]) {
+    let n = 0, b = 0;
+    const rules = {};
+    for (let s = 0; s < 600; s++) {
+      const out = Ink.arrows(Ink.drawing(Ink.writer(name), Ink.seedOf(name, 'rate', s)), ALDOL.scene, ALDOL.reference);
+      n += 1;
+      if (out.convention !== 'ok') { b += 1; rules[out.convention.rule] = (rules[out.convention.rule] || 0) + 1; }
+    }
+    ok(Math.abs(b / n - rate) < 0.05, name + ': ' + b + ' of ' + n);
+    for (const k of Object.keys(Ink.BREAKS)) ok((rules[k] || 0) > (0.5 * b) / 6, name + ': ' + k + ' ' + (rules[k] || 0) + ' of ' + b);
+  }
+  // a step whose arrows allow fewer rules: only those are drawn
+  const sn2 = new Set();
+  for (let s = 0; s < 300; s++) { const out = Ink.arrows(Ink.drawing(Ink.writer('john0005'), s), SN2.scene, SN2.reference); if (out.convention !== 'ok') sn2.add(out.convention.rule); }
+  ok([...sn2].sort().join() === 'bond-start-outer,lp-start-far,lp-start-on-bond,short-off-bond', 'rules on the SN2 step: ' + [...sn2].join());
+});
+
+test('copies are drawn as with ink 0.3.0 (same habits and noise for the same seed): only arrows changed in ink 0.4.0', () => {
+  const crypto = require('crypto');
+  const atoms = [];
+  for (let i = 0; i < 6; i++) atoms.push({ id: 'a' + i, el: 'C', q: 0, h: 1, x: 1.5 * Math.cos((i * Math.PI) / 3), y: 1.5 * Math.sin((i * Math.PI) / 3) });
+  atoms.push({ id: 'o', el: 'O', q: 0, h: 0, x: 3, y: 0 }, { id: 'm', el: 'N', q: 1, h: 2, x: -3, y: 0 });
+  const bonds = [];
+  for (let i = 0; i < 6; i++) bonds.push({ a: 'a' + i, b: 'a' + ((i + 1) % 6), order: 1 });
+  bonds.push({ a: 'a0', b: 'o', order: 2 }, { a: 'a3', b: 'm', order: 1 });
+  const out = [];
+  for (const n of ['john0002', 'john0003', 'john0004', 'john0005']) for (let s = 0; s < 25; s++) {
+    const d = Ink.drawing(Ink.writer(n), Ink.seedOf(n, '2026-11-26', 'c' + s, 1));
+    out.push(Ink.structure(d, { atoms, bonds }, box));
+    out.push(['scale', 'rotation', 'trail', 'leftToRight', 'doubleInner', 'doubleGap', 'labelGap', 'arrowBend', 'arrowLeft', 'chargeDx', 'chargeDy', 'speed'].map((k) => d.style[k]));
+  }
+  const h = crypto.createHash('sha256').update(JSON.stringify(out)).digest('hex');
+  ok(h === 'ffb11d51444f542fd17e105505588ef5e1fffc03922dc6a89acc702e6ad15218', 'hash ' + h);
+});
+
+test('the reviewer sheet (tools/agent_convention_sheet.html) is current with the ink', () => {
+  const cur = fs.readFileSync(path.join(__dirname, '..', 'tools', 'agent_convention_sheet.html'), 'utf8');
+  ok(cur === buildSheet(), 'run node tools/agent_convention_sheet.js');
+  ok(cur.includes('agent ink ' + Ink.VERSION), 'ink version in the sheet');
+  ok((cur.match(/class="cv-fig cv-wrong"/g) || []).length === Object.keys(Ink.BREAKS).length, 'one wrong drawing per rule broken on purpose');
 });
 
 test('one tester per day: john0002, john0003, john0004, john0005 in turn from 2026-11-15; each has its own label', () => {
@@ -194,9 +307,14 @@ test('end to end: each attempt is linked to the entries it recorded, with its se
   ok(linked.size === doc.entries.length, 'linked ' + linked.size + ' of ' + doc.entries.length);
 });
 
-test('end to end: the precise tester gets every arrow task of the standard set on the first reading', () => {
-  // arrow readings follow fixed rules (src/readings.js); with exact intent and small noise they should match
+test('end to end: the precise tester gets every arrow task of the standard set on the first reading; each arrow attempt states its convention', () => {
+  // arrow readings follow fixed rules (src/readings.js); with exact intent and small noise they should match (seeds of
+  // 2026-11-15: one attempt breaks a rule on purpose, short-off-bond, and is still read as intended)
   ok(run.summary.arrows.acceptedFirstAttemptFirstReading === 6, 'first readings ' + run.summary.arrows.acceptedFirstAttemptFirstReading);
+  const t1 = run.attempts.filter((a) => a.type === 'T1' && a.attempt > 0);
+  ok(t1.every((a) => a.convention === 'ok' || (a.convention && a.convention.rule && a.convention.arrow)), 'convention recorded');
+  ok(t1.every((a) => Array.isArray(a.arrowCases) && a.arrowCases.length === a.strokes), 'arrow cases recorded');
+  ok(run.summary.arrows.ruleBroken === t1.filter((a) => a.convention !== 'ok').length, 'summary of rules broken');
 });
 
 fs.rmSync(dir, { recursive: true, force: true });

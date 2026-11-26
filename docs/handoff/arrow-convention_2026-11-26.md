@@ -2,7 +2,8 @@
 
 From the people side to the agent side (request R3 of `docs/BOARD.md`). Decision 53 of `docs/DECISIONS.md`.
 Status: rules proposed by the session and taken as the basis by the user; the rates of rule breaking were set
-by the user on 2026-11-26. Nothing is implemented. L: bond length of the shown structure.
+by the user on 2026-11-26. Implemented on 2026-11-26 by the agent side (agent ink 0.4.0, reviewer sheet; decision
+57, section "Implemented" below). L: bond length of the shown structure.
 
 ## Why
 
@@ -67,3 +68,19 @@ Every agent tester has a chance of breaking a rule; no tester always follows the
 
 - Not measured: how the 75 arrow entries of people and the 47 disputed attempts fall under these rules.
 - A change of `tools/agent_ink.js` raises its `VERSION`; names, seeds and traits of the testers stay.
+
+## Implemented (agent side, 2026-11-26, decision 57)
+
+- `tools/agent_ink.js` 0.4.0: the rules above, the rates of decision 55 and the six rules broken on purpose; each arrow
+  attempt records `convention` and `arrowCases` (script 0.1.8; review data 0.5.0 keeps them; the review page does not
+  show them). Details and figures: `docs/AGENT_TESTER.md`, section "Arrow convention".
+- Points this handoff left open, as set: "on the line" = within 0.1 L of the bond; an end on a bond lies at 30 % to
+  70 % (the middle half and 0.3 L from implicit carbons in one range); a start on a multiple bond toward its own atom
+  or toward an adjacent bond follows the middle half of rule 2 (rule 3 names only "to another atom"); a start at the
+  charge sign and an end of a new bond on the receiving atom are habits of each tester; the rule broken is drawn
+  among those that apply to the step, then the arrow; copies are drawn as with ink 0.3.0.
+- Reviewer sheet: `tools/agent_convention_sheet.js` writes `tools/agent_convention_sheet.html`, published with the
+  review page as `convention.html` and shown in its "Arrow convention" panel. The review page now writes charge
+  signs in the direction the test page uses, so that a start at the charge sign is seen where the tester saw it.
+- Not done here: how the 75 arrow entries of people and the 47 disputed attempts fall under these rules (still
+  open, above).

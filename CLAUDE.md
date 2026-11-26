@@ -82,7 +82,8 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   no mechanism words).
 - Agent testers (john0002, john0003, ...; `docs/AGENT_TESTER.md`, `tools/agent_testers.json`): synthetic entries,
   never tester data, never counted with entries of people, never committed. Never reuse a name or change the seed
-  or traits of a tester that has run; a change of `tools/agent_ink.js` increases its `VERSION`;
+  or traits of a tester that has run; a change of `tools/agent_ink.js` increases its `VERSION` and is followed by
+  `node tools/agent_convention_sheet.js` (reviewer sheet of the arrow convention, decisions 53 to 55 and 57);
   `npm run test:agent` must end with N/N passed. Daily runs: Claude Code scheduled task, prompt in
   `docs/AGENT_TASK_PROMPT.md` (change both together); each run is published with the review page
   (`tools/agent_review_page.html`, `tools/agent_review_data.js`); `console/` is not used.

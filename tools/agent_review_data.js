@@ -2,7 +2,8 @@
 // tools/agent_tester.js into the files published with the review page (claude.ai artifact; files of earlier runs
 // are kept by every publish that does not name them):
 //   runs/<runId>.json   the run: tester, traits, dates, versions, figures, tasks, report, attempts (ink, structure
-//                       drawn on, readings, outcome, habits) and the structures it shows: laid out by RDKit
+//                       drawn on, readings, outcome, habits; for arrows from ink 0.4.0 also convention and
+//                       arrowCases, the generator's intent) and the structures it shows: laid out by RDKit
 //                       ({ smiles: scene }, drawn by the page) and as RDKit drawings ({ smiles: svg }, fallback)
 //   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names, visibleFrom),
 //                       newest last; visibleFrom = the date from which the review page lists the run (a run dated
@@ -21,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
@@ -86,6 +87,10 @@ function build(R, run, opt) {
       outcome: a.outcome, rank: a.rank || null, readings: a.readings || [], reading: a.reading === undefined ? null : a.reading,
       reasons: a.reasons || null, message: a.message || null, ink: a.ink || [], typed: a.typed || [], scene: a.scene || null,
     };
+    // arrow attempts from ink 0.4.0: the generator's intent (convention followed, or the arrow and rule broken on
+    // purpose) and where each arrow starts and ends; kept for the analysis, not shown to reviewers (data 0.5.0)
+    if (a.convention !== undefined) doc.convention = a.convention;
+    if (a.arrowCases !== undefined) doc.arrowCases = a.arrowCases;
     if (a.type === 'T1' && doc.scene) {
       // hydrogen counts: recorded from script 0.1.2; earlier records take them from the same start scene as the page
       if (doc.scene.atoms.some((x) => x.h === undefined) && def) {

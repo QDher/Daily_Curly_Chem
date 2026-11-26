@@ -6,6 +6,11 @@
 //   second line of a double bond, arrow bend and side, where an arrow starts and stops) change from one drawing
 //   to the next. 0.1: a habit moves a tenth of the way towards a new random habit at each drawing; 1: it is drawn
 //   anew each time.
+// Arrows follow a written convention (ink 0.4.0, decisions 53 to 55, docs/handoff/arrow-convention_2026-11-26.md):
+// where an arrow starts and ends in three cases (from a lone pair or a charge; from or to a single bond; from or to
+// a multiple bond). Noise moves a point only inside the place the convention allows. In a share of the attempts
+// (breakRate of the precision level) exactly one arrow breaks exactly one rule on purpose; each attempt states it
+// (`convention`). This is the generator's intent, not a judgement of the drawing.
 // Letters are not written by hand: the only letter shapes available are the recognizer's own templates
 // (src/glyphs.js), so handwritten letters from them would only test the recognizer against itself. Atoms other
 // than carbon and charges are placed as typed atoms (row of atoms), as testers may do. In copies, every hydrogen
@@ -14,20 +19,22 @@
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
 
 // Noise of one drawing, as fractions of the bond length L (angle in degrees). care: probability that an arrow bulges to
-// the side free of bonds and of the other arrows when one side is clearly freer (ink 0.3.0).
+// the side free of bonds and of the other arrows when one side is clearly freer (ink 0.3.0). breakRate: share of the
+// arrow attempts in which one arrow breaks one rule of the convention (decision 55: 20 % precise, 40 % imprecise).
 const PRECISION = {
-  high: { end: 0.05, geometry: 0.04, wobble: 0.012, arrowStart: 0.07, arrowEnd: 0.07, click: 0.05, angle: 2, care: 0.95 },
-  low: { end: 0.16, geometry: 0.12, wobble: 0.035, arrowStart: 0.22, arrowEnd: 0.25, click: 0.18, angle: 7, care: 0.7 },
+  high: { end: 0.05, geometry: 0.04, wobble: 0.012, arrowStart: 0.07, arrowEnd: 0.07, click: 0.05, angle: 2, care: 0.95, breakRate: 0.2 },
+  low: { end: 0.16, geometry: 0.12, wobble: 0.035, arrowStart: 0.22, arrowEnd: 0.25, click: 0.18, angle: 7, care: 0.7, breakRate: 0.4 },
 };
 const CONSISTENCY = { high: 0.1, low: 1 };
 
-// Habits of a writer: [min, max] of the uniform distribution they are drawn from.
+// Habits of a writer: [min, max] of the uniform distribution they are drawn from. The order and number of these
+// keys are those of ink 0.3.0 (same habits and same copies for the same seed); habits added later are in HABITS2.
 const HABITS = {
   scale: [1.15, 1.75], // bond length drawn, scene units
   rotation: [-8, 8], // degrees, whole drawing
@@ -38,13 +45,43 @@ const HABITS = {
   labelGap: [0.2, 0.38], // bond end left short of an atom with a label, fraction of L
   arrowBend: [0.12, 0.45], // height of the arrow arc, fraction of the chord
   arrowLeft: [0, 1], // probability that the arc bulges to the left of the direction of drawing
-  lpRadius: [0.05, 0.3], // start of an arrow from a lone pair: distance from the atom, fraction of L
+  lpRadius: [0.15, 0.3], // start of an arrow from a lone pair: distance from the atom, fraction of L (rule 1)
   lpFacing: [0, 1], // 1: the start lies on the side facing the target; 0: on the side away from the bonds
-  undershoot: [0, 0.22], // arrow end left short of a target atom, fraction of L
-  pairToward: [0.5, 0.85], // arrow to the space between two atoms: 0.5 the middle, 1 the atom that gets the bond
+  undershoot: [0, 0.18], // arrow end left short of a target atom, fraction of L (rule 2: within 0.2 L)
+  pairAtom: [0, 1], // probability that an arrow forming a new single bond ends on the receiving atom, not at the middle (rule 3)
   chargeDx: [0, 0.15], // click for a charge on a carbon: offset from the corner, fraction of L to the right
   chargeDy: [-0.15, 0], // and above it (the page snaps the click to the corner)
   speed: [3, 12], // milliseconds between two points of a stroke
+};
+// Habits added in ink 0.4.0, drawn from a random stream of their own.
+const HABITS2 = {
+  bondStart: [0.4, 0.6], // start on a bond: fraction toward the atom on the side of the target (rule 2: 0.25 to 0.75)
+  multiStart: [0.6, 0.7], // start on a multiple bond that forms a bond to another atom: fraction toward that atom (rule 3: 0.55 to 0.75)
+  chargeStart: [0, 0.6], // probability that an arrow from a charged atom starts at its charge sign (rule 1, decision 55)
+};
+
+// The convention (decisions 53 to 55), fractions of L; angles in degrees.
+const CONVENTION = {
+  lpGap: 30, // a start from a lone pair lies at least this far from each bond of the atom
+  lpR: [0.15, 0.3], // at this distance from the atom
+  lpClear: 0.15, // and at least this far from every bond line
+  bondMid: [0.25, 0.75], // start on a bond: fraction of the bond (middle half)
+  onLine: 0.1, // a point "on the line" of a bond lies at most this far from it
+  multi: [0.55, 0.75], // start on a multiple bond that forms a bond to another atom: fraction toward that atom
+  toBond: [0.3, 0.7], // end on a bond that gains an order: middle half, and 0.3 L from both atoms (implicit carbons)
+  atomEnd: 0.2, // end on an atom: within this distance
+  atomGap: 30, // approached from a side at least this far from each bond of that atom
+  pairMid: [0.45, 0.55], // end of a new single bond at the middle between the two atoms (or on the receiving atom)
+  shortArc: 0.3, // smallest height of the arc of a short arrow (bond to one of its own atoms)
+};
+// Rules that an attempt may break on purpose (one arrow, one rule), with the rule of the convention they break.
+const BREAKS = {
+  'lp-start-on-bond': { rule: 1, text: 'start from a lone pair placed on a bond of the atom' },
+  'lp-start-far': { rule: 1, text: 'start from a lone pair beyond 0.5 L from the atom, in empty space' },
+  'bond-start-outer': { rule: 2, text: 'start in the outer quarter of the bond' },
+  'short-off-bond': { rule: 2, text: 'short arrow (bond to one of its own atoms) starting off its bond' },
+  'multiple-start-far-half': { rule: 3, text: 'start in the half of the multiple bond away from the atom that forms the new bond' },
+  'pair-end-between': { rule: 3, text: 'end of a new single bond between the middle and the receiving atom' },
 };
 
 function rng(seed) {
@@ -70,9 +107,9 @@ function seedOf(...parts) {
   return h >>> 0;
 }
 
-function drawHabits(r) {
+function drawHabits(r, table = HABITS) {
   const out = {};
-  for (const [k, [lo, hi]] of Object.entries(HABITS)) out[k] = lo + (hi - lo) * r.u();
+  for (const [k, [lo, hi]] of Object.entries(table)) out[k] = lo + (hi - lo) * r.u();
   return out;
 }
 
@@ -82,17 +119,19 @@ const traitsText = (t) => (t.precision === 'high' ? 'precise' : 'imprecise') + '
 function writer(name) {
   const t = TESTERS.testers[name];
   if (!t) throw new Error('unknown tester ' + name + ' (tools/agent_testers.json: ' + Object.keys(TESTERS.testers).join(', ') + ')');
-  return { name, traits: Object.assign({ text: traitsText(t) }, t), habits: drawHabits(rng(t.seed)) };
+  const habits = Object.assign(drawHabits(rng(t.seed)), drawHabits(rng(seedOf(t.seed, 'habits2')), HABITS2));
+  return { name, traits: Object.assign({ text: traitsText(t) }, t), habits };
 }
 
 // One drawing: habits moved towards new random habits by the consistency factor, noise of the precision level.
+// r: stream of the ink; rc: stream of the convention (whether and how a rule is broken, choices allowed by it).
 function drawing(w, seed) {
   const r = rng(seed);
-  const fresh = drawHabits(r);
+  const fresh = Object.assign(drawHabits(r), drawHabits(rng(seedOf(seed, 'habits2')), HABITS2));
   const c = CONSISTENCY[w.traits.consistency];
   const style = {};
-  for (const k of Object.keys(HABITS)) style[k] = w.habits[k] + c * (fresh[k] - w.habits[k]);
-  return { seed, style, noise: PRECISION[w.traits.precision], r };
+  for (const k of Object.keys(HABITS).concat(Object.keys(HABITS2))) style[k] = w.habits[k] + c * (fresh[k] - w.habits[k]);
+  return { seed, style, noise: PRECISION[w.traits.precision], r, rc: rng(seedOf(seed, 'convention')) };
 }
 
 const L0 = 1.5;
@@ -118,58 +157,232 @@ function line(d, p, q, L) {
   return pts;
 }
 
-// One arrow. from: { kind: 'lp', p, away } | { kind: 'bond', p, along }; to: { kind: 'atom' | 'bond', p } |
-// { kind: 'pair', a, b }. p: the ideal point (atom, middle of a bond); away: unit vector from the atom away from
-// its bonds; along: unit vector along the bond; a: atom of the source, b: atom that gets the new bond. Scene
-// units of the structure shown (L = 1.5).
 function segDist(p, a, b) {
   const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
   const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
 }
 
-// ctx (ink 0.3.0, optional): { segs: [[{x, y}, {x, y}], ...] bonds of the scene, prev: [points, ...] arrows of the step
-// already drawn }.
-function arrow(d, from, to, ctx) {
+// ---------- arrows: convention of ink 0.4.0 (decisions 53 to 55) ----------
+const Scene = require('../src/scene.js');
+const DEG = Math.PI / 180;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const angDiff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+const gapOf = (t, dirs) => dirs.reduce((m, u) => Math.min(m, angDiff(t, u)), Math.PI);
+const dirOf = (t) => ({ x: Math.cos(t), y: Math.sin(t) });
+const angleOf = (v) => Math.atan2(v.y, v.x);
+const between = (p, q, f) => add(p, mul(sub(q, p), f));
+const normalOf = (p, q) => { const u = unit(sub(q, p)); return { x: -u.y, y: u.x }; };
+const pickU = (r, lo, hi) => lo + (hi - lo) * r.u();
+
+// The direction nearest to pref that lies at least min (radians) from every direction of dirs; for a crowded atom
+// without such a direction, the middle of its widest gap.
+function freeDirection(pref, dirs, min) {
+  if (!dirs.length || gapOf(pref, dirs) >= min) return pref;
+  for (let k = 1; k <= 180; k++) for (const s of [1, -1]) { const t = pref + s * k * DEG; if (gapOf(t, dirs) >= min) return t; }
+  const sorted = dirs.slice().sort((x, y) => x - y);
+  let best = sorted[0], size = -1;
+  sorted.forEach((t, i) => { const w = (i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + 2 * Math.PI) - t; if (w > size) { size = w; best = t + w / 2; } });
+  return best;
+}
+
+// Where the page writes the charge sign of each charged atom (src/canvas.js: 34 px per scene unit; the sign lies
+// (half width of the symbol + 7) px from a labelled atom, 9 px from a corner, farther when hydrogens are written on
+// its right; direction from Scene.labelPlan).
+function chargeSigns(scene) {
+  const out = {};
+  if (!scene.atoms.some((a) => a.q)) return out;
+  let plan = null;
+  try { plan = Scene.labelPlan(scene); } catch (e) { return out; }
+  for (const a of scene.atoms) {
+    const p = plan.get(a.id);
+    if (!a.q || !p) continue;
+    const t = p.charge !== null && p.charge !== undefined ? p.charge : -Math.PI / 4;
+    const lab = p.label;
+    const half = lab ? (lab.length > 1 ? 9.5 : 5.5) : 0;
+    const px = (lab ? half + 7 : 9) + (lab && a.h > 0 && p.hSide === 'right' && Math.cos(t) > 0.5 ? (a.h > 1 ? 14 : 9) : 0);
+    out[a.id] = { x: a.x + (Math.cos(t) * px) / 34, y: a.y + (Math.sin(t) * px) / 34 };
+  }
+  return out;
+}
+
+function geometry(scene) {
+  const A = new Map(scene.atoms.map((a) => [a.id, a]));
+  const bondOf = (x, y) => scene.bonds.find((b) => (b.a === x && b.b === y) || (b.a === y && b.b === x));
+  const dirs = (id) => {
+    const a = A.get(id);
+    return scene.bonds.filter((b) => b.a === id || b.b === id).map((b) => A.get(b.a === id ? b.b : b.a)).filter(Boolean).map((o) => Math.atan2(o.y - a.y, o.x - a.x));
+  };
+  const segs = scene.bonds.map((b) => [A.get(b.a), A.get(b.b)]).filter(([p, q]) => p && q);
+  return { A, bondOf, dirs, segs, charges: chargeSigns(scene) };
+}
+
+// Fraction range of "between the middle and the receiving atom" for an arrow forming a new single bond between
+// atoms dist apart (scene units), or null when that range is too narrow to draw.
+function pairBetween(dist) {
+  const hi = 1 - (0.3 * L0) / dist;
+  return hi >= 0.7 ? [0.62, hi] : null;
+}
+
+// What the convention says about one reference arrow, and which rules it can break.
+function plan(ref, G) {
+  const p = { from: ref.from.lp ? 'lp' : 'bond' };
+  if (p.from === 'lp') p.atom = ref.from.lp;
+  else {
+    const [x, y] = ref.from.bond;
+    const b = G.bondOf(x, y);
+    p.bond = [x, y];
+    p.order = b ? b.order : 1;
+    const t = ref.to;
+    if (t.atom && (t.atom === x || t.atom === y)) { p.toward = t.atom; p.short = true; }
+    else if (t.atom) { p.toward = t.via; p.forms = true; }
+    else if (t.bond) p.toward = [x, y].find((v) => t.bond.includes(v));
+    else if (t.pair) { p.toward = [x, y].find((v) => t.pair.includes(v)); p.forms = true; }
+    if (!p.toward) p.toward = y;
+    p.multi = p.order >= 2 && !!p.forms; // rule 3: start toward the atom that forms the new bond
+  }
+  const t = ref.to;
+  if (t.atom) { p.to = 'atom'; p.target = t.atom; }
+  else if (t.bond) { p.to = 'bond'; p.tbond = t.bond; }
+  else {
+    p.to = 'pair';
+    const src = ref.from.lp ? [ref.from.lp] : ref.from.bond;
+    p.forming = t.pair.find((v) => src.includes(v)) || t.pair[0];
+    p.receiving = t.pair.find((v) => v !== p.forming);
+  }
+  p.breakable = [];
+  if (p.from === 'lp') {
+    if (G.dirs(p.atom).length) p.breakable.push('lp-start-on-bond');
+    p.breakable.push('lp-start-far');
+  } else if (p.multi) p.breakable.push('multiple-start-far-half');
+  else {
+    p.breakable.push('bond-start-outer');
+    if (p.short) p.breakable.push('short-off-bond');
+  }
+  if (p.to === 'pair' && pairBetween(len(sub(G.A.get(p.forming), G.A.get(p.receiving))))) p.breakable.push('pair-end-between');
+  return p;
+}
+
+// Noise inside the place allowed: a few tries with the precision's noise, else the noiseless point.
+function within(d, ideal, sd, ok) {
+  for (let k = 0; k < 8; k++) {
+    const q = add(ideal, gauss(d, sd));
+    if (ok(q)) return q;
+  }
+  return ideal;
+}
+
+function idealEnd(G, p) {
+  if (p.to === 'atom') return G.A.get(p.target);
+  if (p.to === 'bond') return between(G.A.get(p.tbond[0]), G.A.get(p.tbond[1]), 0.5);
+  return between(G.A.get(p.forming), G.A.get(p.receiving), 0.5);
+}
+
+// Start of an arrow (rule 1 from a lone pair or a charge; rules 2 and 3 from a bond), or the start that breaks rule br.
+function startOf(d, G, p, br) {
+  const L = L0, s = d.style, nz = d.noise, C = CONVENTION;
+  if (p.from === 'lp') {
+    const a = G.A.get(p.atom), dirs = G.dirs(p.atom);
+    const target = idealEnd(G, p);
+    if (br === 'lp-start-on-bond') {
+      const t = dirs[Math.floor(d.rc.u() * dirs.length)];
+      const pt = add(add(a, mul(dirOf(t), pickU(d.rc, C.lpR[0], C.lpR[1]) * L)), mul(dirOf(t + Math.PI / 2), clamp(d.r.n() * 0.02, -0.04, 0.04) * L));
+      return { pt, kind: 'lp' };
+    }
+    const sign = G.charges[p.atom];
+    if (!br && sign && d.rc.u() < s.chargeStart) {
+      // a start at the charge sign counts as right (decision 55)
+      return { pt: within(d, sign, nz.arrowStart * L * 0.3, (q) => len(sub(q, sign)) <= 0.05 * L), kind: 'charge-sign' };
+    }
+    let away = { x: 0, y: 0 };
+    for (const t of dirs) away = sub(away, dirOf(t));
+    const toward = unit(sub(target, a));
+    away = len(away) > 1e-6 ? unit(away) : toward;
+    const pref = angleOf(add(mul(toward, s.lpFacing), mul(away, 1 - s.lpFacing)));
+    const t = freeDirection(pref, dirs, C.lpGap * DEG);
+    if (br === 'lp-start-far') return { pt: add(a, mul(dirOf(t), pickU(d.rc, 0.5, 0.65) * L)), kind: 'lp' };
+    const need = (C.lpClear * L) / Math.sin(Math.min(Math.PI / 2, Math.max(gapOf(t, dirs), 1e-3)));
+    const r = clamp(s.lpRadius * L, Math.max(C.lpR[0] * L, dirs.length ? need : 0), C.lpR[1] * L);
+    const ideal = add(a, mul(dirOf(t), r));
+    const ok = (q) => {
+      const v = sub(q, a), rr = len(v);
+      if (rr < C.lpR[0] * L - 1e-9 || rr > C.lpR[1] * L + 1e-9) return false;
+      if (dirs.length && gapOf(angleOf(v), dirs) < C.lpGap * DEG) return false;
+      return G.segs.every(([u, w]) => segDist(q, u, w) >= C.lpClear * L - 1e-9);
+    };
+    return { pt: within(d, ideal, nz.arrowStart * L * 0.7, ok), kind: 'lp' };
+  }
+  // from a bond: fraction measured from the other atom O toward the atom T on the side of the target
+  const T = G.A.get(p.toward), O = G.A.get(p.bond[0] === p.toward ? p.bond[1] : p.bond[0]);
+  const n = normalOf(O, T);
+  const perp = () => clamp(d.r.n() * nz.arrowStart * 0.5, -C.onLine, C.onLine) * L;
+  let f;
+  if (br === 'bond-start-outer') f = d.rc.u() < 0.5 ? pickU(d.rc, 0.06, 0.2) : pickU(d.rc, 0.8, 0.94);
+  else if (br === 'multiple-start-far-half') f = pickU(d.rc, 0.25, 0.45);
+  else if (p.multi) f = clamp(s.multiStart + d.r.n() * nz.arrowStart * 0.8, C.multi[0], C.multi[1]);
+  else f = clamp(s.bondStart + d.r.n() * nz.arrowStart * 0.8, C.bondMid[0], C.bondMid[1]);
+  let pt = add(between(O, T, f), mul(n, br ? clamp(d.r.n() * 0.02, -0.04, 0.04) * L : perp()));
+  if (br === 'short-off-bond') pt = add(pt, mul(n, (d.rc.u() < 0.5 ? -1 : 1) * pickU(d.rc, 0.3, 0.45) * L));
+  return { pt, kind: p.short ? 'bond-short' : p.multi ? 'multiple-toward' : 'bond' };
+}
+
+// End on an atom: within 0.2 L of it, on a side at least 30 degrees from each of its bonds, nearest to the start.
+function atomEnd(d, G, id, from) {
+  const L = L0, C = CONVENTION, X = G.A.get(id), dirs = G.dirs(id);
+  const t = freeDirection(angleOf(sub(from, X)), dirs, C.atomGap * DEG);
+  const ideal = add(X, mul(dirOf(t), clamp(d.style.undershoot, 0, C.atomEnd) * L));
+  const ok = (q) => {
+    const v = sub(q, X), r = len(v);
+    if (r > C.atomEnd * L) return false;
+    return r < 0.05 * L || !dirs.length || gapOf(angleOf(v), dirs) >= C.atomGap * DEG;
+  };
+  return within(d, ideal, d.noise.arrowEnd * L * 0.7, ok);
+}
+
+// End of an arrow (rule 2 on an atom, rule 3 on a bond or between two atoms), or the end that breaks rule br.
+function endOf(d, G, p, from, br) {
+  const L = L0, nz = d.noise, C = CONVENTION;
+  if (p.to === 'atom') return { pt: atomEnd(d, G, p.target, from), kind: 'atom' };
+  const perp = () => clamp(d.r.n() * nz.arrowEnd * 0.5, -C.onLine, C.onLine) * L;
+  if (p.to === 'bond') {
+    const U = G.A.get(p.tbond[0]), V = G.A.get(p.tbond[1]);
+    const f = clamp(0.5 + (d.r.n() * nz.arrowEnd * 0.8 * L) / (len(sub(V, U)) || L), C.toBond[0], C.toBond[1]);
+    return { pt: add(between(U, V, f), mul(normalOf(U, V), perp())), kind: 'bond' };
+  }
+  const F = G.A.get(p.forming), Z = G.A.get(p.receiving), dist = len(sub(Z, F)) || L;
+  if (br === 'pair-end-between') {
+    const [lo, hi] = pairBetween(dist);
+    return { pt: add(between(F, Z, pickU(d.rc, lo, hi)), mul(normalOf(F, Z), clamp(d.r.n() * 0.02, -0.04, 0.04) * L)), kind: 'pair-between' };
+  }
+  if (d.rc.u() < d.style.pairAtom) return { pt: atomEnd(d, G, p.receiving, from), kind: 'pair-atom' };
+  const f = clamp(0.5 + (d.r.n() * nz.arrowEnd * 0.8 * L) / dist, C.pairMid[0], C.pairMid[1]);
+  return { pt: add(between(F, Z, f), mul(normalOf(F, Z), perp())), kind: 'pair-middle' };
+}
+
+// Points of one arrow from start to end. o: { short, toward (vector the arc must bulge to), segs (bonds of the
+// scene), prev (arrows of the step already drawn) }. A person bulges the arrow to the side that stays clear of the
+// bonds and of the arrows already drawn (ink 0.3.0); the habit decides when both sides are alike or, for a less
+// careful writer, sometimes regardless. A short arrow gets a taller arc, and every arrow is long enough to be kept by
+// the page (strokes shorter than 0.5 units are dropped, src/canvas.js).
+function arc(d, start, end, o = {}) {
   const L = L0, s = d.style, nz = d.noise;
-  if (to.kind === 'pair') to = { kind: 'pair', p: add(to.a, mul(sub(to.b, to.a), s.pairToward)) };
-  const toward = unit(sub(to.p, from.p));
-  let start;
-  if (from.kind === 'lp') {
-    const dir = unit(add(mul(toward, s.lpFacing), mul(from.away || toward, 1 - s.lpFacing)));
-    start = add(add(from.p, mul(dir, s.lpRadius * L)), gauss(d, nz.arrowStart * L * 0.7));
-  } else {
-    const t = d.r.n() * nz.arrowStart * 0.8; // along the bond
-    start = add(add(from.p, mul(from.along || { x: 0, y: 0 }, t * L)), gauss(d, nz.arrowStart * L * 0.5));
-  }
-  let end = to.p;
-  if (to.kind === 'atom') end = sub(end, mul(unit(sub(to.p, start)), s.undershoot * L));
-  end = add(end, gauss(d, nz.arrowEnd * L * 0.7));
-  // an arrow to a bond next to its start (lone pair to its own bond) is drawn from farther out: the page
-  // ignores strokes shorter than 0.5 units, and a tester draws such an arrow as a short loop
-  const MIN = 0.55 * L;
-  let short = false;
-  if (len(sub(end, start)) < MIN) {
-    short = true;
-    const back = len(sub(start, end)) > 1e-6 ? unit(sub(start, end)) : from.away || { x: -toward.y, y: toward.x };
-    start = add(end, mul(back, MIN));
-  }
   const chord = len(sub(end, start)) || 1e-9;
   const u = unit(sub(end, start));
+  const nrm = { x: -u.y, y: u.x };
   const pick = d.r.u();
   let side = pick < s.arrowLeft ? -1 : 1; // -1: bulge to the left of the direction (y axis points down)
-  const h0 = s.arrowBend * chord * (short ? 1.6 : 1);
-  // ink 0.3.0: a person bulges the arrow to the side that stays clear of the bonds and of the arrows already drawn
-  // (reviewers' notes of 2026-11-16 to 2026-11-20); the habit decides when both sides are alike or, for a less
-  // careful writer, sometimes regardless
-  if (ctx && (ctx.segs || ctx.prev)) {
+  const short = o.short || chord < 0.55 * L;
+  let h0 = s.arrowBend * chord * (short ? 1.6 : 1);
+  if (short) h0 = Math.max(h0, CONVENTION.shortArc * L);
+  if (o.toward && Math.abs(nrm.x * o.toward.x + nrm.y * o.toward.y) > 1e-6) side = nrm.x * o.toward.x + nrm.y * o.toward.y > 0 ? 1 : -1;
+  else if (o.segs || o.prev) {
     const clash = (sd) => {
       let n = 0;
       for (let i = 2; i <= 8; i++) {
         const t = i / 10, off = sd * h0 * 4 * t * (1 - t);
-        const p = { x: start.x + (end.x - start.x) * t - u.y * off, y: start.y + (end.y - start.y) * t + u.x * off };
-        for (const [a, b] of ctx.segs || []) if (segDist(p, a, b) < 0.2 * L) { n += 1; break; }
-        for (const st of ctx.prev || []) if (st.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 0.25 * L)) { n += 1; break; }
+        const p = { x: start.x + (end.x - start.x) * t + nrm.x * off, y: start.y + (end.y - start.y) * t + nrm.y * off };
+        for (const [a, b] of o.segs || []) if (segDist(p, a, b) < 0.2 * L) { n += 1; break; }
+        for (const st of o.prev || []) if (st.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 0.25 * L)) { n += 1; break; }
       }
       return n;
     };
@@ -177,15 +390,64 @@ function arrow(d, from, to, ctx) {
     const careful = (pick * 9301 + 0.37) % 1 < nz.care;
     if (careful && cl !== cr) side = cl < cr ? -1 : 1;
   }
-  const h = side * h0 * (1 + d.r.n() * 0.1);
-  const n = Math.max(10, Math.round(chord / (0.06 * L)));
-  const pts = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const off = h * 4 * t * (1 - t) + d.r.n() * nz.wobble * L * 0.25;
-    pts.push({ x: start.x + (end.x - start.x) * t - u.y * off, y: start.y + (end.y - start.y) * t + u.x * off });
-  }
+  const make = (h) => {
+    const n = Math.max(10, Math.round(chord / (0.06 * L)));
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      // the two ends stay where they were placed (the wobble of the line does not move them)
+      const off = h * 4 * t * (1 - t) + (i > 0 && i < n ? d.r.n() * nz.wobble * L * 0.25 : 0);
+      pts.push({ x: start.x + (end.x - start.x) * t + nrm.x * off, y: start.y + (end.y - start.y) * t + nrm.y * off });
+    }
+    return pts;
+  };
+  const pathLen = (pts) => pts.slice(1).reduce((m, q, i) => m + len(sub(q, pts[i])), 0);
+  let h = side * h0 * (1 + d.r.n() * 0.1);
+  let pts = make(h);
+  for (let k = 0; k < 6 && pathLen(pts) < 0.6; k++) { h *= 1.4; pts = make(h); }
   return pts;
+}
+
+// The arrows of one step drawn by convention. scene: { atoms: [{ id, el, q, h, x, y }], bonds: [{ a, b, order }] }
+// as shown by the page (hydrogens drawn by the tester included); reference: the reference arrows of the task.
+// opt.force: { arrow (0-based), rule } to break that rule on that arrow, or null for none (the reviewer sheet);
+// otherwise an attempt breaks one rule with the probability breakRate of the precision level: the rule is drawn
+// among those that apply to the arrows of the step, then the arrow among those it applies to.
+// Returns { strokes, cases (where each arrow starts and ends), convention: 'ok' | { arrow (1-based), rule, text } }.
+function arrows(d, scene, reference, opt = {}) {
+  const G = geometry(scene);
+  const plans = reference.map((r) => plan(r, G));
+  let broken = null;
+  const roll = d.rc.u();
+  if (opt.force !== undefined) broken = opt.force;
+  else if (roll < d.noise.breakRate) {
+    const rules = Object.keys(BREAKS).filter((k) => plans.some((p) => p.breakable.includes(k)));
+    if (rules.length) {
+      const rule = rules[Math.floor(d.rc.u() * rules.length)];
+      const idx = plans.map((p, i) => i).filter((i) => plans[i].breakable.includes(rule));
+      broken = { arrow: idx[Math.floor(d.rc.u() * idx.length)], rule };
+    }
+  }
+  const strokes = [], cases = [];
+  plans.forEach((p, i) => {
+    const br = broken && broken.arrow === i ? broken.rule : null;
+    const st = startOf(d, G, p, br);
+    const en = endOf(d, G, p, st.pt, br);
+    // rule 3: an arrow from a multiple bond to another atom bulges on the side of the atom that forms the bond
+    const toward = p.multi ? sub(G.A.get(p.toward), G.A.get(p.bond[0] === p.toward ? p.bond[1] : p.bond[0])) : null;
+    strokes.push(arc(d, st.pt, en.pt, { short: !!p.short, toward, segs: G.segs, prev: strokes.slice() }));
+    cases.push({ start: st.kind, end: en.kind });
+  });
+  return { strokes, cases, convention: broken ? { arrow: broken.arrow + 1, rule: broken.rule, text: BREAKS[broken.rule].text } : 'ok' };
+}
+
+// A drawing without noise and with middle habits (reviewer sheet, tests); over: habits to set.
+function ideal(seed, over = {}) {
+  const style = {};
+  for (const [k, [lo, hi]] of Object.entries(Object.assign({}, HABITS, HABITS2))) style[k] = (lo + hi) / 2;
+  Object.assign(style, { arrowBend: 0.3, lpFacing: 0.5, undershoot: 0.08, chargeStart: 0, pairAtom: 0 }, over);
+  const noise = { end: 0, geometry: 0, wobble: 0, arrowStart: 0, arrowEnd: 0, click: 0, angle: 0, care: 1, breakRate: 0 };
+  return { seed, style, noise, r: rng(seed), rc: rng(seedOf(seed, 'convention')) };
 }
 
 const ROW = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'I', 'B', 'Si', 'H'];
@@ -353,4 +615,4 @@ function structure(d, scene0, box) {
   return { strokes, typed, unsupported: [], L };
 }
 
-module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, writer, drawing, arrow, structure, seedOf, ROW };
+module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };

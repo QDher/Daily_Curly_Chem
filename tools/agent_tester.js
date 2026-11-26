@@ -10,6 +10,9 @@
 // reference arrows give (readings before it are rejected); if none is, the arrows are drawn again once. A
 // drawing is confirmed when it is read as the structure shown; otherwise it is flagged as a wrong reading (with
 // what differs) and drawn again once. A confirmed arrow reading is also submitted as an answer (separate choice).
+// Arrows follow the convention of ink 0.4.0 (decisions 53 to 55); in a share of the attempts one arrow breaks one
+// rule on purpose. Each arrow attempt records `convention` ('ok', or { arrow, rule, text }) and `arrowCases` (where
+// each arrow starts and ends): the generator's intent, not a judgement.
 //
 // Outputs in --out: the entries file saved by the page (curly-entries-<label>-<device>.json), the run record
 // run-<date>-<tester>.json (intended answers, seeds, habits, outcome of each attempt, replay result) and a
@@ -31,7 +34,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.1.7';
+const VERSION = '0.1.8';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -176,45 +179,27 @@ async function main() {
       const geo = await page.evaluate((ref) => {
         const app = window.__app, sc = app.input.getScene();
         const A = (id) => sc.atoms.find((a) => a.id === id);
-        const unit = (v) => { const l = Math.hypot(v.x, v.y) || 1; return { x: v.x / l, y: v.y / l }; };
-        const mid = (p, q) => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 });
-        const away = (a) => {
-          let v = { x: 0, y: 0 };
-          for (const b of sc.bonds) {
-            if (b.a !== a.id && b.b !== a.id) continue;
-            const o = A(b.a === a.id ? b.b : b.a);
-            const u = unit({ x: o.x - a.x, y: o.y - a.y });
-            v = { x: v.x - u.x, y: v.y - u.y };
-          }
-          return Math.hypot(v.x, v.y) > 1e-6 ? unit(v) : null;
-        };
         let missing = null;
-        const arrows = ref.map((r) => {
-          const ids = [].concat(r.from.lp || r.from.bond || [], r.to.atom || r.to.bond || r.to.pair || []);
-          for (const id of ids) if (!A(id)) missing = id;
-          if (missing) return null;
-          const from = r.from.lp
-            ? { kind: 'lp', p: { x: A(r.from.lp).x, y: A(r.from.lp).y }, away: away(A(r.from.lp)) }
-            : { kind: 'bond', p: mid(A(r.from.bond[0]), A(r.from.bond[1])), along: unit({ x: A(r.from.bond[1]).x - A(r.from.bond[0]).x, y: A(r.from.bond[1]).y - A(r.from.bond[0]).y }) };
-          const to = r.to.atom ? { kind: 'atom', p: { x: A(r.to.atom).x, y: A(r.to.atom).y } }
-            : r.to.bond ? { kind: 'bond', p: mid(A(r.to.bond[0]), A(r.to.bond[1])) }
-              : { kind: 'pair', a: { x: A(r.to.pair[0]).x, y: A(r.to.pair[0]).y }, b: { x: A(r.to.pair[1]).x, y: A(r.to.pair[1]).y } };
-          return { from, to };
-        });
+        for (const r of ref) {
+          for (const id of [].concat(r.from.lp || r.from.bond || [], r.to.atom || r.to.bond || r.to.pair || [])) if (!A(id)) missing = id;
+        }
         if (missing) return { missing };
         let intended = null;
         try {
           const res = Arrows.apply(sc, Tasks.resolve(sc, ref));
           intended = res.ok ? Scene.canonical(app.R, res.scene) : null;
         } catch (e) { intended = null; }
-        const segs = sc.bonds.map((b) => [{ x: A(b.a).x, y: A(b.a).y }, { x: A(b.b).x, y: A(b.b).y }]);
-        return { arrows, intended, segs };
+        const scene = { atoms: sc.atoms.map((a) => ({ id: a.id, el: a.el, q: a.q || 0, h: a.h || 0, x: a.x, y: a.y })), bonds: sc.bonds.map((b) => ({ id: b.id, a: b.a, b: b.b, order: b.order })) };
+        return { scene, intended };
       }, task.reference);
       if (geo.missing) { rec.outcome = 'not-drawn'; rec.message = 'atom ' + geo.missing + ' not in the scene'; await page.click('#clear'); continue; }
       rec.intended = geo.intended;
-      // each arrow sees the bonds and the arrows of the step already drawn (ink 0.3.0)
-      const strokes = [];
-      for (const a of geo.arrows) strokes.push(Ink.arrow(d, a.from, a.to, { segs: geo.segs, prev: strokes.slice() }));
+      // arrows by the convention of ink 0.4.0 (decisions 53 to 55); in some attempts one arrow breaks one rule on
+      // purpose, stated in rec.convention (the generator's intent, not a judgement)
+      const drawn = Ink.arrows(d, geo.scene, task.reference);
+      const strokes = drawn.strokes;
+      rec.convention = drawn.convention;
+      rec.arrowCases = drawn.cases;
       await page.click('#m-arrow');
       await drawStrokes(strokes, d.style.speed);
       rec.strokes = strokes.length;
@@ -377,6 +362,7 @@ async function main() {
       accepted: by('T1', 'accepted').length,
       noReading: by('T1', 'no-reading').length,
       noneIntended: by('T1', 'none-intended').length,
+      ruleBroken: by('T1').filter((a) => a.convention && a.convention !== 'ok').length,
     },
     copies: {
       tasks: tasksOf('T2'),
@@ -396,7 +382,7 @@ async function main() {
 
   const s = run.summary;
   console.log('tester ' + name + ' (' + w.traits.text + '), date ' + date + ', label ' + label + ', device ' + run.device);
-  console.log('arrow tasks ' + s.arrows.tasks + ': accepted ' + s.arrows.accepted + ' (first attempt, first reading ' + s.arrows.acceptedFirstAttemptFirstReading + '); no reading ' + s.arrows.noReading + '; no reading as intended ' + s.arrows.noneIntended);
+  console.log('arrow tasks ' + s.arrows.tasks + ': accepted ' + s.arrows.accepted + ' (first attempt, first reading ' + s.arrows.acceptedFirstAttemptFirstReading + '); no reading ' + s.arrows.noReading + '; no reading as intended ' + s.arrows.noneIntended + '; attempts with a rule broken on purpose ' + s.arrows.ruleBroken);
   console.log('copy tasks ' + s.copies.tasks + ': confirmed ' + s.copies.confirmed + ' (first attempt ' + s.copies.confirmedFirstAttempt + '); flagged ' + s.copies.flagged + '; no reading ' + s.copies.noReading + '; not drawn ' + s.copies.notDrawn);
   console.log('entries ' + s.entries + '; replayed ' + run.replay.replayed + '/' + run.replay.of + '; errors ' + errors.length);
   for (const e of errors) console.log('  ' + e);
