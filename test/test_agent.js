@@ -479,6 +479,63 @@ test('end to end: john0006 does the standard set without error; every standard c
   ok(run6.summary.copies.standard === copies.filter((a) => a.set === 'standard').length, 'standard copies counted');
 });
 
+// ---------- ink 0.8.0: boundary panel (request R6, decision 71) ----------
+test('panel copy: only the measure changes between values (same strokes elsewhere); one letter by hand with a sample read as its label; others typed; mark', () => {
+  const sc = { atoms: [{ id: 'c1', el: 'C', q: 0, h: 3, x: 0, y: 0 }, { id: 'c2', el: 'C', q: 0, h: 0, x: 1.3, y: 0.75 }, { id: 'o', el: 'O', q: 0, h: 0, x: 1.3, y: 2.25 }, { id: 'c3', el: 'C', q: 0, h: 3, x: 2.6, y: 0 }],
+    bonds: [{ a: 'c1', b: 'c2', order: 1 }, { a: 'c2', b: 'o', order: 2 }, { a: 'c2', b: 'c3', order: 1 }] };
+  const a = Ink.panelCopy(sc, box, { name: 'letterGap', value: 0.05, atom: 'o' }, 1), b = Ink.panelCopy(sc, box, { name: 'letterGap', value: 0.45, atom: 'o' }, 1);
+  ok(a.hand.length === 1 && a.hand[0] === 'O' && !a.typed.some((t) => t.el === 'O'), 'one O by hand, not typed');
+  ok(Ink.panelSample('O').read === 'O', 'sample read as its label');
+  ok(a.boundary.panel && a.boundary.name === 'letterGap' && a.boundary.value === 0.05, 'boundary recorded');
+  ok(a.mark && a.mark.atoms.length === 1 && a.mark.bonds.length === 1, 'mark');
+  // the two C-C bonds are identical; the C=O bond and its second line differ
+  const same = (s1, s2) => s1.length === s2.length && s1.every((p, i) => Math.abs(p.x - s2[i].x) < 1e-9 && Math.abs(p.y - s2[i].y) < 1e-9);
+  ok(same(a.strokes[0], b.strokes[0]) && same(a.strokes[2], b.strokes[2]), 'other bonds unchanged');
+  ok(!same(a.strokes[1], b.strokes[1]), 'bond to the letter changed');
+  const c = Ink.panelCopy(sc, box, { name: 'secondLineLength', value: 0.5, bond: ['c2', 'o'] }, 1);
+  ok(!c.hand.length && c.typed.some((t) => t.el === 'O'), 'second line measure: every atom typed');
+  const chord = (st) => Math.hypot(st[st.length - 1].x - st[0].x, st[st.length - 1].y - st[0].y);
+  ok(Math.abs(chord(c.strokes[3]) / chord(c.strokes[1]) - 0.5) < 0.03, 'second line length ' + (chord(c.strokes[3]) / chord(c.strokes[1])).toFixed(3));
+});
+
+test('panel arrows: the measure, arrow and value given; the other arrows keep the convention; mark names the arrow', () => {
+  const out = Ink.panelArrows(SN2.scene, SN2.reference, { name: 'lpDistance', value: 0.6, arrow: 1 }, 3);
+  ok(out.boundary.panel && out.boundary.name === 'lpDistance' && out.boundary.value === 0.6 && out.boundary.arrow === 1, JSON.stringify(out.boundary));
+  const a = at(SN2.scene, 'o1'), st = out.strokes[0];
+  ok(Math.abs(Math.hypot(st[0].x - a.x, st[0].y - a.y) / L - 0.6) < 1e-6, 'start at 0.6 L');
+  ok(!broken(SN2.scene, SN2.reference[1], out.strokes[1], null).length, 'second arrow keeps the convention');
+  ok(out.mark.arrow === 1 && out.mark.atoms.length === 1, 'mark');
+  const far = Ink.panelArrows(SN2.scene, SN2.reference, { name: 'lpDistance', value: 0.2, arrow: 1 }, 3);
+  ok(far.strokes[1].every((p, i) => p.x === out.strokes[1][i].x && p.y === out.strokes[1][i].y), 'the other arrow is the same at another value');
+  let threw = false;
+  try { Ink.panelArrows(SN2.scene, SN2.reference, { name: 'pairEnd', value: 0.6, arrow: 1 }, 1); } catch (e) { threw = true; }
+  ok(threw, 'a measure that does not apply is refused');
+});
+
+test('panel tool: 9 measures x 5 values x 3 drawings, values at band centres, fixed mixed order, offline reading; boundary attempts of daily runs not listed while it is open', () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'panel-'));
+  execFileSync('node', [path.join(__dirname, '..', 'tools', 'agent_panel.js'), '--out', out, '--date', '2026-01-05', '--seeds', '1'], { stdio: 'pipe' });
+  const run = JSON.parse(fs.readFileSync(path.join(out, 'runs', '2026-01-05_panel1.json'), 'utf8'));
+  const index = JSON.parse(fs.readFileSync(path.join(out, 'runs', 'index.json'), 'utf8'));
+  ok(run.attempts.length === 135 && run.tasks.length === 9, 'counts ' + run.attempts.length + ', ' + run.tasks.length);
+  for (const t of run.tasks) {
+    const list = run.attempts.filter((a) => a.task === t.id);
+    ok(list.length === 15 && new Set(list.map((a) => a.attempt)).size === 15, t.id + ' drawings');
+    const [lo, hi] = t.range;
+    t.values.forEach((v, i) => ok(Math.abs(v - (lo + ((hi - lo) * (i + 0.5)) / 5)) < 1e-3 && list.filter((a) => a.boundary.value === v).length === 3, t.id + ' value ' + v));
+    ok(list.every((a) => a.question && a.mark && a.listed && a.panel && typeof a.read === 'boolean'), t.id + ' fields');
+    ok(list.some((a, i) => i > 0 && a.boundary.value < list[i - 1].boundary.value), t.id + ' order mixed');
+    ok(run.offline[t.id].read.length === 5, t.id + ' offline');
+  }
+  ok(index.length === 1 && index[0].panel.open === true && index[0].tester === 'panel', 'index line');
+  const D = require('../tools/agent_review_data.js');
+  ok(D.panelIsOpen(index) && !D.listedOf({ boundary: { name: 'letterGap' } }, { traits: { precision: 'low' } }, true), 'not listed while open');
+  ok(D.listedOf({ boundary: { name: 'letterGap' } }, { traits: { precision: 'high' } }, false), 'listed when no panel is open');
+  const B = require('../tools/agent_boundaries.js');
+  ok(B.thresholds([1, 2, 3], [true, true, false]) === 'between 2 (yes) and 3 (no)' && B.thresholds([1, 2], [true, true]) === 'all accepted', 'phase 1 rule');
+  fs.rmSync(out, { recursive: true, force: true });
+});
+
 fs.rmSync(dir6, { recursive: true, force: true });
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(pass + '/' + total + ' passed');

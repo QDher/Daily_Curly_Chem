@@ -123,6 +123,10 @@ details.habits dd { margin: 0; }
 .todo button { font: inherit; font-size: 12.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--fg); cursor: pointer; }
 .upload { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 #people { margin-top: 10px; }
+.bp-measure { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+.bp-measure > summary { cursor: pointer; font-weight: 600; }
+.bp-measure > summary small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.bp-measure .cols { margin-top: 10px; }
 .people-task { display: grid; gap: 4px; font-size: 13px; }
 .people-task .mol { max-width: 200px; }
 details.convention > summary { cursor: pointer; }
@@ -134,7 +138,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
   <header class="intro">
     <h1>Agent tester review</h1>
     <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
-    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session. Below the runs, “Drawings of people” shows five structures copied by people each weekday, with the same questions.</p>
+    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session. Below the runs, an open “Boundary panel” shows drawings that each vary one thing, with one question about the marked element, and “Drawings of people” shows five structures copied by people each weekday, with the same questions.</p>
   </header>
 
   <details class="panel convention" id="convention-panel">
@@ -158,6 +162,12 @@ details.convention[open] > summary { margin-bottom: 12px; }
       <span class="status" id="upload-status"></span>
     </div>
     <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" id="bpanel" hidden>
+    <h2 style="margin-bottom:4px">Boundary panel</h2>
+    <p class="status" id="bpanel-status"></p>
+    <div id="bpanel-measures"></div>
   </section>
 
   <section class="panel" id="people-panel" hidden>
@@ -227,6 +237,10 @@ details.convention[open] > summary { margin-bottom: 12px; }
   const inPanel = (r) => !!r.person && !!r.fromDb && !r.failuresOnly;
   const peopleCards = new Map();
   let peopleShown = [], peopleOf = null;
+  // boundary panels (request R6, decision 71): lines of runs/index.json with panel; shown apart from the daily runs
+  const panels = [];
+  const panelData = new Map(); // runId -> run document once read
+  const panelCards = new Map();
   // answers of each reviewer (reviewer id -> Map(attempt key -> answer)); the page shows those of viewAs
   const answers = new Map();
   let me = null, viewAs = null, seeAll = false, isOwner = false, userApi = null;
@@ -500,7 +514,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     }
     return r.outcome && (r.asked ? r.asked === askedOf(a) : !(a.type === 'T2' && noStructure(a))) ? r.outcome : null;
   };
-  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return personArrows(a) || failureCopy(a) ? !!outcomeOf(a, r) : !!r.expected && (found(a) || !!outcomeOf(a, r)); };
+  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; if (a.panel) return !!r.expected; return personArrows(a) || failureCopy(a) ? !!outcomeOf(a, r) : !!r.expected && (found(a) || !!outcomeOf(a, r)); };
   // an answer counted in the tables: "should give the right structure", or one of the single questions on people's
   // attempts (accepted reading, drawn as asked)
   const answered = (v) => !!v && (!!v.expected || ((v.asked === 'accepted-reading' || v.asked === 'drawn-as-asked') && !!v.outcome));
@@ -572,12 +586,13 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const box = el('div', { class: 'review' });
     const status = el('span', { class: 'status' });
     const T1 = a.type === 'T1';
-    const qs = personArrows(a) || failureCopy(a) ? [] : [
+    // a panel drawing (request R6): one question naming the marked element, stored in expected with asked "panel"
+    const qs = a.panel ? [['expected', a.question, [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]]] : personArrows(a) || failureCopy(a) ? [] : [
       a.person ? null : ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
       ['expected', T1 ? 'Should these arrows have given the right structure?' : 'Should this drawing have given the right structure?', [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]],
     ].filter(Boolean);
     const yn = [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']];
-    if (failureCopy(a)) {
+    if (a.panel) { /* no other question */ } else if (failureCopy(a)) {
       // request R4: the structure asked beside what the page read
       const t = ((runs.get(a.runId) || {}).tasks || []).find((x) => x.set === a.set && x.id === a.task);
       const both = el('div', { class: 'result' }, [el('p', { class: 'note', text: 'Structure asked:' }), el('div', { class: 'readings one' }, el('figure', {}, mol(t && t.target)))]);
@@ -604,7 +619,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
         b.onclick = () => {
           const now = valueOf(reviews.get(k), field) === v ? null : v;
           // for a person's arrows an earlier "should give the right structure" answer is replaced by this one
-          save(field === 'outcome' ? Object.assign({ outcome: now, asked: now ? askedOf(a) : null }, personArrows(a) || failureCopy(a) ? { expected: null } : {}) : { [field]: now });
+          save(a.panel ? { expected: now, asked: now ? 'panel' : null } : field === 'outcome' ? Object.assign({ outcome: now, asked: now ? askedOf(a) : null }, personArrows(a) || failureCopy(a) ? { expected: null } : {}) : { [field]: now });
         };
         q.appendChild(b);
         return [v, b];
@@ -625,7 +640,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       try {
         await ensureReviewer();
         await db.doc('reviews/' + me + '/answers/' + k).set(next);
-        reviews.set(k, next); for (const t of ['', 'p:']) { const f = refreshers.get(t + k); if (f) f(); } setProgress(); renderRuns();
+        reviews.set(k, next); for (const t of ['', 'p:', 'b:']) { const f = refreshers.get(t + k); if (f) f(); } setProgress(); renderRuns();
         status.textContent = 'Saved';
       } catch (e) {
         if (e && e.code === 'invalid_argument') { canWrite = false; status.textContent = 'You can read this page but not save answers.'; refreshAll(); }
@@ -738,9 +753,15 @@ details.convention[open] > summary { margin-bottom: 12px; }
       if (n) left.set(d, (left.get(d) || 0) + n);
     }
     const ds = [...left.keys()].sort();
-    box.hidden = !ds.length;
-    if (!ds.length) return;
+    const panelLeft = panelAttempts().filter((a) => !isReviewed(a)).length;
+    box.hidden = !ds.length && !panelLeft;
+    if (box.hidden) return;
     box.appendChild(el('span', { class: 'muted', text: (viewAs && viewAs !== me ? 'Not reviewed by this reviewer:' : 'Not reviewed by you:') }));
+    if (panelLeft) {
+      const b = el('button', { type: 'button', text: 'Boundary panel (' + panelLeft + ')' });
+      b.onclick = () => $('bpanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      box.appendChild(b);
+    }
     for (const d of ds) {
       const b = el('button', { type: 'button', text: d + ' (' + left.get(d) + ')', 'aria-pressed': String(d === day) });
       b.onclick = () => showDay(d);
@@ -750,6 +771,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
   function renderRuns() {
     renderTodo();
     peopleStatus();
+    panelStatus();
     const t = $('runs');
     t.textContent = '';
     const ds = dates(), i = ds.indexOf(day);
@@ -970,6 +992,96 @@ details.convention[open] > summary { margin-bottom: 12px; }
       + ((peopleOf.k * PEOPLE_PER_DAY) % peopleOf.size + 1) + ' to ' + ((peopleOf.k * PEOPLE_PER_DAY + peopleShown.length - 1) % peopleOf.size + 1) + ' of the ' + peopleOf.size + ' in the people\u2019s files whose structure to copy can be drawn.';
   }
 
+  // ---------- boundary panel (request R6, decision 71; docs/handoff/boundary-panel_2026-11-26.md) ----------
+  // Panel drawings vary one measure only; each asks one question that names the element, marked in the drawing (a
+  // dashed circle around an atom or letter, a band along a bond; for arrows the arrow asked about in the accent colour,
+  // the others grey). The value of the measure and whether the page read the drawing are in the run file and not shown.
+  // Answers: expected (yes, no, unsure) with asked "panel", under the attempt's key as for every run.
+  const openPanels = () => panels.filter((r) => r.panel && r.panel.open !== false);
+  const panelAttempts = () => [].concat(...openPanels().filter((r) => panelData.has(r.runId)).map((r) => panelData.get(r.runId).attempts));
+  async function loadPanels() {
+    for (const r of openPanels()) {
+      if (panelData.has(r.runId)) continue;
+      try {
+        const res = await fetch(r.file);
+        if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
+        const data = await res.json();
+        panelData.set(r.runId, Object.assign({}, data, { attempts: (data.attempts || []).map((a) => Object.assign({ runId: r.runId, tester: 'panel', date: r.date }, a)) }));
+      } catch (e) {
+        $('bpanel-status').textContent = 'The panel ' + r.runId + ' could not be read: ' + ((e && e.message) || 'error') + '.';
+      }
+    }
+    renderPanels(); renderRuns();
+  }
+  function drawPanel(a) {
+    const marks = sv('g', {});
+    const m = a.mark || { atoms: [], bonds: [] };
+    for (const [p, q] of m.bonds || []) marks.appendChild(sv('line', { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: 'var(--accent-soft)', 'stroke-width': 0.42, 'stroke-linecap': 'round' }));
+    for (const p of m.atoms || []) marks.appendChild(sv('circle', { cx: p[0], cy: p[1], r: 0.5, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 0.05, 'stroke-dasharray': '0.12 0.08' }));
+    const markPts = [].concat(...(m.bonds || []), m.atoms || []);
+    if (a.type === 'T1' && a.scene) {
+      const { g, pts } = structureGroup(a.scene);
+      const svg = sv('svg', { viewBox: bbox(pts.concat(...(a.ink || []), markPts), 0.7).join(' '), role: 'img', 'aria-label': 'arrows on the structure, the arrow asked about in colour' });
+      svg.appendChild(marks);
+      svg.appendChild(g);
+      const on = markerFor(svg, 'var(--accent)'), off = markerFor(svg, 'var(--muted)');
+      (a.ink || []).forEach((st, i) => {
+        const asked = i + 1 === m.arrow;
+        svg.appendChild(sv('polyline', { points: st.map((p) => p.join(',')).join(' '), fill: 'none', stroke: asked ? 'var(--accent)' : 'var(--muted)', 'stroke-width': asked ? 0.08 : 0.05, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'marker-end': asked ? on : off }));
+      });
+      return svg;
+    }
+    const svg = drawCopy(a, 'var(--t5)');
+    const vb = bbox([].concat(...(a.ink || [])).concat((a.typed || []).map((t) => [t.x, t.y]), markPts), 0.7);
+    svg.setAttribute('viewBox', vb.join(' '));
+    svg.insertBefore(marks, svg.firstChild);
+    return svg;
+  }
+  function panelCard(a) {
+    const k = keyOf(a);
+    if (panelCards.has(k)) return panelCards.get(k);
+    const card = el('article', { class: 'attempt' });
+    card.appendChild(el('div', { class: 'attempt-head' }, el('h3', { text: 'Drawing ' + a.attempt })));
+    card.appendChild(el('div', { class: 'ink' }, drawPanel(a)));
+    card.appendChild(reviewBlock(a, 'b:'));
+    panelCards.set(k, card);
+    return card;
+  }
+  function renderPanels() {
+    const box = $('bpanel-measures');
+    const open = openPanels();
+    $('bpanel').hidden = !open.length;
+    box.textContent = '';
+    for (const r of open) {
+      const data = panelData.get(r.runId);
+      if (!data) { box.appendChild(el('p', { class: 'status', text: 'Loading the panel…' })); continue; }
+      for (const t of data.tasks || []) {
+        const list = data.attempts.filter((a) => a.task === t.id).sort((x, y) => x.attempt - y.attempt);
+        const done = list.filter(isReviewed).length;
+        const det = el('details', { class: 'bp-measure', 'data-measure': t.id });
+        if (done < list.length) det.open = !box.querySelector('details[open]');
+        det.appendChild(el('summary', {}, [document.createTextNode(t.question), el('small', { text: done + ' of ' + list.length + ' answered' })]));
+        const cols = el('div', { class: 'cols' });
+        for (const a of list) cols.appendChild(panelCard(a));
+        det.appendChild(cols);
+        box.appendChild(det);
+      }
+    }
+    panelStatus();
+  }
+  function panelStatus() {
+    const list = panelAttempts();
+    if (!list.length) return;
+    const done = list.filter(isReviewed).length;
+    $('bpanel-status').textContent = 'Each drawing varies one thing only; the rest is drawn the same way every time. Answer the question about the marked element for each drawing on its own (the same structure comes back several times, in a mixed order). '
+      + done + ' of ' + list.length + ' answered' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + '.';
+    for (const det of $('bpanel-measures').querySelectorAll('details.bp-measure')) {
+      const items = list.filter((a) => a.task === det.dataset.measure);
+      const sm = det.querySelector('summary small');
+      if (sm) sm.textContent = items.filter(isReviewed).length + ' of ' + items.length + ' answered';
+    }
+  }
+
   // ---------- runs (files published with the page) ----------
   // the date shown last in this browser, else the newest date
   function chooseDefault() {
@@ -986,6 +1098,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       allIndex = list;
       for (const r of list) {
         if (!r || !r.runId) continue;
+        if (r.panel) { panels.push(r); continue; }
         if (HIDDEN_INK.includes(r.ink)) { hiddenRuns += 1; continue; }
         if (r.visibleFrom && r.visibleFrom > todayNY) { laterRuns += 1; continue; }
         runs.set(r.runId, r);
@@ -996,6 +1109,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     }
     // the date is chosen once the published runs are known (uploads read earlier are already in runs)
     indexRead = true;
+    loadPanels();
     chooseDefault();
     if (!day) { renderRuns(); render(); }
   })();
@@ -1028,7 +1142,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const pick = new Map();
     let newest = null;
     for (const r of allIndex) {
-      if (!r || !r.file || r.person) continue;
+      if (!r || !r.file || r.person || r.panel) continue;
       const b = pick.get(r.dailyDate);
       if (!b || String(r.added || '') > String(b.added || '')) pick.set(r.dailyDate, r);
       if (!newest || String(r.added || '') > String(newest.added || '')) newest = r;
@@ -1216,7 +1330,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       let name = 'another reviewer';
       try { if (userApi) { const ps = await userApi.profiles([viewAs]); name = ps[viewAs].name || name; } } catch (e) { /* unresolved */ }
       const back = el('button', { class: 'chip', type: 'button', text: 'Back to my answers' });
-      back.onclick = () => { viewAs = me; cards.clear(); peopleCards.clear(); render(); renderPeople(); renderReviewers(); renderRuns(); };
+      back.onclick = () => { viewAs = me; cards.clear(); peopleCards.clear(); panelCards.clear(); render(); renderPeople(); renderPanels(); renderReviewers(); renderRuns(); };
       v.appendChild(document.createTextNode('Answers of ' + name + ' (read only) '));
       v.appendChild(back);
     }
@@ -1242,7 +1356,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const p = ps[id] || {};
       const btn = el('button', { class: 'link', type: 'button', text: id === viewAs ? 'shown' : 'show answers' });
       btn.disabled = id === viewAs;
-      btn.onclick = () => { viewAs = id; cards.clear(); peopleCards.clear(); render(); renderPeople(); renderReviewers(); renderRuns(); };
+      btn.onclick = () => { viewAs = id; cards.clear(); peopleCards.clear(); panelCards.clear(); render(); renderPeople(); renderPanels(); renderReviewers(); renderRuns(); };
       body.appendChild(el('tr', { class: id === viewAs ? 'on' : null }, [
         el('td', { text: (p.name || 'Someone') + (id === me ? ' (you)' : '') }),
         el('td', { class: 'num', text: String(mineAll) }),

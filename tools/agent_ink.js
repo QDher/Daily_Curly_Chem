@@ -27,11 +27,13 @@
 // corner (people place the typed atom at the end of their bonds; before, bonds stopped 0.2 to 0.38 L short of it), and
 // the probability to go on drawing through the next bond is set per pointer type so that the bonds per stroke match
 // people's (TRAIL). Together these bring the joint gap measured by tools/compare_ink.js to that of people.
+// Ink 0.8.0 (request R6, decision 71): panel drawings (panelCopy, panelArrows), one measure varied and the rest at
+// people's median or ideal; the daily testers draw as with ink 0.7.0.
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.7.0';
+const VERSION = '0.8.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -513,12 +515,18 @@ function arc(d, start, end, o = {}) {
 // opt.boundary (ink 0.6.0, the standard set): instead of breaking a rule, one graded measure is set on one arrow
 // (drawn among those that apply, then the arrow, then the value across its range); the result has boundary
 // { arrow (1-based), name, value, inside (the arrow keeps every rule of the convention) } and convention 'boundary'.
+// opt.boundary may also be { arrow (1-based), name, value }: that measure on that arrow (panel attempts, ink 0.8.0).
 function arrows(d, scene, reference, opt = {}) {
   const G = geometry(scene);
   const plans = reference.map((r) => plan(r, G));
   let broken = null, bnd = null;
   const roll = d.rc.u();
-  if (opt.boundary) {
+  if (opt.boundary && typeof opt.boundary === 'object') {
+    // panel attempt (request R6): the measure, arrow (1-based) and value are given
+    const k = opt.boundary.arrow - 1;
+    if (!plans[k] || !plans[k].measures.includes(opt.boundary.name)) throw new Error('measure ' + opt.boundary.name + ' does not apply to arrow ' + opt.boundary.arrow);
+    bnd = { arrow: k, name: opt.boundary.name, value: opt.boundary.value };
+  } else if (opt.boundary) {
     const names = Object.keys(ARROW_BOUNDARY).filter((k) => plans.some((p) => p.measures.includes(k)));
     if (names.length) {
       const name = names[Math.floor(d.rc.u() * names.length)];
@@ -536,14 +544,18 @@ function arrows(d, scene, reference, opt = {}) {
     }
   }
   const strokes = [], cases = [];
+  // panel attempts: each arrow has its own random stream, so that a change of the measure leaves the other arrows as
+  // they were
+  const panel = !!(opt.boundary && typeof opt.boundary === 'object');
   plans.forEach((p, i) => {
+    const dd = panel ? Object.assign({}, d, { r: rng(seedOf(d.seed, 'panel arrow', i)), rc: rng(seedOf(d.seed, 'panel arrow choice', i)) }) : d;
     const br = broken && broken.arrow === i ? broken.rule : null;
     const bm = bnd && bnd.arrow === i ? bnd : null;
-    const st = startOf(d, G, p, br, bm && ['lpDistance', 'lpAngle', 'bondStart', 'multipleStart'].includes(bm.name) ? bm : null);
-    const en = endOf(d, G, p, st.pt, br, bm && (bm.name === 'atomEnd' || bm.name === 'pairEnd') ? bm : null);
+    const st = startOf(dd, G, p, br, bm && ['lpDistance', 'lpAngle', 'bondStart', 'multipleStart'].includes(bm.name) ? bm : null);
+    const en = endOf(dd, G, p, st.pt, br, bm && (bm.name === 'atomEnd' || bm.name === 'pairEnd') ? bm : null);
     // rule 3: an arrow from a multiple bond to another atom bulges on the side of the atom that forms the bond
     const toward = p.multi ? sub(G.A.get(p.toward), G.A.get(p.bond[0] === p.toward ? p.bond[1] : p.bond[0])) : null;
-    strokes.push(arc(d, st.pt, en.pt, { short: !!p.short, toward, segs: G.segs, prev: strokes.slice() }));
+    strokes.push(arc(dd, st.pt, en.pt, { short: !!p.short, toward, segs: G.segs, prev: strokes.slice() }));
     cases.push({ start: st.kind, end: en.kind });
   });
   if (bnd) {
@@ -943,4 +955,137 @@ function structureProfile(d, scene0, box, opt = {}) {
   return { strokes, typed, unsupported: [], L, hand, boundary };
 }
 
-module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, ARROW_BOUNDARY, arrowBreaks, SIDE, QRANGE, BOUNDARY, TRAIL, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };
+// ---------- boundary panel (ink 0.8.0, request R6, decision 71) ----------
+// A panel drawing varies one measure only: the measure is set to a given value; everything else is at the median of
+// people (copies: data/ink_profile.json, pen) or ideal (arrows: the convention without noise); the structure, its
+// layout and scale are those of the task; atoms are typed at their place except the one letter a letter-gap measure
+// concerns, written with one fixed sample of people that the recognizer read as its label. The seed changes only the
+// side of the slight bow of each line (bonds) or of a near tie in the side of an arc (arrows). The element the question
+// is about is returned as mark (points in the drawing's coordinates) for the review page to show.
+const PANEL_POINTER = 'pen';
+const mid = (r) => (r[0] + r[1]) / 2;
+function panelDrawing(seed) {
+  const style = {};
+  for (const [k, r] of Object.entries(HABITS).concat(Object.entries(HABITS2))) style[k] = mid(r);
+  Object.assign(style, { pairAtom: 0, chargeStart: 0, arrowLeft: 0.5, lpFacing: 0.5 });
+  const noise = { end: 0, geometry: 0, wobble: PRECISION.high.wobble, arrowStart: 0, arrowEnd: 0, click: 0, angle: 0, care: 1, breakRate: 0 };
+  return { seed, style, noise, r: rng(seedOf(seed, 'panel')), rc: rng(seedOf(seed, 'panel convention')) };
+}
+// the sample of a label used in every panel drawing: the first of the pen pointer read as its label
+function panelSample(label) {
+  return SAMPLES.find((x) => x.label === label && x.pointer === PANEL_POINTER && x.read === label) || SAMPLES.find((x) => x.label === label && x.read === label) || null;
+}
+// panel: { name, value, arrow (1-based) }. Returns arrows() output with boundary.panel true and mark { arrow, atoms,
+// bonds } (atoms: [x, y]; bonds: [[x, y], [x, y]]).
+function panelArrows(scene, reference, panel, seed) {
+  const out = arrows(panelDrawing(seed), scene, reference, { boundary: { arrow: panel.arrow, name: panel.name, value: panel.value } });
+  const A = new Map(scene.atoms.map((a) => [a.id, a]));
+  const pt = (id) => [A.get(id).x, A.get(id).y];
+  const ref = reference[panel.arrow - 1];
+  const mark = { arrow: panel.arrow, atoms: [], bonds: [] };
+  if (panel.name === 'lpDistance' || panel.name === 'lpAngle') mark.atoms.push(pt(ref.from.lp));
+  else if (panel.name === 'bondStart' || panel.name === 'multipleStart') mark.bonds.push(ref.from.bond.map(pt));
+  else if (panel.name === 'atomEnd') mark.atoms.push(pt(ref.to.atom));
+  else if (panel.name === 'pairEnd') for (const id of ref.to.pair) mark.atoms.push(pt(id));
+  out.boundary.panel = true;
+  out.mark = mark;
+  return out;
+}
+// panel: { name (letterGap, secondLineLength, secondLineSpacing), value, atom (letter gap: id of the atom written by
+// hand; its first bond is the one asked about), bond ([a, b], second line measures: the double bond) }.
+function panelCopy(scene0, box, panel, seed) {
+  const d = panelDrawing(seed);
+  const scene = withHydrogens(scene0);
+  const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
+  if (unsupported.length) return { strokes: [], typed: [], unsupported, hand: [], boundary: null, mark: null };
+  const degree = new Map(scene.atoms.map((a) => [a.id, 0]));
+  for (const b of scene.bonds) { degree.set(b.a, degree.get(b.a) + 1); degree.set(b.b, degree.get(b.b) + 1); }
+  const labelled = new Set(scene.atoms.filter((a) => a.el !== 'C' || degree.get(a.id) === 0).map((a) => a.id));
+  const pv = (m) => (m === panel.name ? panel.value : quantileOf(PANEL_POINTER, m, 0.5));
+  // place: centred, bond length 1.5 unless the frame needs less, no rotation
+  const xs = scene.atoms.map((a) => a.x), ys = scene.atoms.map((a) => a.y);
+  const c = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  const halfW = Math.max(0.01, ...xs.map((x) => Math.abs(x - c.x))), halfH = Math.max(0.01, ...ys.map((y) => Math.abs(y - c.y)));
+  const k = Math.min(1, (box.w / 2 - 1.2) / halfW, (box.h / 2 - 1.0) / halfH);
+  const L = L0 * k;
+  const centre = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+  const at = new Map(scene.atoms.map((a) => [a.id, add(centre, mul(sub(a, c), k))]));
+  const P = (id) => [Math.round(at.get(id).x * 1000) / 1000, Math.round(at.get(id).y * 1000) / 1000];
+  // the one letter written by hand (letter gap)
+  const letters = new Map();
+  const hand = [];
+  if (panel.name === 'letterGap') {
+    const a = scene.atoms.find((x) => x.id === panel.atom);
+    const smp = a && panelSample(a.el);
+    if (!smp) throw new Error('no sample read as ' + (a ? a.el : panel.atom));
+    const all = [].concat(...smp.strokes);
+    const xs2 = all.map((p) => p[0]), ys2 = all.map((p) => p[1]);
+    const sc = (pv('letterHeight') * L) / Math.max(Math.max(...ys2) - Math.min(...ys2), 0.2);
+    const cx = (Math.max(...xs2) + Math.min(...xs2)) / 2, cy = (Math.max(...ys2) + Math.min(...ys2)) / 2;
+    const p0 = at.get(a.id);
+    letters.set(a.id, smp.strokes.map((st) => st.map((p) => ({ x: p0.x + (p[0] - cx) * sc, y: p0.y + (p[1] - cy) * sc }))));
+    hand.push(a.el);
+  }
+  const extent = (id, u) => Math.max(0, ...[].concat(...letters.get(id)).map((p) => (p.x - at.get(id).x) * u.x + (p.y - at.get(id).y) * u.y));
+  // bond ends: beyond the handwritten letter by the letter gap; at other atoms as at a corner (half the median joint gap
+  // short of an atom with two or more bonds)
+  const endAt = (id, toward) => {
+    const p = at.get(id), u = unit(sub(at.get(toward), p));
+    if (letters.has(id)) return add(p, mul(u, Math.min(extent(id, u) + pv('letterGap') * L, 0.75 * len(sub(at.get(toward), p)))));
+    if (degree.get(id) < 2) return p;
+    return add(p, mul(u, (pv('jointGap') * L) / 2));
+  };
+  // each line has its own random stream, so that a change of the measure leaves the other lines as they were
+  const dOf = (key) => ({ r: rng(seedOf(seed, 'panel line', key)), noise: d.noise });
+  const strokes = [];
+  for (const b of scene.bonds) {
+    const [x, y] = at.get(b.a).x <= at.get(b.b).x ? [b.a, b.b] : [b.b, b.a];
+    strokes.push(line(dOf(b.a + '-' + b.b), endAt(x, y), endAt(y, x), L, pv('wobble')));
+  }
+  // second lines on the side of the neighbours (inner side), median length, spacing and shift
+  const isPanelBond = (b) => panel.bond && ((b.a === panel.bond[0] && b.b === panel.bond[1]) || (b.a === panel.bond[1] && b.b === panel.bond[0]));
+  for (const b of scene.bonds) {
+    if (b.order < 2) continue;
+    const p = endAt(b.a, b.b), q = endAt(b.b, b.a);
+    const u = unit(sub(q, p)), nrm = { x: -u.y, y: u.x };
+    let side = 0;
+    for (const o of scene.bonds) {
+      if (o === b) continue;
+      const shared = o.a === b.a || o.a === b.b ? o.a : o.b === b.a || o.b === b.b ? o.b : null;
+      if (!shared) continue;
+      const other = at.get(o.a === shared ? o.b : o.a);
+      side += (other.x - at.get(shared).x) * nrm.x + (other.y - at.get(shared).y) * nrm.y;
+    }
+    const inner = side === 0 ? 1 : Math.sign(side);
+    const value = (m) => (isPanelBond(b) || m !== panel.name ? pv(m) : quantileOf(PANEL_POINTER, m, 0.5));
+    const l = len(sub(q, p));
+    for (const o of b.order === 2 ? [inner] : [1, -1]) {
+      const half = (Math.min(1, value('secondLineLength')) * l) / 2;
+      const m0 = add(add(between(p, q, 0.5), mul(u, value('secondLineShift') * l)), mul(nrm, o * value('secondLineSpacing') * L));
+      strokes.push(line(dOf(b.a + '=' + b.b + o), sub(m0, mul(u, half)), add(m0, mul(u, half)), L, pv('wobble')));
+    }
+  }
+  for (const id of letters.keys()) for (const st of letters.get(id)) strokes.push(st);
+  // every other labelled atom typed at its place; charges typed (at the atom for a labelled atom, beside a carbon)
+  const typed = [];
+  for (const a of scene.atoms) {
+    const p = at.get(a.id);
+    if (labelled.has(a.id) && !letters.has(a.id)) typed.push({ el: a.el, q: 0, x: p.x, y: p.y });
+    for (let n = 0; n < Math.abs(a.q || 0); n++) {
+      const place = labelled.has(a.id) ? p : add(p, { x: d.style.chargeDx * L, y: d.style.chargeDy * L });
+      typed.push({ el: null, q: Math.sign(a.q), x: place.x, y: place.y });
+    }
+  }
+  const mark = { atoms: [], bonds: [] };
+  if (panel.name === 'letterGap') {
+    mark.atoms.push(P(panel.atom));
+    const b = scene.bonds.find((x) => x.a === panel.atom || x.b === panel.atom);
+    if (b) mark.bonds.push([P(b.a), P(b.b)]);
+  } else if (panel.bond) mark.bonds.push([P(panel.bond[0]), P(panel.bond[1])]);
+  return { strokes, typed, unsupported: [], L, hand, boundary: { name: panel.name, value: panel.value, panel: true }, mark };
+}
+
+// graded measures that apply to each reference arrow of a step (panel tool, request R6)
+const measuresOf = (scene, reference) => { const G = geometry(scene); return reference.map((r) => plan(r, G).measures); };
+
+module.exports = { measuresOf, panelArrows, panelCopy, panelSample, PANEL_POINTER, VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, ARROW_BOUNDARY, arrowBreaks, SIDE, QRANGE, BOUNDARY, TRAIL, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };

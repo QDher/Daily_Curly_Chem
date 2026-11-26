@@ -23,7 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.6.1';
+const VERSION = '0.7.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
@@ -33,10 +33,12 @@ const { seedOf } = require('./agent_ink.js');
 // Sampling (request R4, data 0.6.0): the review page lists every attempt with a rule broken on purpose (arrows) or a
 // boundary measure (copies), every attempt of an imprecise tester, and about a fifth of the other attempts of a
 // precise tester, drawn from the attempt's seed so that every reviewer sees the same ones.
+// Data 0.7.0 (request R6, decision 71): while a boundary panel is open (a line of the index with panel.open not false,
+// written by tools/agent_panel.js), boundary attempts of the daily runs are not listed: thresholds come from the panel.
 const SAMPLE = 0.2;
-function listedOf(a, run) {
+function listedOf(a, run, panelOpen) {
   if (a.type === 'T1' && a.convention && a.convention !== 'ok') return true;
-  if (a.boundary) return true; // boundary attempts of arrows (standard set, data 0.6.1) and of copies
+  if (a.boundary) return !panelOpen; // boundary attempts of arrows (standard set, data 0.6.1) and of copies
   if (!run.traits || run.traits.precision !== 'high') return true;
   return seedOf(a.seed, 'review sample') / 4294967296 < SAMPLE;
 }
@@ -75,7 +77,9 @@ function svgOf(R, smi) {
     .replace(/\s+/g, ' ');
 }
 
+const panelIsOpen = (index) => Array.isArray(index) && index.some((r) => r && r.panel && r.panel.open !== false);
 function build(R, run, opt) {
+  const panelOpen = panelIsOpen(opt.index && fs.existsSync(opt.index) ? JSON.parse(fs.readFileSync(opt.index, 'utf8')) : []);
   if (opt.suffix !== undefined && !/^[a-z0-9][a-z0-9.-]{0,23}$/i.test(opt.suffix)) throw new Error('suffix: letters, digits, dots and hyphens, at most 24');
   const runId = run.date + '_' + run.tester + (opt.suffix ? '_' + opt.suffix : '');
   const std = JSON.parse(fs.readFileSync(path.join(repo, 'data', 'tasks.json'), 'utf8')).tasks;
@@ -107,7 +111,7 @@ function build(R, run, opt) {
     // copies from ink 0.5.0: letters written by hand and the boundary measure (data 0.6.0), not shown to reviewers
     if (a.hand !== undefined) doc.hand = a.hand;
     if (a.boundary !== undefined) doc.boundary = a.boundary;
-    doc.listed = listedOf(a, run);
+    doc.listed = listedOf(a, run, panelOpen);
     if (a.type === 'T1' && doc.scene) {
       // hydrogen counts: recorded from script 0.1.2; earlier records take them from the same start scene as the page
       if (doc.scene.atoms.some((x) => x.h === undefined) && def) {
@@ -197,7 +201,7 @@ function write(out, built, opt) {
   return files;
 }
 
-module.exports = { build, write, sceneOf, VERSION };
+module.exports = { build, write, sceneOf, listedOf, panelIsOpen, VERSION };
 
 if (require.main === module) {
   const opt = args();

@@ -229,6 +229,47 @@ kept. What remains, seen on people's copies not read exactly: letters without sa
 in 3), charges written by hand and not read, and one carbon more or less (7 of the pen copies), which the measured
 habits do not produce. Not examined: why the stroke length of the precise testers stays at 0.88 L against 0.72 L.
 
+## Boundary panel (ink 0.8.0, request R6, 2026-11-26)
+
+Decision 71 (people side, `docs/handoff/boundary-panel_2026-11-26.md`), implemented on the agent side (decision 73).
+Thresholds of what reviewers accept come from a panel in which a drawing varies one measure only.
+
+- Ink 0.8.0 (`panelCopy`, `panelArrows` of `tools/agent_ink.js`): the measure is set to the value given; copies have
+  every other measure at the median of people with a pen (`data/ink_profile.json`), one stroke per bond, no rotation
+  or placement noise, every atom typed at its place except, for the letter gap, the one letter asked about, written
+  with one fixed sample of `data/letter_samples.json` that the recognizer read as its label (`panelSample`); arrows
+  follow the convention without noise except the measured one. Each line or arrow has its own random stream, so that
+  another value of the measure leaves the rest of the drawing as it was; the seed changes only the side of the slight
+  bow of a line. The element asked about is returned as `mark`. The daily testers draw as with ink 0.7.0.
+- Tool `tools/agent_panel.js` (0.1.0): writes the phase 1 panel as a run of the review page, `<date>_panel1`, tester
+  `panel`: 9 measures × 5 values (centres of the 5 bands of each range) × 3 drawings (simple structure twice,
+  crowded once), 135 drawings, mixed in a fixed order per measure, each with a question that names the element
+  (`question`) and the element to mark (`mark`). Structures: letter gap `t2-diketone`, `t2-bromoketone` (letter O);
+  second line `t2-iminium`, `t2-ester` (the C=C); lone-pair start, bond start and end on an atom `t1-substitution`,
+  `t1-addition`; start on a multiple bond `d20261122-a2`, `d20261124-a3`; end of a new bond the step ALDOL of the
+  reviewer sheet, three drawings (the only task with that end, `t1-cc-bond`, is not read as intended on its layout:
+  the methyl carbon of the second molecule lies between the two atoms that form the bond). The run also holds the
+  offline reading of each value (10 drawings of each structure; copies read exactly by `src/recognize.js`, arrows
+  giving the intended structure among the readings of `src/readings.js`), and each drawing's own reading (`read`);
+  neither is shown. Index line: `panel: { phase: 1, open: true }`.
+- Review page: open panels are shown apart from the daily runs ("Boundary panel", one group per measure, the
+  measure's 15 drawings), never in the runs table; the element is marked (dashed circle round an atom or letter,
+  band along a bond; the arrow asked about in the accent colour, the others grey). Answer: `expected` yes, no or
+  unsure with `asked` "panel", under the attempt's key. "Not reviewed by you" shows the panel's count.
+- Thresholds: `node tools/agent_boundaries.js --panel --runs <dir> --answers <dir>` (export as in
+  `docs/INTERFACES.md` I4c): per measure the judgements per value, the threshold of the reviewers by the phase 1 rule
+  (a value is accepted when at least half of its yes/no judgements are yes; the threshold lies between neighbouring
+  values that differ), each reviewer's threshold, the page's threshold (offline reading) and "relevant" (reviewers and
+  page differ at a value inside or next to the range of people, p10 to p90 widened by a band; arrows: no measure of
+  people, every value counts; or two reviewers differ at two values or more).
+- While a panel is open, review data 0.7.0 does not list boundary attempts of the daily runs (`listed` false); the
+  scheduled task needs no change, since it passes the live index. To close a panel:
+  `node tools/agent_panel.js --close <runId> --index <runs/index.json of the live page> --out <dir>`, then publish
+  `runs/index.json`. Phase 2 (relevant measures only) is not written yet.
+- Offline reading of the phase 1 values (panel of 2026-11-26): the page reads every value of the eight measures other
+  than the letter gap; the letter gap is not read at 0.45 L (0 of 20) and is read below it. So any "no" of the
+  reviewers at a value the page reads points to a reading too permissive there.
+
 ## One run
 
 1. Clone `main`, `npm ci`, `npm run setup` (in the scheduled session).
