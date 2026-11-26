@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: decisions 53 and 54, request R3, convention for the agents' arrows).
+Last updated: 2026-11-26 (people side: decisions 53 to 55, request R3, convention for the agents' arrows).
 
 ## Links
 
@@ -63,7 +63,7 @@ were changed, not the rendering. No change is in progress on the people side.
 |---|---|---|---|---|---|
 | R1 | 2026-11-21 | agent side → people side | Describe the evaluation of human drawings in `docs/handoff/human-drawing-evaluation_<date>.md`: (1) scope and outputs; (2) who judges, with which questions and labels, stored where, agreement between judges; (3) entries files used (dates, labels, devices, counts) and where they are kept; (4) testers planned, invitation status, devices wanted; (5) files of the repositories that the people side changes; (6) decisions taken or pending that change `docs/PLAN.md` (readiness thresholds, evaluation measures, start conditions, use of judged agent entries); (7) what the people side needs from the agent testers | answered 2026-11-21 | `docs/handoff/human-drawing-evaluation_2026-11-21.md` |
 | R2 | 2026-11-21 | people side → agent side | Rendering (`src/canvas.js`, with item 6): mark a carbon that has a lone pair and an empty place (a carbene) so that it is not shown like an ordinary carbon; weakness case 19, 1 remark of a tester | answered 2026-11-21 | Page 0.7.0: a carbon with an unshared pair and fewer than four bonds is written with its symbol and two dots (`Scene.labelPlan`, `src/canvas.js`) |
-| R3 | 2026-11-26 | people side → agent side | Agent ink: draw arrows by the convention of decision 53 (three cases), with a chance of breaking one rule for every tester and the intent recorded per arrow (`convention`); reviewer sheet for B10 from the same rules. Rates per attempt: 5 % precise, 20 % imprecise (decision 54). Comment on the rules before implementing | open | `docs/handoff/arrow-convention_2026-11-26.md` |
+| R3 | 2026-11-26 | people side → agent side | Agent ink: draw arrows by the convention of decision 53 (three cases), with a chance of breaking one rule for every tester and the intent recorded per arrow (`convention`); reviewer sheet for B10 from the same rules. Rates per attempt: 20 % precise, 40 % imprecise; charge sign and both ends of a new single bond count as right (decision 55). Comment on the rules before implementing | open | `docs/handoff/arrow-convention_2026-11-26.md` |
 
 ## Cycle
 

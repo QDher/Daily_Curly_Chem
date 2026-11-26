@@ -42,8 +42,8 @@ these cases without intending them:
 
 Every agent tester has a chance of breaking a rule; no tester always follows the convention.
 
-- Rates per attempt (user, 2026-11-26): precise testers (john0002, john0003) 5 %, imprecise testers (john0004,
-  john0005) 20 %. In an attempt chosen this way exactly one arrow breaks exactly one rule; the other arrows
+- Rates per attempt (user, 2026-11-26, decision 55; first set at 5 % and 20 %): precise testers (john0002,
+  john0003) 20 %, imprecise testers (john0004, john0005) 40 %, so that what reviewers accept is known sooner. In an attempt chosen this way exactly one arrow breaks exactly one rule; the other arrows
   follow the convention.
 - The rule broken is drawn from those that apply to the arrows of the step: start on a bond of the atom (rule 1), start beyond 0.5 L in empty
   space (rule 1), start in the outer quarter of the bond (rule 2), short arrow off its bond (rule 2), start in
@@ -58,8 +58,12 @@ Every agent tester has a chance of breaking a rule; no tester always follows the
 - Per rule: agreement of each reviewer with the intent, and what the page does with the arrows that break it.
 - First run: old and new ink on the same set, both published, to compare the reviewers' agreement.
 
+## Settled by the user (2026-11-26, decision 55)
+
+- A start at the charge sign counts as right (rule 1).
+- A new single bond may end at the middle between the two atoms or on the receiving atom; both are right (rule 3).
+
 ## Open
 
-- Charge sign accepted as a start; the two accepted ends for a new single bond.
 - Not measured: how the 75 arrow entries of people and the 47 disputed attempts fall under these rules.
 - A change of `tools/agent_ink.js` raises its `VERSION`; names, seeds and traits of the testers stay.
