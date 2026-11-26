@@ -53,7 +53,7 @@ function analyse(R, doc) {
   return { entries, failures: out, copies };
 }
 
-module.exports = { analyse };
+module.exports = { analyse, targets };
 
 if (require.main === module) {
   const file = process.argv[2];

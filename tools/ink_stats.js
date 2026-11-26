@@ -11,7 +11,7 @@ const initRDKit = require('@rdkit/rdkit');
 const Scene = require('../src/scene.js');
 const Recognize = require('../src/recognize.js');
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const pathLen = (s) => s.slice(1).reduce((t, p, i) => t + dist(s[i], p), 0);
@@ -91,7 +91,8 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
         let label = null, source = null;
         if (l.sign && exact) { label = l.q > 0 ? '+' : '-'; source = 'reading'; }
         else if (!l.sign && !l.q && exact && !l.unknown && l.el) { label = l.el; source = 'reading'; }
-        else if (!l.sign && forced) { label = forced; source = 'target'; }
+        // a group written in one piece (NH2, OH) is not a sample of one letter: at most 3 strokes, not wider than tall
+        else if (!l.sign && forced && l.ink.length <= 3 && w <= 1.3 * h) { label = forced; source = 'target'; }
         if (!label || size < 1e-6) continue;
         samples.push({ label, source, pointer: ptr, read: l.sign ? (l.q > 0 ? '+' : '-') : l.el, height: r3(h / L),
           strokes: l.ink.map((i) => strokes[i].map((p) => [r3((p.x - cx) / size), r3((p.y - cy) / size)])) });

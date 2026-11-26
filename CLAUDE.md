@@ -66,6 +66,9 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   tuned on it, set its entry in `TUNED` of `tools/measure.js`. After a change of the recognizer also run
   `node tools/measure.js` (table of `docs/RECOGNITION.md`) and `node tools/ink_stats.js --write` (ink profile and
   letter samples of people for the agent ink, `data/ink_profile.json`, `data/letter_samples.json`).
+  After a change of `tools/agent_ink.js`, the recognizer or the ink profile: `node tools/compare_ink.js` (agent ink
+  against people's ink, offline). Scheduled task "Daily curly entries" (prompt in `docs/ENTRIES_TASK_PROMPT.md`,
+  change both together): daily report on the entries sent to the Worker; it commits nothing.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Arrow tasks show every hydrogen of an atom other than carbon as an atom with a bond (`Tasks.showHydrogens`,

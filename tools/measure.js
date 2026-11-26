@@ -3,6 +3,8 @@
 // reviewers judged readable. Run: node tools/measure.js [--runs <dir> --answers <dir>] [--md]
 //   --runs: run records of the review page (runs/<runId>.json); --answers: the reviewers' answers, one JSON file
 //   per answer in any folder depth (fields runId, set, task, attempt, expected). Without them: people only.
+//   --entries <file>: an entries file of a person or an export of the Worker (worker/README.md): its copies, read
+//   again with this recognizer, as a fourth row (people's drawings that are not in the fixtures).
 // Fixtures of people: test/fixtures/drawings_*.json; `heldOutFrom` below says from which recognizer version on
 // a fixture counts as tuning data. A fixture newer than the last tuned version is held-out.
 const fs = require('fs');
@@ -39,6 +41,22 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     for (const d of JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8')).drawings) {
       const r = read(d.strokes.map((st) => st.map((p) => ({ x: p[0], y: p[1] }))), d.typed || [], d.base);
       add(row, r.smiles === d.asked ? 1 : 0, d.asked, r.hand, d.pointer || null);
+    }
+  }
+  const entriesFile = arg('--entries');
+  if (entriesFile) {
+    const doc = JSON.parse(fs.readFileSync(entriesFile, 'utf8'));
+    const entries = (Array.isArray(doc) ? doc.map((r) => (r && r.payload ? r.payload : r)) : doc.entries || []).filter(Boolean);
+    const T = require('./failures.js').targets();
+    const row = (rows['People, entries given'] = newRow());
+    for (const e of entries) {
+      const want = e.kind === 'drawing' && ((e.target && e.target.smiles) || T[e.step]);
+      if (!want || !(e.strokes || []).length) continue;
+      const count = {};
+      for (const st of e.strokes) count[st.pointerType || '?'] = (count[st.pointerType || '?'] || 0) + 1;
+      const asked = Scene.canonicalSmiles(R, want);
+      const r = read(e.strokes.map((st) => st.points), e.typed || [], e.base);
+      add(row, r.smiles === asked ? 1 : 0, asked, r.hand, Object.keys(count).sort((a, b) => count[b] - count[a])[0]);
     }
   }
   const runs = arg('--runs'), answers = arg('--answers');
