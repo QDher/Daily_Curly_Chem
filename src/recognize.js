@@ -811,8 +811,8 @@
         boxes[j].x1 > bi.cx - 0.45 * L && boxes[j].x1 < bi.cx + 0.12 * L && boxes[j].cy > bi.y0 - 0.1 * L && boxes[j].cy < bi.y1 + 0.1 * L);
       if (letter) isBond[i] = false;
     }
-    const bondStrokes = [], labelStrokes = [];
-    strokes.forEach((s, i) => (isBond[i] ? bondStrokes : labelStrokes).push(s));
+    const bondStrokes = [], labelStrokes = [], labelIndex = [];
+    strokes.forEach((s, i) => { if (isBond[i]) bondStrokes.push(s); else { labelStrokes.push(s); labelIndex.push(i); } });
 
     // segments of the bond strokes
     let segs = [];
@@ -981,13 +981,15 @@
         if (a.x0 - gap <= b.x1 && b.x0 - gap <= a.x1 && a.y0 - gap <= b.y1 && b.y0 - gap <= a.y1) parent[find(i)] = find(j);
       }
     }
-    const groups = new Map();
+    const groups = new Map(), groupInk = new Map();
     labelStrokes.forEach((s, i) => {
       const r = find(i);
-      if (!groups.has(r)) groups.set(r, []);
+      if (!groups.has(r)) { groups.set(r, []); groupInk.set(r, []); }
       groups.get(r).push(s);
+      groupInk.get(r).push(labelIndex[i]);
     });
-    const labels = Array.from(groups.values()).map(readLabel);
+    // ink: the strokes of the label, as indices of the strokes given (output only, used by tools/ink_stats.js)
+    const labels = Array.from(groups.keys()).map((r) => Object.assign(readLabel(groups.get(r)), { ink: groupInk.get(r) }));
     // atoms and charges entered with the keyboard or the palette: labels that need no reading
     for (const t of opt.labels || []) {
       const r = (t.el ? 0.2 : 0.08) * L;
@@ -1240,7 +1242,7 @@
       const sum = bonds.reduce((s, b) => s + (b.a === a.id || b.b === a.id ? b.order : 0), 0);
       a.h = implicitH(a.el, a.q, sum);
     }
-    return { scene: { atoms, bonds }, L, unknown, edits, bondInk: isBond.slice(), labels: labels.map((l) => ({ el: l.el, q: l.q, sign: !!l.sign, unknown: l.unknown, chars: l.chars })), counts: { bondStrokes: bondStrokes.length, labelStrokes: labelStrokes.length } };
+    return { scene: { atoms, bonds }, L, unknown, edits, bondInk: isBond.slice(), labels: labels.map((l) => ({ el: l.el, q: l.q, sign: !!l.sign, unknown: l.unknown, chars: l.chars, typed: !!l.typed, ink: l.ink || [] })), counts: { bondStrokes: bondStrokes.length, labelStrokes: labelStrokes.length } };
   }
 
   // Changes made by the user after recognition; each returns a new scene with hydrogens recomputed.

@@ -8,11 +8,11 @@ them; used to improve the agents' drawing and to find what people judge acceptab
 
 ## Figures used
 
-- People: 2 testers; 168 copy drawings of the first week and 30 newer ones; 75 + 18 arrow attempts.
+- People: 2 testers; 168 copy drawings of the first week and 21 newer ones; 75 + 18 arrow attempts.
 - Agents: 4 testers, about 41 copies and 37 arrow attempts per day; 1,564 judgements by 2 reviewers up to 2026-11-25.
 - Reviewer agreement: copies kappa 0.74; arrows kappa 0.38 (47 disagreements on 204 attempts judged by both).
-- Recognizer on people's copies: 84 of 168 on the drawings the rules were found on; 12 of 30 on new drawings
-  (11 before the last cycle).
+- Recognizer on people's copies: 84 of 168 on the drawings the rules were found on; 5 of 21 on new drawings
+  (5 before the last cycle; corrected 2026-11-26: 12 and 11 of 30 first written counted 9 drawings of the tuning set).
 - Arrows of people: first reading accepted 71 of 75, then 13 of 18.
 
 ## Where the two tasks do help each other
@@ -33,7 +33,7 @@ them; used to improve the agents' drawing and to find what people judge acceptab
 3. The two tasks measure different things. Task 1 has a known answer, so the page can be scored without a
    reviewer. Task 2 asks "should this drawing give the structure", which for copies is close to "is it readable"
    but for arrows depends on a convention that did not exist; hence kappa 0.38.
-4. Rule fixes on people's drawings generalize weakly: +19 on the tuning drawings, +1 on 30 new ones. More rule
+4. Rule fixes on people's drawings generalize weakly: +19 on the tuning drawings, 0 on 21 new ones. More rule
    cycles on the same 2 testers will mostly fit those 2 testers.
 5. Volume is not what the agents give: their ink is generated in code, so any number of labelled drawings can be
    produced offline. The daily runs are useful for the check and for reviewers' judgements only.

@@ -177,6 +177,29 @@ down, but how they do on other hands is not known. Causes seen in the ink and no
   without handwriting (`labels`).
 - Failures at noise level 0 are mostly crowded layouts (cages, bridged rings) where atoms or bonds nearly overlap.
 
+## Shared measure (`node tools/measure.js`)
+
+One table after each change of the recognizer (decision 61). Tuning set: the fixtures of 2026-11-13 and 2026-11-20
+(the rules were found on them: regression only). Held-out: `test/fixtures/drawings_2026-11-25.json`, 21 copies of
+one tester (pen) made after the week files; no version up to 0.5.0 was tuned on them. Judged agent copies: copies
+that at least one reviewer judged "should be read" (`--runs`, `--answers`).
+
+Recognizer 0.5.0, 2026-11-26 (0.4.2 on the held-out row: 5/21):
+
+| Row | Exact | Aromatic | With handwritten letters | By pointer or ink |
+|---|---|---|---|---|
+| People, tuning set | 89/182 (49 %) | 35/69 (51 %) | 71/154 (46 %) | mouse 13/23, pen 65/129, touch 6/16 |
+| People, held-out | 5/21 (24 %) | – | 5/21 (24 %) | pen 5/21 |
+| Judged agent copies | 12/20 (60 %) | 0/1 | 0/3 | ink 0.2.0 3/7, ink 0.3.0 9/13 |
+
+The agent row uses only the 5 run records saved on the people side on 2026-11-26, not all judged copies (request
+R4, point 4). "With handwritten letters": drawings where the recognizer takes some strokes for letters or signs.
+The held-out drawings have no aromatic ring. The rules of 0.5.0 gained 19 drawings on the tuning set and none on
+the held-out set.
+
+Output of the recognizer (no rule change): each label carries `typed` and `ink`, the indices of its strokes;
+`tools/ink_stats.js` uses them for `data/ink_profile.json` and `data/letter_samples.json`.
+
 ## Judged agent copies (synthetic, 2026-11-21)
 
 Version 0.4.1 comes from the copies of the agent testers judged in the review page (ink 0.2.0, runs of 2026-11-16 to

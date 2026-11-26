@@ -4,6 +4,12 @@ Read this first. It replaces reading the history of the project. Written 2026-11
 fixed or found. Details: `README.md` (status), `docs/RECOGNITION.md` (recognizer rules and figures),
 `docs/WEAKNESSES.md` (each reported case), `docs/SCENE.md` (arrow rules), `CLAUDE.md` (rules of work).
 
+State on 2026-11-26 (decision 61): page 0.9.0 asks for atoms other than carbon with the buttons in copy tasks;
+`node tools/measure.js` gives the shared table (people tuning set, people held-out, judged agent copies);
+`node tools/ink_stats.js --write` rebuilds `data/ink_profile.json` and `data/letter_samples.json` for the agent
+ink; `node tools/failures.js <entries file>` lists the failures of a person and what they did next. The agent-side
+parts are request R4 of `docs/BOARD.md`.
+
 ## What a new session does not have
 
 - The tester codes: only their hashes are here. A session uses its own code from the environment variable

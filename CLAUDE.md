@@ -63,6 +63,10 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   argument) and report the counts.
   Agreement of 2026-11-26 (decision 60): the tester and the reviewer agreed to the use of their data; the entries
   file of 2026-11-25 (read from the review page) may be used the same way, stroke points only.
+  `test/fixtures/drawings_2026-11-25.json` (21 copies, held-out for recognizers up to 0.5.0): when a recognizer is
+  tuned on it, set its entry in `TUNED` of `tools/measure.js`. After a change of the recognizer also run
+  `node tools/measure.js` (table of `docs/RECOGNITION.md`) and `node tools/ink_stats.js --write` (ink profile and
+  letter samples of people for the agent ink, `data/ink_profile.json`, `data/letter_samples.json`).
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`
   (date, component, observation, cause, status). A correction comes with a test built from the reported strokes.
 - Arrow tasks show every hydrogen of an atom other than carbon as an atom with a bond (`Tasks.showHydrogens`,

@@ -116,7 +116,7 @@ pre { overflow-x: auto; font-size: 12px; background: var(--bg); border: 1px soli
     <p id="cond" class="muted"></p>
   <div id="tools-wrap">
     <div id="target-wrap" hidden>
-      <p class="muted">Copy this structure by hand in the frame below, then press “Read drawing”.</p>
+      <p class="muted">Copy this structure in the frame below: bonds as lines, atoms other than carbon and charges with the buttons above the frame. Then press “Read drawing”.</p>
       <div class="stage" id="target"></div>
     </div>
     <div class="row" role="group" aria-label="Tools">
@@ -336,7 +336,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   const latest = hasDaily ? (listed(daily.date) ? daily.date : (days.length ? days[days.length - 1].date : null)) : null;
   const TYPE = {
     T1: { label: 'Arrows', text: 'Draw the arrows for this step, then press \u201cApply arrows\u201d.' },
-    T2: { label: 'Copy', text: 'Copy the structure by hand.' },
+    T2: { label: 'Copy', text: 'Copy the structure: bonds as lines, atoms other than carbon with the buttons.' },
     T3: { label: 'Draw and arrows', text: '' },
     T4: { label: 'Mechanism', text: 'This mechanism was written by an AI. For each step, say whether the arrows are correct.' },
   };
@@ -396,10 +396,13 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // 0.7.0 (2026-11-21): no overlap of bonds, labels and charge signs in shown structures; carbene marked.
   // 0.8.0 (2026-11-23): days dated Saturday or Sunday are listed from the next Monday.
   // 0.8.1 (2026-11-26): the unshared pair of a carbene is written clear of bonds, atoms and charge signs.
-  const PAGE = '0.8.1';
+  // 0.9.0 (2026-11-26): copy tasks ask for atoms other than carbon with the buttons (handwriting stays possible);
+  // a reading that differs and holds handwritten letters says so; drawing entries record `hand` (strokes read as
+  // letters or signs).
+  const PAGE = '0.9.0';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
-    draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',
+    draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters written by hand are also read, less reliably.',
     atom: 'Click where the atom or charge goes: the end of a bond, a corner, an atom, or an empty place. Press Draw to draw more bonds.',
     h: 'Tap an atom to draw one of its hydrogens.',
     erase: 'Tap a stroke to remove it.',
@@ -790,7 +793,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     reading.shown = { match, differences: diff };
     $('cmp').hidden = false;
     say('cmp', match ? 'This reading is the structure to copy.'
-      : 'This reading differs from the structure to copy: ' + (!got ? 'an atom has too many bonds' : diff.length ? diff.join('; ') : 'same atoms and bonds, connected differently') + '. Correct it by tapping, flag it if it is not what you drew, or draw again.', match ? 'ok' : 'bad');
+      : 'This reading differs from the structure to copy: ' + (!got ? 'an atom has too many bonds' : diff.length ? diff.join('; ') : 'same atoms and bonds, connected differently') + '. Correct it by tapping, flag it if it is not what you drew, or draw again.' + (reading.hand ? ' Letters written by hand may have been misread: the buttons above the frame place an atom or a charge without reading.' : ''), match ? 'ok' : 'bad');
   }
   $('read').onclick = () => {
     const ink = input.getInk();
@@ -801,7 +804,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     const r = Recognize.recognize(ink, blank ? { nominal: 1.5, labels: typed } : { scene: base, labels: typed });
     if (!r.scene.atoms.length) return say('msg', 'Nothing could be read from this drawing.', 'bad');
     const clean = blank ? Scene.relayout(R, r.scene) : r.scene;
-    reading = { strokes: strokeData(ink), typed, recognized: r.scene, unknown: r.unknown, edits: r.edits, scene: clean, corrections: [], blank, base: blank ? null : base };
+    reading = { strokes: strokeData(ink), typed, hand: r.counts.labelStrokes, recognized: r.scene, unknown: r.unknown, edits: r.edits, scene: clean, corrections: [], blank, base: blank ? null : base };
     say('msg', '');
     showReading();
   };
@@ -843,7 +846,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
     entries.push({
       kind: 'drawing', versions: { recognize: Recognize.VERSION, page: PAGE }, tester, level, step: step.id,
       seconds: Math.round((performance.now() - t0) / 100) / 10,
-      strokes: reading.strokes, typed: reading.typed, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
+      strokes: reading.strokes, typed: reading.typed, hand: reading.hand, base: reading.base, recognized: reading.recognized, unknown: reading.unknown,
       corrections: reading.corrections, final: null, accepted: false, flagged, wrong: what || [], shown: reading.shown || undefined,
     });
     showLog();
@@ -872,6 +875,7 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
       seconds: Math.round((performance.now() - t0) / 100) / 10,
       strokes: reading.strokes,
       typed: reading.typed,
+      hand: reading.hand,
       base: reading.base,
       recognized: reading.recognized,
       unknown: reading.unknown,

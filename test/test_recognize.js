@@ -200,6 +200,22 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     if (changed.length) throw new Error('readings changed (update the fixture and docs/RECOGNITION.md if intended): ' + changed.slice(0, 8).join('; ') + (changed.length > 8 ? ' ... ' + changed.length + ' in all' : ''));
   });
 
+  // Drawings of the entries file of 2026-11-25 (one tester, pen): no recognizer up to 0.5.0 was tuned on them.
+  // Held-out measure of tools/measure.js; here only: the readings stay as recorded.
+  const held = require('./fixtures/drawings_2026-11-25.json');
+  test('drawings of 2026-11-25 (held-out for recognizers up to 0.5.0): same readings as recorded', () => {
+    let exact = 0;
+    const changed = [];
+    for (const d of held.drawings) {
+      const strokes = d.strokes.map((st) => st.map((p) => ({ x: p[0], y: p[1] })));
+      const got = smi(Rec.recognize(strokes, { nominal: 1.5, labels: d.typed || [] }).scene);
+      if (got === d.asked) exact += 1;
+      if (got !== d.reads) changed.push(d.n + ': ' + got + ' instead of ' + d.reads);
+    }
+    console.log('held-out drawings read exactly: ' + exact + '/' + held.drawings.length + ' (fixture made with recognizer ' + held.recognizer + ')');
+    if (changed.length) throw new Error('readings changed (update the fixture and docs/RECOGNITION.md if intended): ' + changed.join('; '));
+  });
+
   // Benchmark: structures of the published problems redrawn as synthetic ink. Exact structure required.
   const rate = {};
   let used = 0;

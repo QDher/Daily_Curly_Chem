@@ -196,7 +196,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.waitForSelector('#result:not([hidden])');
     await page.click('#yes');
     const e = await page.evaluate(() => window.__entries[window.__entries.length - 1]);
-    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.8.1', 'page version');
+    eq(e.strokes.length, 2, 'strokes of the apply'); eq(e.accepted, 0, 'accepted'); eq(e.versions.page, '0.9.0', 'page version');
     // the entry replays: the stored strokes give the stored readings
     const again = await page.evaluate((en) => {
       const out = Readings.read(en.scene, en.strokes.map((st) => ({ start: st.points[0], end: st.points[st.points.length - 1] })));
@@ -499,7 +499,7 @@ const eq = (got, want, what) => { if (got !== want) throw new Error((what || 'va
     await page.click('#r-no');
     let e = await page.evaluate(() => window.__entries[0]);
     eq(e.accepted, false); eq(e.shown.match, false, 'shown: differs'); eq(e.shown.differences.includes('1 Br missing'), true, 'differences recorded');
-    eq(e.versions.page, '0.8.1', 'page version');
+    eq(e.versions.page, '0.9.0', 'page version');
     // the structure itself
     await page.evaluate((ink) => ink.forEach((pts) => window.__app.input.addInk(pts)), inkFor(tgt, 1));
     await page.click('#read');
