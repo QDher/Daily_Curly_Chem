@@ -11,8 +11,10 @@ deployed (2026-11-26 15:40 UTC, through the Cloudflare API connector; deployed `
 answers 200) and allowed the host; the checks of step 3 passed (`GET /` 200, unknown label 400, export without or
 with a wrong key 403, origin other than `ALLOWED_ORIGINS` 403); step 4 done: `worker` set in `data/config.json`
 (decision 67). Step 5: from the page under its origin, an entry with the session label was refused (400 "unknown
-visitor") and the page saved the file; a row of an accepted label stored and read back is pending (the user sends
-one from the live page).
+visitor") and the page saved the file. Rows of accepted labels stored and read back with the export the same day:
+47 rows (tester `3005a301`: 30, the creator: 17, ending with the questionnaire), sequence numbers without gaps,
+`node tools/replay.js` 44/44. No row deleted: they are entries of real runs, not a test row. Row ids have gaps
+(highest id 68 for 47 rows) while sequence numbers have none; the gaps are not missing entries.
 
 Tests: `cd worker && npm ci && npm test` (local database, 8 tests; also run by `.github/workflows/worker.yml`).
 
