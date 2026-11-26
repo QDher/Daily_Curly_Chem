@@ -4,8 +4,11 @@ Cloudflare Worker with its own D1 database, separate from the Worker of the two 
 It receives the entries the page sends (`POST /mech_entries`) and gives them back only with a key
 (`/rpc/mech_export`, header `X-Export-Key` = Worker secret `MECH_EXPORT_KEY`). Routes: `src/index.js`.
 
-State on 2026-11-26: the D1 database `curly-entries` exists with the table `mech_entries` (empty); the Worker is **not
-deployed** and the page sends nothing (`worker: null` in `data/config.json`).
+State on 2026-11-26: the D1 database `curly-entries` exists with the table `mech_entries` (empty). The Worker is
+deployed (2026-11-26 15:40 UTC, through the Cloudflare API connector; deployed `index.js` and `rows.js` identical to
+`main` at 8b475d5 by SHA-256), at https://curly-entries.dailyorgchem.workers.dev, with the bindings of
+`wrangler.toml`. Not done: the secret `MECH_EXPORT_KEY`, the checks of step 3 (the network of the cloud environment
+refuses the host) and steps 4 to 6; the page sends nothing (`worker: null` in `data/config.json`).
 
 Tests: `cd worker && npm ci && npm test` (local database, 8 tests; also run by `.github/workflows/worker.yml`).
 
