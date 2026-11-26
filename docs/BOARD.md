@@ -45,6 +45,10 @@ collection `uploads`, run `2026-11-25_3005a301_m4e3`, 234 attempts, with that re
 side read it from there: 30 new copies (12 read exactly with recognizer 0.5.0, 11 with 0.4.2) and 18 new arrow
 attempts; weakness cases 20 to 22. Nothing of it is in the repository (no agreement recorded for these strokes).
 This upload route is not described in `docs/INTERFACES.md`.
+Note (agent side, 2026-11-26): the upload route was published to the live review page only; the scheduled run
+publishes `tools/agent_review_page.html` from the repository every morning and would have removed it. The source in
+the repository now holds the live page (upload route included) plus the "Arrow convention" panel (decision 57). A
+change made to the live page should also be committed to `tools/agent_review_page.html`.
 
 ## Open items
 

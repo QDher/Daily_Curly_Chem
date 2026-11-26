@@ -13,7 +13,7 @@
   --struct: #1b2328; --ref: #8a979e; --accent: #0e6b67; --accent-soft: #dcefed;
   --el-o: #c62828; --el-n: #1d4ed8; --el-s: #a16207;
   --ok: #1e7a3c; --ok-soft: #e1f2e6; --warn: #9a5b00; --warn-soft: #fbefd9; --bad: #b42318; --bad-soft: #fbe4e1;
-  --t1: #2563eb; --t2: #7c3aed; --t3: #c2410c; --t4: #be185d;
+  --t1: #2563eb; --t2: #7c3aed; --t3: #c2410c; --t4: #be185d; --t5: #4d7c0f;
   --f-display: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -119,6 +119,7 @@ details.habits dd { margin: 0; }
 .runs button.link { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
 .report { background: var(--soft); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; font-size: 13px; max-height: 420px; overflow: auto; margin-top: 10px; }
 .colhead small { display: block; }
+.upload { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 details.convention > summary { cursor: pointer; }
 details.convention > summary h2 { display: inline; }
 details.convention[open] > summary { margin-bottom: 12px; }
@@ -146,6 +147,10 @@ details.convention[open] > summary { margin-bottom: 12px; }
     <div class="table-wrap"><table id="runs" class="runs"></table></div>
     <p class="status" id="runs-status">Loading runs&hellip;</p>
     <div id="report-box"></div>
+    <div class="upload" id="upload-box" hidden>
+      <label>Add a person's entries file (or a prepared run file) <input type="file" id="upload" accept=".json,application/json"></label>
+      <span class="status" id="upload-status"></span>
+    </div>
     <div class="legend" id="legend"></div>
   </section>
 
@@ -175,7 +180,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     for (const c of [].concat(kids || [])) if (c) n.appendChild(c);
     return n;
   };
-  const colorOf = (tester) => { const n = parseInt(String(tester).replace(/\D/g, ''), 10) || 2; return 'var(--t' + ((((n - 2) % 4) + 4) % 4 + 1) + ')'; };
+  // testers who are people (runs with person: true) are not named johnNNNN; they get their own colour
+  const colorOf = (tester) => { if (!/^john\d+$/.test(String(tester))) return 'var(--t5)'; const n = parseInt(String(tester).replace(/\D/g, ''), 10) || 2; return 'var(--t' + ((((n - 2) % 4) + 4) % 4 + 1) + ')'; };
   const OUT = {
     accepted: ['ok', (a) => 'accepted, reading ' + a.rank + (a.rank > 1 ? ' (earlier rejected)' : '')],
     confirmed: ['ok', () => 'confirmed'],
@@ -183,7 +189,13 @@ details.convention[open] > summary { margin-bottom: 12px; }
     'none-intended': ['bad', () => 'no reading as intended'],
     'no-reading': ['warn', () => 'no reading'],
     'not-drawn': ['warn', () => 'not drawn'],
+    // outcomes of people's entries
+    'submitted-other': ['bad', () => 'submitted a structure other than the reference'],
+    'not-submitted': ['warn', () => 'readings offered, none submitted'],
+    'confirmed-other': ['bad', () => 'confirmed a reading other than the structure to copy'],
+    'not-confirmed': ['warn', () => 'reading neither confirmed nor flagged'],
   };
+  const READ_T2 = ['flagged', 'confirmed-other', 'not-confirmed'];
   const REASON = { 'bond-missing': 'a bond is missing', 'bond-extra': 'a bond or atom was added', 'bond-order': 'bond order', letter: 'a letter (element)', charge: 'a charge', all: 'nothing like the drawing' };
 
   $('legend').innerHTML = '<span><svg width="34" height="10"><line x1="2" y1="5" x2="30" y2="5" stroke="var(--t1)" stroke-width="2.5" stroke-linecap="round"/></svg>ink of the tester (arrow head added for reading)</span>'
@@ -367,7 +379,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
   const found = (a) => a.outcome === 'accepted' || a.outcome === 'confirmed';
   // No structure from the page: arrows with no reading, or a copy whose reading is not a valid structure (valence
   // error). Both ask "Is the no reading correct?" (copies from 2026-11-24; before, "Reading of the drawing").
-  const noStructure = (a) => a.outcome === 'no-reading' || (a.type === 'T2' && a.outcome === 'flagged' && !a.reading);
+  const noStructure = (a) => a.outcome === 'no-reading' || (a.type === 'T2' && READ_T2.includes(a.outcome) && !a.reading);
   const askedOf = (a) => (noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
   // an answer to the outcome question counts only when it was given to the question shown now; answers saved before
   // the field "asked" existed were given to the question then shown, which differs only for copies with no structure
@@ -389,8 +401,20 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const g = el('div', { class: 'readings' });
       a.readings.forEach((s, i) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (i + 1) })])));
       box.appendChild(g);
-    } else if (a.type === 'T2' && a.outcome === 'flagged' && a.reading) {
-      box.appendChild(el('p', { class: 'note', text: 'Structure read from this drawing:' }));
+    } else if (a.type === 'T1' && (a.outcome === 'submitted-other' || a.outcome === 'not-submitted')) {
+      if (a.reading) {
+        box.appendChild(el('p', { class: 'note', text: 'Structure the tester submitted (reading ' + a.rank + ' of ' + a.readings.length + '; not the reference structure):' }));
+        box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(a.reading))));
+      }
+      const others = a.readings.filter((s) => s !== a.reading);
+      if (others.length) {
+        box.appendChild(el('p', { class: 'note', text: a.reading ? 'Other readings offered:' : 'Readings offered (none submitted):' }));
+        const g = el('div', { class: 'readings' });
+        others.forEach((s) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (a.readings.indexOf(s) + 1) })])));
+        box.appendChild(g);
+      }
+    } else if (a.type === 'T2' && READ_T2.includes(a.outcome) && a.reading) {
+      box.appendChild(el('p', { class: 'note', text: a.outcome === 'confirmed-other' ? 'Structure read from this drawing, confirmed by the tester:' : 'Structure read from this drawing:' }));
       box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(a.reading))));
       if (a.reasons) box.appendChild(el('p', { class: 'note muted', text: 'Differences from the structure to copy: ' + a.reasons.map((r) => REASON[r] || r).join(', ') }));
     } else {
@@ -407,9 +431,9 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const status = el('span', { class: 'status' });
     const T1 = a.type === 'T1';
     const qs = [
-      ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
+      a.person ? null : ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
       ['expected', T1 ? 'Should these arrows have given the right structure?' : 'Should this drawing have given the right structure?', [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]],
-    ];
+    ].filter(Boolean);
     if (!found(a)) {
       // stored as right / wrong / unsure in every case; for "no reading" the question is whether that is correct
       const none = noStructure(a);
@@ -479,7 +503,9 @@ details.convention[open] > summary { margin-bottom: 12px; }
     if (a.ink && a.ink.length) card.appendChild(el('div', { class: 'ink' }, a.type === 'T1' && a.scene ? drawArrows(a, colorOf(a.tester)) : drawCopy(a, colorOf(a.tester))));
     if (a.outcome === 'accepted') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: reading ' + a.rank + ' of ' + a.readings.length + ' offered.' }));
     if (a.outcome === 'confirmed') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: the drawing was read as the structure to copy.' }));
+    if (a.remarks) for (const t of a.remarks) card.appendChild(el('p', { class: 'note', text: 'Remark of the tester: ' + t }));
     card.appendChild(reviewBlock(a));
+    if (a.person) { card.appendChild(el('p', { class: 'note muted', text: 'Drawn by a person' + (a.seconds != null ? ' in ' + a.seconds + ' s' : '') + '.' })); return card; }
     const hb = el('details', { class: 'habits' }, [el('summary', { text: 'Habits used in this drawing (seed ' + a.seed + ')' })]);
     const dl = el('dl');
     for (const [k, v] of Object.entries(a.style || {})) { dl.appendChild(el('dt', { text: k })); dl.appendChild(el('dd', { text: String(v) })); }
@@ -574,10 +600,14 @@ details.convention[open] > summary { margin-bottom: 12px; }
       loading.add(id);
       try {
         const r = runs.get(id);
-        const res = await fetch(r.file);
-        if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
-        const data = await res.json();
-        const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date }, a));
+        let data;
+        if (r.fromDb) data = await readUploaded(r);
+        else {
+          const res = await fetch(r.file);
+          if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
+          data = await res.json();
+        }
+        const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date, person: !!r.person }, a));
         let scenes = data.scenes || null;
         if (!scenes) {
           // runs published before 2026-11-16 keep their layouts in a separate file
@@ -667,6 +697,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     try {
       const res = await fetch('runs/index.json', { cache: 'no-store' });
       const list = res.ok ? await res.json() : [];
+      allIndex = list;
       for (const r of list) {
         if (!r || !r.runId) continue;
         if (HIDDEN_INK.includes(r.ink)) { hiddenRuns += 1; continue; }
@@ -680,6 +711,185 @@ details.convention[open] > summary { margin-bottom: 12px; }
     chooseDefault();
     if (!day) { renderRuns(); render(); }
   })();
+
+
+  // ---------- runs added from the page (kept in the page's database, so every reviewer sees them) ----------
+  // uploads/<runId>: the run's line of the table; uploads/<runId>/parts/<n>: the run document as JSON text in pieces.
+  // The line is written last, so a run is listed only once all its pieces are saved.
+  const PART = 90000;
+  let allIndex = [];
+  const once = (q) => (typeof q.get === 'function' ? q.get() : new Promise((ok, no) => { const un = q.onSnapshot((s) => { if (s.metadata && s.metadata.fromCache) return; un(); ok(s); }, no); }));
+  async function readUploaded(r) {
+    const snap = await once(db.collection('uploads/' + r.runId + '/parts'));
+    const parts = snap.docs.map((d) => d.data()).sort((x, y) => x.n - y.n);
+    if (parts.length !== r.parts) throw { message: 'the upload is incomplete (' + parts.length + ' of ' + r.parts + ' parts)' };
+    return JSON.parse(parts.map((p) => p.text).join(''));
+  }
+  function watchUploads() {
+    db.collection('uploads').onSnapshot((snap) => {
+      let added = false;
+      for (const d of snap.docs) { const r = d.data(); if (r && r.runId && !runs.has(r.runId)) { runs.set(r.runId, Object.assign({}, r, { fromDb: true })); added = true; } }
+      if (!added) return;
+      if (!day) chooseDefault(); else renderRuns();
+    }, () => { /* uploads not readable in this view */ });
+  }
+  // Task definitions, layouts and reference arrows from the newest agent run of each daily set (and of the standard set).
+  async function taskPool(dailyDates) {
+    const pool = { tasks: new Map(), scenes: {}, ref: new Map() };
+    const pick = new Map();
+    let newest = null;
+    for (const r of allIndex) {
+      if (!r || !r.file || r.person) continue;
+      const b = pick.get(r.dailyDate);
+      if (!b || String(r.added || '') > String(b.added || '')) pick.set(r.dailyDate, r);
+      if (!newest || String(r.added || '') > String(newest.added || '')) newest = r;
+    }
+    const files = new Set(dailyDates.filter((d) => pick.has(d)).map((d) => pick.get(d).file));
+    if (newest) files.add(newest.file);
+    for (const f of files) {
+      const res = await fetch(f);
+      if (!res.ok) continue;
+      const d = await res.json();
+      for (const t of d.tasks || []) { const k = t.set + '/' + t.id; if (!pool.tasks.has(k)) pool.tasks.set(k, t); }
+      Object.assign(pool.scenes, d.scenes || {});
+      for (const a of d.attempts || []) { const k = a.set + '/' + a.task; if (a.type === 'T1' && a.refArrows && !pool.ref.has(k)) pool.ref.set(k, { arrows: a.refArrows, scene: a.scene }); }
+    }
+    return pool;
+  }
+  // the agents' reference arrows apply only when the tester's layout puts the shared atoms at the same places
+  function sameLayout(s, h) {
+    if (!s || !h) return false;
+    const A = new Map(s.atoms.map((x) => [x.id, x]));
+    const sh = h.atoms.filter((x) => A.has(x.id));
+    if (sh.length < 0.8 * h.atoms.length) return false;
+    return sh.every((x) => Math.abs(A.get(x.id).x - x.x) + Math.abs(A.get(x.id).y - x.y) < 0.02);
+  }
+  const R3 = (v) => Math.round(v * 1000) / 1000;
+  // An entries file of a person (as saved by the tester page) made into a run document of this page.
+  async function convertEntries(raw) {
+    const E = (raw.entries || []).slice().sort((x, y) => x.seq - y.seq);
+    const T = String(raw.tester || 'person');
+    const ddOf = (step) => '20' + step.slice(3, 5) + '-' + step.slice(5, 7) + '-' + step.slice(7, 9);
+    const dailyDates = [...new Set(E.filter((x) => /^d\d{8}-/.test(x.step || '')).map((x) => ddOf(x.step)))].sort();
+    const pool = await taskPool(dailyDates);
+    const date = String(raw.saved || new Date().toISOString()).slice(0, 10);
+    const runId = date + '_' + T + (raw.device ? '_' + raw.device : '');
+    const attempts = [], count = new Map(), last = new Map(), remarks = [], scenes = {};
+    for (const x of E) {
+      const set = /^t\d/.test(x.step) ? 'standard' : 'daily', key = set + '/' + x.step;
+      if (x.kind === 'remark') { remarks.push([x.step, x.text]); if (last.has(key)) (last.get(key).remarks = last.get(key).remarks || []).push(x.text); continue; }
+      if (x.kind !== 'arrows' && x.kind !== 'drawing') continue;
+      count.set(key, (count.get(key) || 0) + 1);
+      const a = { set, task: x.step, type: x.kind === 'arrows' ? 'T1' : 'T2', attempt: count.get(key), seq: x.seq, seconds: x.seconds,
+        ink: (x.strokes || []).map((s) => (s.points || []).map((p) => [R3(p.x), R3(p.y)])),
+        typed: (x.typed || []).map((t) => ({ el: t.el, q: t.q || 0, x: R3(t.x), y: R3(t.y) })),
+        readings: [], reading: null, reasons: null, message: null, rank: null, versions: x.versions || null };
+      if (a.type === 'T1') {
+        a.readings = (x.readings || []).map((r) => r.smiles);
+        a.scene = x.scene || null;
+        const rf = pool.ref.get(key);
+        a.refArrows = rf && sameLayout(rf.scene, a.scene) ? rf.arrows : [];
+        const sub = x.submitted;
+        if (!a.readings.length) a.outcome = 'no-reading';
+        else if (!sub) a.outcome = 'not-submitted';
+        else if (sub.match) { a.outcome = 'accepted'; a.rank = x.accepted + 1; }
+        else { a.outcome = 'submitted-other'; a.reading = sub.smiles; a.rank = x.accepted + 1; }
+      } else {
+        // the structure read from the drawing is shown with the tester's own layout
+        const sc = x.accepted ? (x.final || x.recognized) : (x.final || x.recognized);
+        const k = 'drawing:' + runId + ':' + x.seq;
+        if (sc && sc.atoms && sc.atoms.length) scenes[k] = { atoms: sc.atoms, bonds: sc.bonds || [] };
+        if (x.accepted) {
+          a.outcome = x.target && x.target.match ? 'confirmed' : 'confirmed-other';
+          a.smiles = x.smiles || null;
+          a.reading = scenes[k] ? k : a.smiles;
+        } else {
+          a.outcome = x.flagged ? 'flagged' : 'not-confirmed';
+          a.reading = scenes[k] ? k : null;
+          a.reasons = x.wrong && x.wrong.length ? x.wrong : null;
+        }
+        if (x.corrections && x.corrections.length) a.corrections = x.corrections;
+      }
+      attempts.push(a); last.set(key, a);
+    }
+    const done = new Set(attempts.map((a) => a.set + '/' + a.task));
+    const order = [...pool.tasks.keys()];
+    const tasks = [];
+    for (const k of done) {
+      let t = pool.tasks.get(k);
+      if (!t) { const a = attempts.find((b) => b.set + '/' + b.task === k); t = { set: a.set, id: a.task, type: a.type, conditions: null }; }
+      tasks.push(t);
+    }
+    const rankOf = (t) => [t.set === 'standard' ? 0 : 1, t.set === 'daily' ? t.id.slice(0, 9) : '', order.indexOf(t.set + '/' + t.id) < 0 ? 1e6 : order.indexOf(t.set + '/' + t.id)];
+    tasks.sort((p, q) => { const a = rankOf(p), b = rankOf(q); return a[0] - b[0] || a[1].localeCompare(b[1]) || a[2] - b[2]; });
+    const need = new Set();
+    for (const t of tasks) need.add(t.intended || t.target);
+    for (const a of attempts) { a.readings.forEach((s) => need.add(s)); if (a.reading) need.add(a.reading); }
+    for (const s of need) if (s && !scenes[s] && pool.scenes[s]) scenes[s] = pool.scenes[s];
+    const att = (t) => attempts.filter((a) => a.set === t.set && a.task === t.id);
+    const T1 = tasks.filter((t) => t.type === 'T1'), T2 = tasks.filter((t) => t.type === 'T2');
+    const n = (o) => attempts.filter((a) => a.outcome === o).length;
+    const summary = {
+      arrows: { tasks: T1.length, acceptedFirstAttemptFirstReading: T1.filter((t) => att(t)[0].outcome === 'accepted' && att(t)[0].rank === 1).length,
+        accepted: T1.filter((t) => att(t).some((a) => a.outcome === 'accepted')).length, noReading: attempts.filter((a) => a.type === 'T1' && a.outcome === 'no-reading').length,
+        noneIntended: 0, submittedOther: n('submitted-other'), notSubmitted: n('not-submitted') },
+      copies: { tasks: T2.length, confirmedFirstAttempt: T2.filter((t) => att(t)[0].outcome === 'confirmed').length,
+        confirmed: T2.filter((t) => att(t).some((a) => a.outcome === 'confirmed')).length, flagged: n('flagged'), confirmedOther: n('confirmed-other'), noReading: 0, notDrawn: 0 },
+      entries: E.length, errors: 0,
+    };
+    const s = summary;
+    const report = ['# Person tester ' + T + (raw.level ? ' (' + raw.level + ' level)' : '') + ', entries saved ' + (raw.saved || '?'), '',
+      'Entries file of a person (not an agent)' + (raw.device ? ', device ' + raw.device : '') + ', added from the review page. Daily sets: ' + (dailyDates.join(', ') || 'none') + '. Not replayed.', '',
+      '## Figures', '', '```',
+      'arrow tasks ' + T1.length + ': accepted ' + s.arrows.accepted + ' (first attempt, first reading ' + s.arrows.acceptedFirstAttemptFirstReading + '); submitted another structure ' + s.arrows.submittedOther + ' attempts; readings not submitted ' + s.arrows.notSubmitted + '; no reading ' + s.arrows.noReading,
+      'copy tasks ' + T2.length + ': confirmed ' + s.copies.confirmed + ' (first attempt ' + s.copies.confirmedFirstAttempt + '); confirmed another structure ' + s.copies.confirmedOther + ' attempts; flagged ' + s.copies.flagged + ' attempts',
+      'entries ' + E.length + ' (attempts ' + attempts.length + ', remarks ' + remarks.length + ')', '```', '',
+      '## Remarks of the tester', ''].concat(remarks.length ? remarks.map(([st, tx]) => '- ' + st + ': ' + tx) : ['none'], ['',
+      '## Notes', '', '- Structures read from copies are drawn with the tester’s own layout; whether they are valid structures was not checked.',
+      '- Readings of arrows that no agent run gave are shown as SMILES.',
+      '- Reference arrows are shown where the tester’s layout is the agents’ (' + attempts.filter((a) => a.type === 'T1' && a.refArrows.length).length + ' of ' + attempts.filter((a) => a.type === 'T1').length + ' arrow attempts).']).join('\n') + '\n';
+    return { runId, date, tester: T, label: T, person: true, level: raw.level || '', device: raw.device || '',
+      traits: { text: 'person' + (raw.level ? ', ' + raw.level + ' level' : '') }, dailyDate: dailyDates.length ? dailyDates[0] + (dailyDates.length > 1 ? ' to ' + dailyDates[dailyDates.length - 1] : '') : '–',
+      summary, replay: null, errors: [], tasks, attemptCount: attempts.length, report, source: 'entries file of a person, saved ' + (raw.saved || '?') + ', added from the review page',
+      attempts, svg: {}, scenes };
+  }
+  async function storeRun(run) {
+    const meta = {};
+    for (const k of ['runId', 'date', 'tester', 'label', 'person', 'level', 'device', 'traits', 'dailyDate', 'summary', 'replay', 'attemptCount', 'report', 'source']) if (run[k] !== undefined) meta[k] = run[k];
+    const text = JSON.stringify(Object.assign({}, run, { added: undefined }));
+    const parts = Math.ceil(text.length / PART);
+    for (let i = 0; i < parts; i++) {
+      $('upload-status').textContent = 'Saving part ' + (i + 1) + ' of ' + parts + '…';
+      await db.doc('uploads/' + run.runId + '/parts/p' + String(i).padStart(3, '0')).set({ n: i, text: text.slice(i * PART, (i + 1) * PART) });
+    }
+    Object.assign(meta, { errors: 0, parts, added: new Date().toISOString(), uploadedBy: me, visibleFrom: run.date });
+    await db.doc('uploads/' + run.runId).set(meta);
+    return meta;
+  }
+  $('upload').onchange = async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    const st = $('upload-status');
+    if (!f || !db || !me) return;
+    try {
+      st.textContent = 'Reading ' + f.name + '…';
+      const raw = JSON.parse(await f.text());
+      let run;
+      if (raw && raw.runId && Array.isArray(raw.attempts) && Array.isArray(raw.tasks)) run = raw;
+      else if (raw && Array.isArray(raw.entries)) { st.textContent = 'Converting the entries…'; run = await convertEntries(raw); }
+      else throw { message: 'this is neither an entries file nor a run file' };
+      if (runs.has(run.runId)) throw { message: 'run ' + run.runId + ' is already listed' };
+      const ex = await db.doc('uploads/' + run.runId).get();
+      if (ex && ex.exists) throw { message: 'run ' + run.runId + ' was already added' };
+      const meta = await storeRun(run);
+      runs.set(run.runId, Object.assign({}, meta, { fromDb: true }));
+      st.textContent = 'Added run ' + run.runId + ' (' + run.attemptCount + ' attempts) on ' + run.date + '.';
+      selected = selected.concat(run.runId);
+      showDay(run.date);
+    } catch (e) {
+      st.textContent = 'Not added: ' + ((e && e.message) || 'error') + '.';
+    }
+    ev.target.value = '';
+  };
 
   // ---------- arrow convention: the sheet published with the page (convention.html, written by
   // tools/agent_convention_sheet.js), loaded into its panel when the panel is first opened ----------
@@ -803,6 +1013,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     viewAs = me;
     if (!db || !me) { clearTimeout(timer); dbState = 'off'; refreshAll(); renderReviewers(); return; }
     watchReviewer(me);
+    watchUploads();
+    $('upload-box').hidden = !canWrite;
     let moved = false;
     db.collection('reviews').onSnapshot((snap) => {
       const old = [];
