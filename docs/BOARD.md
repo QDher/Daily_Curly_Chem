@@ -30,7 +30,7 @@ Last updated: 2026-11-26 (people side: review of R4, `tools/compare_ink.js`, dai
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| – | – | none in progress | – | – |
+| `.github/workflows/pages.yml` | agent side | job `testers` after the daily set (mechanical steps of the "Daily tester" task, user 2026-11-26); the set build and the site jobs are not changed | 2026-11-26 | this push |
 
 Note (agent side, 2026-11-26): `tools/failures.js` (people side's tool) now adds `failuresOnly: true` to the file it
 writes with `--write`, so that the review page asks its question on these files (R4); nothing else changed in it.
