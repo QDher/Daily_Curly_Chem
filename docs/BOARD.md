@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-24 (agent side: label "page misread", decision 50, counts in B17).
+Last updated: 2026-11-26 (people side: weakness case 19, decision 52, page 0.8.1).
 
 ## Links
 
@@ -41,7 +41,7 @@ were changed, not the rendering. No change is in progress on the people side.
 | B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | done 2026-11-21 (page 0.7.0, cac3580) | `node tools/overlaps.js`: 141 shown structures, 36 with an overlap on page 0.6.0 → 0. Step (b), distortion, not done: no structure needs it, so its limits stay a proposal |
 | B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | done 2026-11-21 | Set of 2026-11-21, four testers: arrows crossing a bond 32 → 17 of 103, crossing another arrow 6 → 2; arrow tasks accepted unchanged; copies confirmed 7, 7, 2, 4 → 8, 8, 2, 4 (recognizer 0.4.1). Scheduled runs use it from 2026-11-22 |
 | B4 | Calibrate the agents' ink on people's strokes, per device | agent side | planned | Strokes now in `test/fixtures/drawings_2026-11-20.json` (168 drawings; pen and touch 145, mouse 23). Check: agents should fail like people, category by category |
-| B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 fixed in its three causes (page 0.4.0, 0.5.0, solver 0.2.0), one entry not examined; 18 fixed (page 0.6.0); 19 new (request R2) | `docs/WEAKNESSES.md` |
+| B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 fixed in its three causes (page 0.4.0, 0.5.0, solver 0.2.0), one entry not examined; 18 fixed (page 0.6.0); 19 fixed (page 0.7.0 by the agent side, R2; pair placed clear of bonds and atoms in page 0.8.1, decision 52) | `docs/WEAKNESSES.md` |
 | B6 | Method of the evaluation of human drawings (who judges, questions, labels, storage) | people side | unknown to the agent side | Request R1 |
 | B7 | Contact e-mail of the test run (`contact` in `data/config.json`, public) | user | open since 2026-11-13 | A dedicated address is suggested; needed before testers are invited |
 | B8 | More testers, with touch screens and pens | user | open | Today: one tester with pen and some touch, the creator with a mouse |

@@ -134,6 +134,12 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
     const carbene = { atoms: [{ id: 'k', el: 'C', q: 0, h: 0, x: 0, y: 0 }, { id: 'm1', el: 'C', q: 0, h: 3, x: 1.3, y: 0.75 }, { id: 'm2', el: 'C', q: 0, h: 3, x: -1.3, y: 0.75 }],
       bonds: [{ id: 'b1', a: 'k', b: 'm1', order: 1 }, { id: 'b2', a: 'k', b: 'm2', order: 1 }] };
     eq(Scene.labelPlan(carbene).get('k').label, 'C', 'carbene written'); eq(Scene.labelPlan(carbene).get('k').carbene, true, 'carbene marked');
+    // its pair is written away from the two bonds (they point down here: the pair points up), weakness case 19
+    eq(Math.abs(Scene.labelPlan(carbene).get('k').pair + Math.PI / 2) < 0.01, true, 'pair opposite the bonds');
+    // another atom right where the pair would go: the pair moves to a direction clear of it
+    const crowded = { atoms: carbene.atoms.concat([{ id: 'z', el: 'Cl', q: -1, h: 0, x: 0, y: -0.9 }]), bonds: carbene.bonds };
+    const tp = Scene.labelPlan(crowded).get('k').pair;
+    eq(Math.hypot(Math.cos(tp) * 0.36 - 0, Math.sin(tp) * 0.36 + 0.9) >= 0.8, true, 'pair clear of the other atom');
   });
 
   test('shown structures of all tasks and daily sets: no crossing, no atom on a bond; shown hydrogens clear of their own molecule', () => {

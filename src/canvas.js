@@ -148,8 +148,8 @@
             if (a.h > 1) el('tspan', { class: 'cc-sub', dy: 4 }, t).textContent = String(a.h);
           }
           if (p.carbene) {
-            // the unshared pair of a carbene: two dots on the free side opposite the charge place
-            const t = (p.charge !== null && p.charge !== undefined ? p.charge : -Math.PI / 4) + Math.PI;
+            // the unshared pair of a carbene: two dots in the widest sector free of bonds (Scene.labelPlan)
+            const t = p.pair !== null && p.pair !== undefined ? p.pair : (Math.PI * 3) / 4;
             const cx = x + Math.cos(t) * 12, cy = y + 1 + Math.sin(t) * 12;
             for (const k of [-1, 1]) el('circle', { cx: cx - Math.sin(t) * 2.6 * k, cy: cy + Math.cos(t) * 2.6 * k, r: 1.4, class: 'cc-pair' }, gAtoms);
           }

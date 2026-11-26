@@ -395,7 +395,8 @@ window.addEventListener('unhandledrejection', (e) => showFailure(e.reason && e.r
   // 0.6.0 (2026-11-21): a typed atom placed between several bond ends goes to their middle.
   // 0.7.0 (2026-11-21): no overlap of bonds, labels and charge signs in shown structures; carbene marked.
   // 0.8.0 (2026-11-23): days dated Saturday or Sunday are listed from the next Monday.
-  const PAGE = '0.8.0';
+  // 0.8.1 (2026-11-26): the unshared pair of a carbene is written clear of bonds, atoms and charge signs.
+  const PAGE = '0.8.1';
   const HELP = {
     arrow: 'Drag from a lone pair (the atom) or a bond to an atom, a bond, or the space between two atoms. Hydrogens on O, N and other atoms that are not carbon are shown with their bond. Hydrogens on carbon are used only when drawn (button H).',
     draw: 'Draw bonds as lines. For atoms other than carbon: choose one in the row above and click where it goes (it snaps to the end of a bond), or with a mouse point at the place and type its letters (B then r for Br; + and \u2212 for charges), or right-click the place and type the symbol in the box (Br, N+, O-), then Enter. Letters can also be written by hand.',

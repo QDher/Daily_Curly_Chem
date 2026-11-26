@@ -45,14 +45,15 @@
   // Overlaps in a laid-out scene (plan item 6, docs/PLAN_DRAWING.md): pairs of bonds with no atom in common that
   // cross or come closer than 0.15 L, and atoms closer than 0.25 L to a bond they are not part of (they look like a
   // junction). L: bond length (1.5 for laid-out scenes). Returns { crossings: [{ a, b, x, y }], near: [{ atom, bond }] }.
+  const segDist = (p, a, b) => {
+    const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+    return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+  };
+  const PAIR_R = 0.36; // distance of a carbene's pair from its atom, scene units (12 px in src/canvas.js)
   function overlaps(scene, L) {
     const len = L || 1.5;
     const at = new Map(scene.atoms.map((a) => [a.id, a]));
-    const segDist = (p, a, b) => {
-      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1e-12;
-      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
-      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-    };
     const cross = (p, q, r, s) => {
       const d = (q.x - p.x) * (s.y - r.y) - (q.y - p.y) * (s.x - r.x);
       if (Math.abs(d) < 1e-12) return null;
@@ -110,8 +111,9 @@
   // charge signs): the element symbol is centred on the atom; its hydrogens go to the right, else to the left, above
   // or below, whichever side is free of bonds; the charge goes in the free direction nearest to the upper right, away
   // from every bond and from the hydrogens. A carbon is written when it has no bond or an unshared pair with fewer
-  // than four bonds (a carbene, request R2 of docs/BOARD.md). Returns Map id -> { label, carbene, hSide, charge }:
-  // hSide 'right' | 'left' | 'up' | 'down' (screen axes, y down); charge: angle in radians, or null.
+  // than four bonds (a carbene, request R2 of docs/BOARD.md). Returns Map id -> { label, carbene, hSide, charge, pair }:
+  // hSide 'right' | 'left' | 'up' | 'down' (screen axes, y down); charge: angle in radians, or null; pair: angle of
+  // the unshared pair of a carbene (free of bonds, hydrogens, other atoms and their charges), or null.
   function labelPlan(scene) {
     const at = new Map(scene.atoms.map((a) => [a.id, a]));
     const dirs = new Map(scene.atoms.map((a) => [a.id, []]));
@@ -148,7 +150,38 @@
         }
         charge = best;
       }
-      out.set(a.id, { label, carbene, hSide, charge });
+      // the unshared pair of a carbene: in the middle of the widest sector free of its bonds and hydrogens; when the
+      // dots would touch another atom, its charge sign or a bond there, the next free direction is taken
+      let pair = null;
+      if (carbene) {
+        const taken = ds.slice();
+        if (hSide) taken.push(SIDES.find((s) => s[0] === hSide)[1]);
+        const norm = (t) => Math.atan2(Math.sin(t), Math.cos(t));
+        const sorted = taken.map(norm).sort((u, v) => u - v);
+        const cands = sorted.map((t, i) => {
+          const next = i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + 2 * Math.PI;
+          return { t: norm(t + (next - t) / 2), w: next - t };
+        }).sort((u, v) => v.w - u.w).map((c) => c.t);
+        const ring = [];
+        for (let k = 0; k < 24; k++) ring.push(norm((k * Math.PI) / 12));
+        ring.sort((u, v) => gap(v, taken) - gap(u, taken));
+        const clear = (t) => {
+          const d = { x: a.x + Math.cos(t) * PAIR_R, y: a.y + Math.sin(t) * PAIR_R };
+          if (gap(t, taken) < 0.6) return false;
+          for (const o of scene.atoms) {
+            if (o.id === a.id) continue;
+            if (Math.hypot(o.x - d.x, o.y - d.y) < (o.q ? 0.8 : 0.55)) return false;
+          }
+          for (const b of scene.bonds) {
+            if (b.a === a.id || b.b === a.id || !at.has(b.a) || !at.has(b.b)) continue;
+            if (segDist(d, at.get(b.a), at.get(b.b)) < 0.25) return false;
+          }
+          return true;
+        };
+        pair = cands.concat(ring).find(clear);
+        if (pair === undefined) pair = cands[0];
+      }
+      out.set(a.id, { label, carbene, hSide, charge, pair });
     }
     return out;
   }
