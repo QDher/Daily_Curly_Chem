@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: decisions 53 to 55; request R3 to the agent side: agent ink and reviewer sheet).
+Last updated: 2026-11-26 (people side: recognizer 0.5.0, decision 56; decisions 53 to 55 and request R3).
 
 ## Links
 
@@ -27,13 +27,17 @@ Last updated: 2026-11-26 (people side: decisions 53 to 55; request R3 to the age
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `src/recognize.js`, `test/fixtures/` | people side | Improvement cycle 2: remaining causes of weakness cases 13 and 14 on the people's drawings (starts from recognizer 0.4.1) | 2026-11-26 | end of the cycle |
+| – | – | none in progress | – | – |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
 0.2.0) in `index.html`, `src/tasks.js`, `src/solver.js`; page 0.5.0 (number of arrows of the step shown in arrow tasks, decision 38) in
 `index.html`; page 0.6.0 (case 18, decision 39) in `src/canvas.js`: only the functions `snap` and `place` (typed atoms)
 were changed, not the rendering. No change is in progress on the people side.
+
+Note (people side, 2026-11-26): recognizer 0.5.0 is pushed (three rules, `docs/RECOGNITION.md`). It reads more
+drawings, so it can also read more agent copies that reviewers judged not readable (B16): the judged agent
+entries were not replayed from this side. Fixtures of people: 5 of 14 and 84 of 168.
 
 ## Open items
 
@@ -43,7 +47,7 @@ were changed, not the rendering. No change is in progress on the people side.
 | B2 | Item 6: no overlap of bonds, labels and charge signs in structures shown by the page | agent side | done 2026-11-21 (page 0.7.0, cac3580) | `node tools/overlaps.js`: 141 shown structures, 36 with an overlap on page 0.6.0 → 0. Step (b), distortion, not done: no structure needs it, so its limits stay a proposal |
 | B3 | Agent ink 0.3.0: arrows bulge to the side free of bonds and of the other arrows | agent side | done 2026-11-21 | Set of 2026-11-21, four testers: arrows crossing a bond 32 → 17 of 103, crossing another arrow 6 → 2; arrow tasks accepted unchanged; copies confirmed 7, 7, 2, 4 → 8, 8, 2, 4 (recognizer 0.4.1). Scheduled runs use it from 2026-11-22 |
 | B4 | Calibrate the agents' ink on people's strokes, per device | agent side | planned | Strokes now in `test/fixtures/drawings_2026-11-20.json` (168 drawings; pen and touch 145, mouse 23). Check: agents should fail like people, category by category |
-| B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 fixed in its three causes (page 0.4.0, 0.5.0, solver 0.2.0), one entry not examined; 18 fixed (page 0.6.0); 19 fixed (page 0.7.0 by the agent side, R2; pair placed clear of bonds and atoms in page 0.8.1, decision 52) | `docs/WEAKNESSES.md` |
+| B5 | Weakness cases 13 to 18 (people) | people side | 12, 15, 17 fixed; 13, 14 partly fixed (rest in the next cycle, decision 34); 16 fixed in its three causes (page 0.4.0, 0.5.0, solver 0.2.0), one entry not examined; 18 fixed (page 0.6.0); 19 fixed (page 0.7.0 by the agent side, R2; pair placed clear of bonds and atoms in page 0.8.1, decision 52); cycle 2 (2026-11-26, recognizer 0.5.0, decision 56): week drawings 65 → 84 of 168 exact, aromatic 23 → 35 of 69; the agent side should check its judged copies against 0.5.0 (see note below) | `docs/WEAKNESSES.md` |
 | B6 | Method of the evaluation of human drawings (who judges, questions, labels, storage) | people side | unknown to the agent side | Request R1 |
 | B7 | Contact e-mail of the test run (`contact` in `data/config.json`, public) | user | open since 2026-11-13 | A dedicated address is suggested; needed before testers are invited |
 | B8 | More testers, with touch screens and pens | user | open | Today: one tester with pen and some touch, the creator with a mouse |

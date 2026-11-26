@@ -58,7 +58,7 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   (no timing, pressure, tester label or free text). `test/fixtures/drawings_2026-11-13.json` was agreed on
   2026-11-13. The stroke points of the week files of 2026-11-20 (labels `3005a301` and `4f7c82a3`) may be used the
   same way: both testers agreed (user, 2026-11-21): `test/fixtures/drawings_2026-11-20.json` (168 drawings, with the typed
-  atoms; recognizer 0.4.0 was tuned on them, so they are a regression test, not an independent measure). After a change of the recognizer, rebuild its `reads` and `recognizer` fields
+  atoms; recognizers 0.4.0 and 0.5.0 were tuned on them, so they are a regression test, not an independent measure). After a change of the recognizer, rebuild its `reads` and `recognizer` fields
   (`node tools/update_fixture.js --write`, and the same with `test/fixtures/drawings_2026-11-20.json` as first
   argument) and report the counts.
 - Weaknesses seen on real input: GitHub issues with the label `weakness` and the table in `docs/WEAKNESSES.md`

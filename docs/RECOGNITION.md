@@ -1,4 +1,4 @@
-# Hand-drawn structure recognition, version 0.4.2 (component R0)
+# Hand-drawn structure recognition, version 0.5.0 (component R0)
 
 Implemented by `src/recognize.js` (letter shapes in `src/glyphs.js`), tested by `test/test_recognize.js`.
 No training: geometry and templates. Thresholds are in `Recognize.P`, as fractions of the bond length L.
@@ -42,12 +42,20 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
      are often two thirds of a bond high, so size alone does not decide.
    - Straight strokes: bond from 0.55 L. Shorter ones (from 0.25 L) are bonds when both ends point at something (a
      letter, the end of a bond, an atom of the scene, a typed atom), when one end does and the stroke is at least
-     0.4 L (a bond with a free end drawn short), or when they run along a bond. Straight strokes with a small curved
+     0.4 L (a bond with a free end drawn short), or when they run along a bond. Two short lines side by side
+     (0.5.0; within 20° of each other, 0.08 to 0.35 L apart, overlapping over 0.6 of the shorter): both are bonds
+     when one end of the pair points at the end of a bond, or when one of them is already a bond of at most 1 L; a
+     line of the pair may have a hook (a flat stroke), and a letter stroke between the two (the bar of H, the
+     diagonal of N) excludes the pair. People draw the lines of C=O short and with a hook; the pair was read as
+     F, S, I or B. Straight strokes with a small curved
      stroke running along them (B, P) or a short bar ending on their inside (H, F) are letter parts.
 4. Bonds: corners of each stroke from the turning of its direction (between the 0.2 L before and the 0.2 L after each
    point, local maxima of at least 25°, at least 0.35 L apart). A bowed line turns a little everywhere and is one
    bond; two bonds at an angle turn at one place. A shorter parallel line within 0.3 L raises the order of the longer
-   one; a long line is cut where such a piece starts or ends (C–C≡N, C=C=O). The second line of a double bond
+   one; a long line is cut where such a piece starts or ends (C–C≡N, C=C=O). A parallel line counts for every
+   piece it covers by half; one that covers no piece by half (a short second line next to a long ring bond) counts
+   for the piece it overlaps most when it runs at least 0.25 L along it (0.5.0; before, such a line was lost).
+   The second line of a double bond
    drawn inside a ring (0.4.0): a shorter line along a bond, within its span, up to 0.5 L away when both its ends
    are free, up to 0.8 L when the bonds next to that bond turn to the side of the line (a ring); it may then start
    close to a ring corner, and it may have hooks at its ends (a flat stroke: within 0.2 of its length from the
@@ -57,7 +65,9 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    on its inside, and into two or three bonds when it is two or three bond lengths long. A short straight stroke
    whose wobble gives a corner, when every piece would be shorter than 0.25 L, is kept as one line (0.4.1: the short
    second line of a C=N next to a typed N+ vanished).
-5. Labels: strokes closer than 0.2 L form one label. Removed in this order: + and − (small, raised, at the right), H
+5. Labels: strokes closer than 0.2 L form one label. A letter left without a bond is joined to the nearest free
+   end of a bond that points at it within 0.9 L (0.5.0: bonds drawn short of their letter gave a separate
+   fragment); the free end becomes the letter. Removed in this order: + and − (small, raised, at the right), H
    written with the atom (0.4.0: in two strokes, an upright then the bar and the second upright, or in three; a
    smaller stroke set lower right after it is its count), H
    (two uprights joined by a bar), the tail of a two-letter symbol (l, r, i; an r may be one stroke or an upright with
@@ -73,7 +83,7 @@ No training: geometry and templates. Thresholds are in `Recognize.P`, as fractio
    hydrogen or its count and is left out. A single straight stroke left as a label and joined to nothing is left
    out. A letter read as H that has two or more bonds is read as N and marked to check.
 
-## Benchmark (synthetic ink; figures of version 0.4.2, 2026-11-22)
+## Benchmark (synthetic ink; figures of version 0.5.0, 2026-11-26)
 
 `data/structures.json`: 390 structures of the published problems of both sites (no metals); 376 are used (the others
 have radicals or are not read back by RDKit). Each is redrawn by `src/ink.js` and must be read as exactly the same
@@ -82,11 +92,12 @@ structure.
 | Noise level of the synthetic ink | Exact structures |
 |---|---|
 | 0 (exact lines and letters) | 83.8 % |
-| 1 (neat) | 82.4 % |
-| 2 (ordinary) | 65.0 % |
-| 3 (careless) | 24.1 % |
+| 1 (neat) | 82.6 % |
+| 2 (ordinary) | 67.2 % |
+| 3 (careless) | 27.0 % |
 
-Version 0.4.0: 83.5, 80.6, 60.9 and 20.3 %; version 0.4.1: 83.5, 81.8, 64.1 and 23.5 %.
+Version 0.4.0: 83.5, 80.6, 60.9 and 20.3 %; version 0.4.1: 83.5, 81.8, 64.1 and 23.5 %; version 0.4.2: 83.8,
+82.4, 65.0 and 24.1 %.
 
 The letters of the synthetic ink are the recognizer's own templates with distortion: these figures say that the
 method is consistent, not how it performs on real handwriting. That is measured in the test run.
@@ -105,6 +116,7 @@ reading changes or fewer than 5 are exact. Read as exactly the structure asked:
 | 0.4.0 | 5 of 14 | two readings changed, none of them to or from exact |
 | 0.4.1 | 5 of 14 | no reading changed |
 | 0.4.2 | 5 of 14 | no reading changed |
+| 0.5.0 | 5 of 14 | no reading changed |
 
 Of the other 6: three drawings are incomplete (a letter alone, or a bond that does not reach the letter), one writes
 methyl groups as "Me", two write "NH2+" with a subscript. Main causes found in version 0.1.1: letters written as
@@ -118,7 +130,7 @@ has letters of 0.42 bond length, smaller than real ones.
 Two testers (pen with some touch: 145 attempts; mouse with typed atoms: 23 attempts), copies of the structures of the
 daily sets of 2026-11-13 to 2026-11-19, recorded with version 0.3.0. Stroke points and typed atoms are in
 `test/fixtures/drawings_2026-11-20.json` (no timing, pressure, pointer type or tester label; committed with the
-agreement of both testers); `test/test_recognize.js` fails when a reading changes or fewer than 62 are exact (20 of
+agreement of both testers); `test/test_recognize.js` fails when a reading changes or fewer than 80 are exact (32 of
 the aromatic ones). Read as exactly the structure asked:
 
 | Version | All (168) | Aromatic targets (69) | Other targets (99) | Pen and touch (145) | Mouse (23) |
@@ -127,11 +139,16 @@ the aromatic ones). Read as exactly the structure asked:
 | 0.4.0 | 65 | 23 | 42 | 52 | 13 |
 | 0.4.1 | 65 | 23 | 42 | 52 | 13 |
 | 0.4.2 | 65 | 23 | 42 | 52 | 13 |
+| 0.5.0 | 84 | 35 | 49 | 71 | 13 |
 
 Version 0.4.1 changed one reading (drawing 47, wrong before and after); version 0.4.2 changed two (drawings 15 and
-166, wrong before and after).
+166, wrong before and after). Version 0.5.0 (people side, improvement cycle 2) changed 42 readings: 19 became
+exact, none was lost. By rule: short second line next to a long ring bond 6; letter with no bond joined to a
+free bond end 3; two short lines of a double bond read as a letter 10. The rules were found on these drawings,
+so the figure is a regression measure, not an independent one.
 
-Tasks with at least one attempt read exactly: 30 → 35 of 54; first attempt of a task: 20 → 25.
+Tasks with at least one attempt read exactly: 30 → 35 → 38 of 54 (0.3.0, 0.4.0, 0.5.0); first attempt of a task:
+20 → 25 → 29.
 
 Version 0.4.0 was tuned on these drawings (weakness cases 13 and 14): they are no longer an independent measure.
 Most are from one tester's hand; the rules are geometric and were kept only when the synthetic benchmark did not go

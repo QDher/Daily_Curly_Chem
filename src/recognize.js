@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (Glyphs) {
   'use strict';
 
-  const VERSION = '0.4.2';
+  const VERSION = '0.5.0';
   // All lengths are fractions of the bond length L of the drawing.
   const P = {
     labelMax: 0.7, // a curved stroke with a smaller bounding-box diagonal is label ink
@@ -29,6 +29,8 @@
     parallelGap: 0.3, // largest distance between the lines of a double bond
     innerGap: 0.5, // or, for a shorter line with free ends that lies along the bond, this distance
     ringGap: 0.8, // or this distance when the bonds next to that bond turn to the side of the line (inside a ring)
+    shortLine: 0.25, // a second line that covers less than half of a bond counts from this length along the bond
+    farLabel: 0.9, // a letter with no bond is joined to a free bond end that points at it within this distance
     glyphGap: 0.2, // label strokes closer than this are one label
     chargeReach: 0.9, // a lone + or - is attached to an atom within this distance
     templateMax: 0.14, // largest template distance accepted without asking the user
@@ -699,19 +701,82 @@
     };
     const trimmed = new Map();
     let endPts = ends();
-    for (let changed = true; changed; ) {
-      changed = false;
+    const grow = () => {
+      for (let changed = true; changed; ) {
+        changed = false;
+        for (let i = 0; i < strokes.length; i++) {
+          if (isBond[i] || parts[i] || !straight[i] || lens[i] < P.shortBond * L) continue;
+          const s = strokes[i];
+          const e0 = pointsAt(i, s[0], s[s.length - 1]), e1 = pointsAt(i, s[s.length - 1], s[0]);
+          // both ends point at something, or one end does and the stroke is long enough for a bond with a free end
+          if ((e0 && e1) || ((e0 || e1) && lens[i] >= P.freeEndBond * L) || alongBond(i)) {
+            isBond[i] = true;
+            changed = true;
+          }
+        }
+        if (changed) endPts = ends();
+      }
+    };
+    grow();
+    // Two short straight lines side by side, one end of which points at a bond: the two lines of a double bond
+    // drawn short (C=O with the O set apart). No letter is made of two such lines alone; a third stroke of a
+    // letter between them (the bar of H, the diagonal of N) excludes the pair.
+    {
+      let found = false;
+      // a line drawn with a hook at an end: not straight by the test above, but it stays close to its chord
+      const flat = (i) => {
+        const s = strokes[i], a = s[0], b = s[s.length - 1], chord = dist(a, b);
+        if (chord < 0.3 * L || chord > 1.0 * L || pathLength(s) > 1.4 * chord) return false;
+        let dev = 0;
+        for (const p of s) dev = Math.max(dev, segDist(p, a, b));
+        return dev <= 0.2 * chord;
+      };
+      const line = (i) => !isBond[i] && !parts[i] && ((straight[i] && lens[i] >= P.shortBond * L) || (!straight[i] && flat(i)));
       for (let i = 0; i < strokes.length; i++) {
-        if (isBond[i] || parts[i] || !straight[i] || lens[i] < P.shortBond * L) continue;
-        const s = strokes[i];
-        const e0 = pointsAt(i, s[0], s[s.length - 1]), e1 = pointsAt(i, s[s.length - 1], s[0]);
-        // both ends point at something, or one end does and the stroke is long enough for a bond with a free end
-        if ((e0 && e1) || ((e0 || e1) && lens[i] >= P.freeEndBond * L) || alongBond(i)) {
-          isBond[i] = true;
-          changed = true;
+        if (!line(i)) continue;
+        for (let j = 0; j < strokes.length; j++) {
+          if (isBond[i]) break;
+          // the other line: a line like this one, or a short straight stroke already taken as a bond
+          const other = isBond[j] && straight[j] && !parts[j] && lens[j] <= 1.0 * L;
+          if (j === i || (!other && (j < i || !line(j)))) continue;
+          const a = strokes[i], b = strokes[j];
+          const a0 = a[0], a1 = a[a.length - 1], b0 = b[0], b1 = b[b.length - 1];
+          const la = dist(a0, a1), lb = dist(b0, b1);
+          if (Math.min(la, lb) < 0.6 * Math.max(la, lb)) continue;
+          const cross = Math.abs((a1.x - a0.x) * (b1.y - b0.y) - (a1.y - a0.y) * (b1.x - b0.x)) / (la * lb);
+          if (cross > Math.sin((20 * Math.PI) / 180)) continue;
+          const t = (pt) => ((pt.x - a0.x) * (a1.x - a0.x) + (pt.y - a0.y) * (a1.y - a0.y)) / (la * la);
+          const m = { x: (b0.x + b1.x) / 2, y: (b0.y + b1.y) / 2 };
+          const d = Math.abs((m.x - a0.x) * (a1.y - a0.y) - (m.y - a0.y) * (a1.x - a0.x)) / la;
+          if (d < 0.08 * L || d > 0.35 * L) continue;
+          const t0 = Math.max(0, Math.min(t(b0), t(b1))), t1 = Math.min(1, Math.max(t(b0), t(b1)));
+          if ((t1 - t0) * la < 0.6 * Math.min(la, lb)) continue;
+          const x0 = Math.min(boxes[i].x0, boxes[j].x0), x1 = Math.max(boxes[i].x1, boxes[j].x1);
+          const y0 = Math.min(boxes[i].y0, boxes[j].y0), y1 = Math.max(boxes[i].y1, boxes[j].y1);
+          if (strokes.some((u, k) => k !== i && k !== j && !isBond[k] && boxes[k].cx > x0 && boxes[k].cx < x1 && boxes[k].cy > y0 && boxes[k].cy < y1)) continue;
+          // the same side of both lines points at the end of a bond
+          const atBond = (E, F) => {
+            const len = dist(E, F) || 1e-9;
+            const ux = (E.x - F.x) / len, uy = (E.y - F.y) / len;
+            return endPts.some((p) => {
+              const ax = (p.x - E.x) * ux + (p.y - E.y) * uy;
+              const pd = Math.abs((p.x - E.x) * uy - (p.y - E.y) * ux);
+              return ax > -0.15 * L && ax < P.pointReach * L && pd < 0.3 * L;
+            });
+          };
+          const sameWay = (a1.x - a0.x) * (b1.x - b0.x) + (a1.y - a0.y) * (b1.y - b0.y) > 0;
+          const bS = sameWay ? b0 : b1, bE = sameWay ? b1 : b0;
+          if (other || (atBond(a0, a1) || atBond(bS, bE)) || (atBond(a1, a0) || atBond(bE, bS))) {
+            for (const k of [i, j]) {
+              if (isBond[k]) continue;
+              if (!straight[k]) trimmed.set(strokes[k], [strokes[k][0], strokes[k][strokes[k].length - 1]]);
+              isBond[k] = true;
+            }
+            found = true;
+          }
         }
       }
-      if (changed) endPts = ends();
+      if (found) { endPts = ends(); grow(); }
     }
     // The second line of a ring double bond drawn with hooks at its ends: not straight by the test above, but
     // flat (it stays close to the line between its ends), and it lies along a bond like the lines above.
@@ -859,11 +924,20 @@
         for (const t of [e.t0, e.t1]) if (marks.every((m) => Math.abs(m - t) * la >= 0.5 * L)) marks.push(t);
       }
       marks.sort((x, y) => x - y);
-      for (let k = 1; k < marks.length; k++) {
-        const u = marks[k - 1], v = marks[k];
-        const n = A.extras.filter((e) => Math.min(e.t1, v) - Math.max(e.t0, u) >= 0.5 * (v - u)).length;
-        cut.push({ a: at(u), b: at(v), order: Math.min(3, 1 + n) });
+      // a parallel line counts for every piece it covers by half; a line that covers no piece by half (a short
+      // second line next to a long bond) counts for the piece it overlaps most
+      const over = (e, k) => Math.min(e.t1, marks[k]) - Math.max(e.t0, marks[k - 1]);
+      const count = new Array(marks.length).fill(0);
+      for (const e of A.extras) {
+        let any = false, bestK = 0, bestO = -Infinity;
+        for (let k = 1; k < marks.length; k++) {
+          const o = over(e, k);
+          if (o >= 0.5 * (marks[k] - marks[k - 1])) { count[k] += 1; any = true; }
+          if (o > bestO) { bestO = o; bestK = k; }
+        }
+        if (!any && bestK && bestO * la >= P.shortLine * L) count[bestK] += 1;
       }
+      for (let k = 1; k < marks.length; k++) cut.push({ a: at(marks[k - 1]), b: at(marks[k]), order: Math.min(3, 1 + count[k]) });
     }
     // a bond that ends on the inside of a straight line: the line passes through an atom there
     for (let again = true, guard = 0; again && guard < 200; guard++) {
@@ -1018,6 +1092,38 @@
         }
         if (again) break;
       }
+    }
+    // A letter left without a bond while a bond ends in empty space and points at it: the bond was drawn short of
+    // its letter. The free end of that bond becomes the letter (the nearest such end within farLabel).
+    {
+      const deg = new Map();
+      for (const key of links.keys()) key.split('|').forEach((k) => deg.set(Number(k), (deg.get(Number(k)) || 0) + 1));
+      nodes.forEach((n, i) => {
+        if (!n.label || n.atom || n.dropped || deg.get(i) || n.label.el === 'H' || !n.label.el) return;
+        let best = null, bd = P.farLabel * L;
+        for (const key of links.keys()) {
+          const pair = key.split('|').map(Number);
+          for (const [it, io] of [pair, [pair[1], pair[0]]]) {
+            const T = nodes[it], O = nodes[io];
+            if (T.label || T.atom || T.dropped || deg.get(it) !== 1) continue;
+            const len = dist(T, O) || 1e-9;
+            const ux = (T.x - O.x) / len, uy = (T.y - O.y) / len;
+            const q = { x: Math.max(n.label.box.x0, Math.min(n.label.box.x1, T.x)), y: Math.max(n.label.box.y0, Math.min(n.label.box.y1, T.y)) };
+            const ax = (q.x - T.x) * ux + (q.y - T.y) * uy;
+            const pd = Math.abs((q.x - T.x) * uy - (q.y - T.y) * ux);
+            const d = dist(q, T);
+            if (ax > 0 && pd < 0.3 * L && d < bd) { bd = d; best = { key, it, io }; }
+          }
+        }
+        if (!best) return;
+        const order = links.get(best.key);
+        links.delete(best.key);
+        const key2 = i < best.io ? i + '|' + best.io : best.io + '|' + i;
+        links.set(key2, Math.min(3, (links.get(key2) || 0) + order));
+        nodes[best.it].dropped = true;
+        deg.set(i, 1);
+        deg.set(best.it, 0);
+      });
     }
     // A hydrogen written next to an atom (OH, NH2, HO) when it was read as a label of its own: an unbonded
     // label that reads H, or a smaller one set lower (the count), right next to another label, is not an atom;

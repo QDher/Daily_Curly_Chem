@@ -186,7 +186,7 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
   // the regression test of weakness cases 13 and 14 (rings with inner double-bond lines, hydrogens written with
   // the atom, the l of Cl, lines of a multiple bond that spread out from a letter).
   const week = require('./fixtures/drawings_2026-11-20.json');
-  test('drawings of the week files of 2026-11-20: same readings as recorded, at least 62 of 168 exact (20 of the aromatic ones)', () => {
+  test('drawings of the week files of 2026-11-20: same readings as recorded, at least 80 of 168 exact (32 of the aromatic ones)', () => {
     let exact = 0, aromatic = 0;
     const changed = [];
     for (const d of week.drawings) {
@@ -196,7 +196,7 @@ initRDKit({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rd
       if (got !== d.reads) changed.push(d.n + ': ' + got + ' instead of ' + d.reads);
     }
     console.log('week drawings read exactly: ' + exact + '/' + week.drawings.length + ', aromatic ' + aromatic + '/' + week.drawings.filter((d) => /c/.test(d.asked)).length + ' (fixture made with recognizer ' + week.recognizer + ')');
-    if (exact < 62 || aromatic < 20) throw new Error('exact: ' + exact + ', aromatic: ' + aromatic);
+    if (exact < 80 || aromatic < 32) throw new Error('exact: ' + exact + ', aromatic: ' + aromatic);
     if (changed.length) throw new Error('readings changed (update the fixture and docs/RECOGNITION.md if intended): ' + changed.slice(0, 8).join('; ') + (changed.length > 8 ? ' ... ' + changed.length + ' in all' : ''));
   });
 
