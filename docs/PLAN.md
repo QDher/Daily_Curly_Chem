@@ -208,6 +208,10 @@ fine-tuning at least 500 distinct confirmed steps.
 
 ### F. Test run
 
+Thresholds of what reviewers accept (decision 71, 2026-11-26): found on a boundary panel with one measure varied
+per drawing and a two-phase stopping rule (coarse, then precise on the relevant measures only):
+`docs/handoff/boundary-panel_2026-11-26.md`.
+
 Purpose (stage 1): obtain a well-behaved drawing and arrow interface and decide whether tool and logging are ready
 for phase 3. Its entries (people, and judged agent entries below) are the data for this.
 
