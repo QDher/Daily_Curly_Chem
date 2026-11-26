@@ -42,8 +42,8 @@ Consequences for the sections below (2026-11-14):
   version.
 
 Order of work in stages 1 and 2:
-1. Contact e-mail of the test run (`contact` in `data/config.json` of QDher/Daily_Curly_Chem), then invitation of
-   the five testers. Strokes of people are needed by: calibration of the agent ink, tuning of `Readings.P` and of
+1. Invitation of the five testers (no contact e-mail: entries are sent to the Worker `curly-entries`, decisions 67
+   and 68). Strokes of people are needed by: calibration of the agent ink, tuning of `Readings.P` and of
    the recognizer, the evidence log of `docs/PLAN_DRAWING.md`, acceptance of any trained reading model.
 2. Agent testers: every tester every day by a Claude Code scheduled task (since 2026-11-16); the user judges the
    attempts in the review page.

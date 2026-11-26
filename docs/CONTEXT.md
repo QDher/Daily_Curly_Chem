@@ -169,8 +169,8 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   synthetic: never counted in the readiness criteria, the phase-4 start conditions or the visitor rules, never
   used to evaluate a model, never committed (`docs/AGENT_TESTER.md`).
   Attempts judged by the user in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `docs/PLAN.md`, section F.
-- Open: the contact e-mail for the link at the end (`contact` in `data/config.json`). Remind the user before
-  testers are invited; suggest a dedicated address.
+- Contact e-mail: none (`contact: null` in `data/config.json`, decision 68). Entries are sent to the Worker; a file
+  saved because sending failed goes back by the channel of the invitation.
 
 ## Planned fixes and features (not started)
 

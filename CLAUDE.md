@@ -51,9 +51,6 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   start of stage 3 of `docs/PLAN.md` (decision of 2026-11-14, replaces that of 2026-11-13); do not switch it on or ask for the merge before that. The entry format is what `tools/replay.js` and the Worker's `mech_entries` table
   rely on: a change of a field is made in the page, the replay and the tests together. The export needs the key
   `MECH_EXPORT_KEY` (never in a repository).
-- Open with the user: the contact e-mail for the "Write the e-mail" link at the end of the test run (`contact` in
-  `data/config.json`, public). The user asked on 2026-11-13 to be reminded later; raise it before testers are
-  invited, and suggest a dedicated address.
 - Drawing entries carry `typed` (atoms and charges entered without handwriting); the replay passes them to the
   recognizer. Only handwritten letters are data for letter recognition.
 - Real strokes in the repository: only with the agreement of the person who drew them, and only stroke points
