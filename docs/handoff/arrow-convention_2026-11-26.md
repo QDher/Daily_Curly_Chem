@@ -1,8 +1,8 @@
 # Handoff: convention for the arrows drawn by the agent testers (2026-11-26)
 
 From the people side to the agent side (request R3 of `docs/BOARD.md`). Decision 53 of `docs/DECISIONS.md`.
-Status: rules proposed by the session and taken as the basis by the user; the rates of rule breaking are a
-proposal. Nothing is implemented. L: bond length of the shown structure.
+Status: rules proposed by the session and taken as the basis by the user; the rates of rule breaking were set
+by the user on 2026-11-26. Nothing is implemented. L: bond length of the shown structure.
 
 ## Why
 
@@ -42,12 +42,14 @@ these cases without intending them:
 
 Every agent tester has a chance of breaking a rule; no tester always follows the convention.
 
-- Proposed rates per arrow (to be decided): precise testers 10 %, imprecise testers 25 %.
-- One rule is broken at a time, drawn from: start on a bond of the atom (rule 1), start beyond 0.5 L in empty
+- Rates per attempt (user, 2026-11-26): precise testers (john0002, john0003) 5 %, imprecise testers (john0004,
+  john0005) 20 %. In an attempt chosen this way exactly one arrow breaks exactly one rule; the other arrows
+  follow the convention.
+- The rule broken is drawn from those that apply to the arrows of the step: start on a bond of the atom (rule 1), start beyond 0.5 L in empty
   space (rule 1), start in the outer quarter of the bond (rule 2), short arrow off its bond (rule 2), start in
   the half of a multiple bond away from the reacting atom (rule 3), end in the removed range between atom and
   bond (rule 3).
-- Each arrow of the run record states `convention`: `ok`, or the rule broken. This is the generator's intent,
+- Each attempt of the run record states `convention`: `ok`, or the arrow and the rule broken. This is the generator's intent,
   not a judgement: reviewers still answer on what they see.
 
 ## Use
@@ -58,6 +60,6 @@ Every agent tester has a chance of breaking a rule; no tester always follows the
 
 ## Open
 
-- Rates of rule breaking; charge sign accepted as a start; the two accepted ends for a new single bond.
+- Charge sign accepted as a start; the two accepted ends for a new single bond.
 - Not measured: how the 75 arrow entries of people and the 47 disputed attempts fall under these rules.
 - A change of `tools/agent_ink.js` raises its `VERSION`; names, seeds and traits of the testers stay.
