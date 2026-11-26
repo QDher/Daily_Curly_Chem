@@ -169,6 +169,10 @@ details.convention[open] > summary { margin-bottom: 12px; }
   <main id="tasks"></main>
 </div>
 
+<!-- the page's own arrow and reading rules (src/arrows.js, src/readings.js of the repository, published with this page):
+     used only to draw the readings of people's arrows on the tester's structure (decision 59) -->
+<script src="src/arrows.js"></script>
+<script src="src/readings.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -290,7 +294,10 @@ details.convention[open] > summary { margin-bottom: 12px; }
     return { atoms, bonds };
   }
   // Drawn structure: bonds, element labels, charge signs placed where no bond goes. Returns the <g> and its box.
-  function structureGroup(sc0) {
+  // marks (optional): { changed: Set of "a|b" bonds formed or changed, drawn in the accent colour; broken: bonds
+  // removed, drawn dotted }
+  const pairKey = (b) => (b.a < b.b ? b.a + '|' + b.b : b.b + '|' + b.a);
+  function structureGroup(sc0, marks) {
     const sc = withHydrogens(sc0);
     const A = new Map(sc.atoms.map((x) => [x.id, x]));
     const deg = new Map(sc.atoms.map((x) => [x.id, 0]));
@@ -301,7 +308,12 @@ details.convention[open] > summary { margin-bottom: 12px; }
       if (!p || !q) continue;
       const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
       const offs = b.order === 1 ? [0] : b.order === 2 ? [-0.08, 0.08] : [-0.14, 0, 0.14];
-      for (const o of offs) g.appendChild(sv('line', { x1: p.x + nx * o, y1: p.y + ny * o, x2: q.x + nx * o, y2: q.y + ny * o, stroke: 'var(--struct)', 'stroke-width': 0.05 }));
+      const on = marks && marks.changed.has(pairKey(b));
+      for (const o of offs) g.appendChild(sv('line', { x1: p.x + nx * o, y1: p.y + ny * o, x2: q.x + nx * o, y2: q.y + ny * o, stroke: on ? 'var(--accent)' : 'var(--struct)', 'stroke-width': on ? 0.07 : 0.05 }));
+    }
+    for (const b of (marks && marks.broken) || []) {
+      const p = A.get(b.a), q = A.get(b.b);
+      if (p && q) g.appendChild(sv('line', { x1: p.x, y1: p.y, x2: q.x, y2: q.y, stroke: 'var(--ref)', 'stroke-width': 0.04, 'stroke-dasharray': '0.06 0.1' }));
     }
     const pts = sc.atoms.map((x) => [x.x, x.y]);
     for (const at of sc.atoms) {
@@ -336,8 +348,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     }
     return { g, pts };
   }
-  function drawStructure(sc) {
-    const { g, pts } = structureGroup(sc);
+  function drawStructure(sc, marks) {
+    const { g, pts } = structureGroup(sc, marks);
     const svg = sv('svg', { viewBox: bbox(pts, 0.55).join(' '), role: 'img', 'aria-label': 'structure' });
     svg.appendChild(g);
     return svg;
@@ -373,6 +385,61 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const s = lookup('svg', smi);
     return s ? el('div', { class: 'mol', html: s, title: smi }) : el('p', { class: 'mono', text: smi });
   };
+
+  // ---------- readings of people's arrows, drawn from the arrows on the tester's structure (decision 59) ----------
+  // Uploads from 2026-11-26 keep the arrows of each reading (readingArrows), applied here with Arrows.apply. For
+  // earlier uploads the readings are computed again from the recorded strokes with Readings.read, used only when the
+  // tester's page had the same versions of the rules and the number of readings is the one recorded. Every structure
+  // drawn must have the heavy atoms and the total charge of the SMILES the page recorded (when it recorded one);
+  // otherwise the SMILES is shown.
+  function formulaOfSmiles(smi) {
+    const els = [];
+    let q = 0, m;
+    const re = /\[([^\]]+)\]|(Cl|Br|B|C|N|O|P|S|F|I|b|c|n|o|p|s)/g;
+    while ((m = re.exec(String(smi)))) {
+      if (m[1]) {
+        const e = /^\d*([A-Z][a-z]?|[a-z]{1,2})/.exec(m[1]);
+        if (e) { const x = e[1][0].toUpperCase() + e[1].slice(1); if (x !== 'H') els.push(x); }
+        const c = /([+-]+)(\d*)$/.exec(m[1]);
+        if (c) q += (c[1][0] === '+' ? 1 : -1) * (c[2] ? Number(c[2]) : c[1].length);
+      } else els.push(m[2][0].toUpperCase() + m[2].slice(1));
+    }
+    return els.sort().join(',') + '|' + q;
+  }
+  const formulaOfScene = (sc) => sc.atoms.filter((x) => x.el !== 'H').map((x) => x.el).sort().join(',') + '|' + sc.atoms.reduce((t, x) => t + (x.q || 0), 0);
+  const readingCache = new Map();
+  function readingScenes(a) {
+    const k = a.runId + '__' + a.set + '__' + a.task + '__' + a.attempt;
+    if (readingCache.has(k)) return readingCache.get(k);
+    let out = null;
+    try {
+      const v = a.versions || {};
+      if (window.Arrows && a.scene && Array.isArray(a.readingArrows)) {
+        out = a.readingArrows.map((arr) => { const r = Arrows.apply(a.scene, arr || []); return r.ok ? r.scene : null; });
+      } else if (window.Readings && window.Arrows && a.scene && a.ink && a.ink.length && v.readings === Readings.VERSION && v.arrows === Arrows.VERSION) {
+        const strokes = a.ink.map((st) => ({ start: { x: st[0][0], y: st[0][1] }, end: { x: st[st.length - 1][0], y: st[st.length - 1][1] } }));
+        const rd = Readings.read(a.scene, strokes).readings;
+        if (rd.length === a.readings.length) out = rd.map((r) => r.scene);
+      }
+      // a reading whose SMILES the tester's page could not write (null) is drawn without this check
+      if (out) out = out.map((sc, i) => (sc && (!a.readings[i] || formulaOfScene(sc) === formulaOfSmiles(a.readings[i])) ? sc : null));
+    } catch (e) { out = null; }
+    readingCache.set(k, out);
+    return out;
+  }
+  // reading i of a person's arrows: drawn on the tester's structure (bonds formed or changed in colour, bonds broken
+  // dotted), or its SMILES
+  function readingMol(a, i) {
+    const list = readingScenes(a);
+    const sc = list && list[i];
+    if (!sc) return mol(a.readings[i]);
+    const now = new Map(sc.bonds.map((b) => [pairKey(b), b.order]));
+    const before = new Map(a.scene.bonds.map((b) => [pairKey(b), b.order]));
+    const marks = { changed: new Set([...now].filter(([key, o]) => before.get(key) !== o).map(([key]) => key)), broken: a.scene.bonds.filter((b) => !now.has(pairKey(b))) };
+    const d = el('div', { class: 'mol', title: a.readings[i] });
+    d.appendChild(drawStructure(sc, marks));
+    return d;
+  }
 
   // ---------- reviews ----------
   const keyOf = (a) => a.runId + '__' + a.set + '__' + a.task + '__' + a.attempt;
@@ -427,15 +494,16 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const acc = acceptedOf(a);
       if (acc) {
         box.appendChild(el('p', { class: 'note', text: 'Structure the tester accepted for these arrows (reading ' + acc.k + ' of ' + a.readings.length + '):' }));
-        box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(acc.smiles))));
+        box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, readingMol(a, acc.k - 1))));
       }
-      const others = a.readings.filter((s, i) => !acc || i !== acc.k - 1);
+      const others = a.readings.map((s, i) => i).filter((i) => !acc || i !== acc.k - 1);
       if (others.length) {
         box.appendChild(el('p', { class: 'note muted', text: acc ? 'Other readings of these arrows:' : 'Readings offered:' }));
         const g = el('div', { class: 'readings' });
-        others.forEach((s) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (a.readings.indexOf(s) + 1) })])));
+        others.forEach((i) => g.appendChild(el('figure', {}, [readingMol(a, i), el('figcaption', { text: 'reading ' + (i + 1) })])));
         box.appendChild(g);
       }
+      if (readingScenes(a)) box.appendChild(el('p', { class: 'note muted', text: 'Readings drawn from the arrows on the tester\u2019s structure: bonds formed or changed in colour, bonds broken dotted.' }));
       const sub = { accepted: 'the structure of the problem', 'submitted-other': 'another structure than that of the problem', 'not-submitted': null }[a.outcome];
       if (a.outcome !== 'no-reading') box.appendChild(el('p', { class: 'note muted', text: sub ? 'Submitted as the answer: ' + sub + ' (not judged here: the tester may have drawn another reaction).' : 'Not submitted as an answer.' }));
       if (!acc) box.appendChild(el('p', { class: 'note', text: a.outcome === 'no-reading' ? 'No reading: the page gave no structure for these arrows. Not judged.'
@@ -840,6 +908,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
         readings: [], reading: null, reasons: null, message: null, rank: null, versions: x.versions || null };
       if (a.type === 'T1') {
         a.readings = (x.readings || []).map((r) => r.smiles);
+        // the arrows of each reading, to draw it on the tester's structure (decision 59)
+        a.readingArrows = (x.readings || []).map((r) => r.arrows || null);
         // the reading the tester confirmed (1-based; 0: none), apart from the answer submitted (decision 58)
         a.accepted = Number.isInteger(x.accepted) ? x.accepted + 1 : 0;
         a.scene = x.scene || null;

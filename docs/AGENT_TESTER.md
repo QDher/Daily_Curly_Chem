@@ -202,7 +202,12 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   question `outcome` answers), `note`, `reviewer`. Arrow attempts of people (entries files added from the page,
   decision 58): one question only, "Is this structure what these arrows show?", on the reading the tester accepted
   (`outcome`, `asked` "accepted-reading"); the structure of the problem and the answer submitted are shown, not
-  judged; no accepted reading, no question. `outcome` refines the label (`docs/PLAN.md` F, decision of
+  judged; no accepted reading, no question. The readings are drawn from the arrows on the tester's structure (bonds
+  formed or changed in colour, bonds broken dotted; decision 59): uploads keep the arrows of each reading
+  (`readingArrows`); for earlier uploads the page computes the readings again from the recorded strokes, with
+  `src/arrows.js` and `src/readings.js` published with the page (republish them when their `VERSION` changes),
+  and falls back to the SMILES when the versions, the number of readings or the atoms and charge differ.
+  `outcome` refines the label (`docs/PLAN.md` F, decision of
   2026-11-24): "should not give the right structure" with another structure read and the outcome judged wrong is a
   "page misread", a negative example for both structures. Every judgement counts on its own: an attempt can be "correct" for
   one reviewer and "incorrect" for another, and all judgements count in the 98 % bound of the replacement rule
