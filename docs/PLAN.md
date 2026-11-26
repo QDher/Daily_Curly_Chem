@@ -292,6 +292,11 @@ for phase 3. Its entries (people, and judged agent entries below) are the data f
   structure (valence error) was asked "Reading of the drawing"; those answers are kept and shown to the reviewer
   but carry no label until the reviewer answers "Is the no reading correct?" (51 answers on 37 attempts on
   2026-11-24).
+  Arrow attempts of people (decision 58): only the reading the tester accepted is judged ("Is this structure what
+  these arrows show?", `outcome` with `asked` "accepted-reading"); people sometimes draw another reaction, so the
+  structure of the problem plays no part in the label: "yes" labels the strokes with the accepted structure
+  (confirmation), "no" marks a reading the page offered and the tester accepted although the arrows do not show it.
+  Attempts with no accepted reading carry no label.
   Answers "unsure" and attempts not judged carry no label. Judged agent entries are used to find and correct
   weaknesses and as labelled training examples. The strokes stay synthetic: these entries carry their own labels,
   are kept apart from the entries of people, are never counted in the readiness criteria above, in the phase-4

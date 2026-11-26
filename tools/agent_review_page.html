@@ -380,15 +380,42 @@ details.convention[open] > summary { margin-bottom: 12px; }
   // No structure from the page: arrows with no reading, or a copy whose reading is not a valid structure (valence
   // error). Both ask "Is the no reading correct?" (copies from 2026-11-24; before, "Reading of the drawing").
   const noStructure = (a) => a.outcome === 'no-reading' || (a.type === 'T2' && READ_T2.includes(a.outcome) && !a.reading);
-  const askedOf = (a) => (noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
+  // Arrow attempts of people (decision 58, user 2026-11-26): people sometimes draw another reaction than the one asked,
+  // so only the reading the tester accepted is judged ("Is this structure what these arrows show?", stored in outcome
+  // as right / wrong / unsure with asked "accepted-reading"); the structure of the problem and the answer submitted are
+  // shown, not judged. An attempt with no accepted reading is not judged.
+  const personArrows = (a) => !!a.person && a.type === 'T1';
+  // the reading accepted: a.accepted (1-based, 0 for none) in uploads from 2026-11-26; before, known only when the
+  // tester submitted it (a.rank of "accepted" and "submitted-other")
+  const acceptedOf = (a) => {
+    const k = a.accepted !== undefined ? a.accepted : (a.outcome === 'accepted' || a.outcome === 'submitted-other' ? a.rank : null);
+    return k && a.readings && a.readings[k - 1] ? { k, smiles: a.readings[k - 1] } : null;
+  };
+  const judged = (a) => !personArrows(a) || !!acceptedOf(a);
+  const askedOf = (a) => (personArrows(a) ? 'accepted-reading' : noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
   // an answer to the outcome question counts only when it was given to the question shown now; answers saved before
   // the field "asked" existed were given to the question then shown, which differs only for copies with no structure
-  const outcomeOf = (a, r) => (r && r.outcome && (r.asked ? r.asked === askedOf(a) : !(a.type === 'T2' && noStructure(a))) ? r.outcome : null);
-  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return !!r.expected && (found(a) || !!outcomeOf(a, r)); };
+  const outcomeOf = (a, r) => {
+    if (!r) return null;
+    if (personArrows(a)) {
+      if (r.asked === 'accepted-reading') return r.outcome || null;
+      if (!acceptedOf(a)) return null;
+      // answers of before 2026-11-26 to the questions then shown, which ask the same thing for these attempts: the
+      // structure shown for "Outcome of the arrows" was the one submitted, which is the accepted reading; with the
+      // structure of the problem submitted, "should these arrows have given the right structure" is this question
+      if (a.outcome === 'submitted-other' && r.asked === 'arrows') return r.outcome || null;
+      if (a.outcome === 'accepted' && !r.asked && r.expected) return { yes: 'right', no: 'wrong', unsure: 'unsure' }[r.expected] || null;
+      return null;
+    }
+    return r.outcome && (r.asked ? r.asked === askedOf(a) : !(a.type === 'T2' && noStructure(a))) ? r.outcome : null;
+  };
+  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return personArrows(a) ? !!outcomeOf(a, r) : !!r.expected && (found(a) || !!outcomeOf(a, r)); };
+  // an answer counted in the tables: "should give the right structure", or the accepted reading of a person's arrows
+  const answered = (v) => !!v && (!!v.expected || (v.asked === 'accepted-reading' && !!v.outcome));
   const refreshers = new Map();
   const shownAttempts = () => [].concat(...selected.filter((id) => loaded.has(id)).map((id) => loaded.get(id).attempts));
   function setProgress() {
-    const list = shownAttempts();
+    const list = shownAttempts().filter(judged);
     const done = list.filter(isReviewed).length;
     const where = dbState === 'ready' ? '' : dbState === 'loading' ? ' · loading answers…' : dbState === 'slow' ? ' · saved answers cannot be reached yet' : ' · answers cannot be saved in this view';
     $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + where;
@@ -396,6 +423,25 @@ details.convention[open] > summary { margin-bottom: 12px; }
 
   function resultOf(a) {
     const box = el('div', { class: 'result' });
+    if (personArrows(a)) {
+      const acc = acceptedOf(a);
+      if (acc) {
+        box.appendChild(el('p', { class: 'note', text: 'Structure the tester accepted for these arrows (reading ' + acc.k + ' of ' + a.readings.length + '):' }));
+        box.appendChild(el('div', { class: 'readings one' }, el('figure', {}, mol(acc.smiles))));
+      }
+      const others = a.readings.filter((s, i) => !acc || i !== acc.k - 1);
+      if (others.length) {
+        box.appendChild(el('p', { class: 'note muted', text: acc ? 'Other readings of these arrows:' : 'Readings offered:' }));
+        const g = el('div', { class: 'readings' });
+        others.forEach((s) => g.appendChild(el('figure', {}, [mol(s), el('figcaption', { text: 'reading ' + (a.readings.indexOf(s) + 1) })])));
+        box.appendChild(g);
+      }
+      const sub = { accepted: 'the structure of the problem', 'submitted-other': 'another structure than that of the problem', 'not-submitted': null }[a.outcome];
+      if (a.outcome !== 'no-reading') box.appendChild(el('p', { class: 'note muted', text: sub ? 'Submitted as the answer: ' + sub + ' (not judged here: the tester may have drawn another reaction).' : 'Not submitted as an answer.' }));
+      if (!acc) box.appendChild(el('p', { class: 'note', text: a.outcome === 'no-reading' ? 'No reading: the page gave no structure for these arrows. Not judged.'
+        : a.accepted === undefined ? 'Which reading the tester accepted is not recorded in this upload (added before 2026-11-26). Not judged.' : 'The tester accepted no reading. Not judged.' }));
+      return box;
+    }
     if (a.type === 'T1' && a.outcome === 'none-intended') {
       box.appendChild(el('p', { class: 'note', text: 'Structures given by these arrows (' + a.readings.length + ' reading' + (a.readings.length > 1 ? 's' : '') + ' offered, all rejected as not the right structure):' }));
       const g = el('div', { class: 'readings' });
@@ -430,11 +476,15 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const box = el('div', { class: 'review' });
     const status = el('span', { class: 'status' });
     const T1 = a.type === 'T1';
-    const qs = [
+    const qs = personArrows(a) ? [] : [
       a.person ? null : ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
       ['expected', T1 ? 'Should these arrows have given the right structure?' : 'Should this drawing have given the right structure?', [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]],
     ].filter(Boolean);
-    if (!found(a)) {
+    if (personArrows(a)) {
+      // only the reading the tester accepted is judged (decision 58)
+      if (acceptedOf(a)) qs.push(['outcome', 'Is this structure what these arrows show?', [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']], resultOf(a)]);
+      else box.appendChild(resultOf(a));
+    } else if (!found(a)) {
       // stored as right / wrong / unsure in every case; for "no reading" the question is whether that is correct
       const none = noStructure(a);
       qs.push(['outcome', none ? 'Is the “no reading” correct?' : T1 ? 'Outcome of the arrows' : 'Reading of the drawing',
@@ -450,7 +500,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
         const b = el('button', { class: field === 'drawing' ? 'opt flag' : 'opt', type: 'button', 'aria-pressed': 'false', text: t });
         b.onclick = () => {
           const now = valueOf(reviews.get(k), field) === v ? null : v;
-          save(field === 'outcome' ? { outcome: now, asked: now ? askedOf(a) : null } : { [field]: now });
+          // for a person's arrows an earlier "should give the right structure" answer is replaced by this one
+          save(field === 'outcome' ? Object.assign({ outcome: now, asked: now ? askedOf(a) : null }, personArrows(a) ? { expected: null } : {}) : { [field]: now });
         };
         q.appendChild(b);
         return [v, b];
@@ -482,7 +533,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const r = reviews.get(k) || {};
       for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(valueOf(r, f) === v)); b.disabled = !writable(); }
       if (earlier) {
-        const old = r.outcome && !outcomeOf(a, r) ? r.outcome : null;
+        const old = !personArrows(a) && r.outcome && !outcomeOf(a, r) ? r.outcome : null;
         earlier.hidden = !old;
         earlier.textContent = old ? 'Earlier answer, to the question “Reading of the drawing”: ' + old + '. Please answer this question.' : '';
       }
@@ -497,11 +548,14 @@ details.convention[open] > summary { margin-bottom: 12px; }
   const refreshAll = () => { for (const f of refreshers.values()) f(); setProgress(); };
 
   function attemptCard(a) {
-    const [cls, txt] = OUT[a.outcome] || ['warn', () => a.outcome];
+    const acc = personArrows(a) ? acceptedOf(a) : null;
+    const [cls, txt] = personArrows(a)
+      ? (acc ? ['ok', () => 'reading ' + acc.k + ' accepted by the tester'] : a.outcome === 'no-reading' ? ['warn', () => 'no reading'] : ['warn', () => (a.accepted === undefined ? 'accepted reading not recorded' : 'no reading accepted')])
+      : OUT[a.outcome] || ['warn', () => a.outcome];
     const card = el('article', { class: 'attempt' });
     card.appendChild(el('div', { class: 'attempt-head' }, [el('h3', { text: 'Attempt ' + a.attempt }), el('span', { class: 'pill ' + cls, text: txt(a) })]));
     if (a.ink && a.ink.length) card.appendChild(el('div', { class: 'ink' }, a.type === 'T1' && a.scene ? drawArrows(a, colorOf(a.tester)) : drawCopy(a, colorOf(a.tester))));
-    if (a.outcome === 'accepted') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: reading ' + a.rank + ' of ' + a.readings.length + ' offered.' }));
+    if (a.outcome === 'accepted' && !personArrows(a)) card.appendChild(el('p', { class: 'note', text: 'The right structure was found: reading ' + a.rank + ' of ' + a.readings.length + ' offered.' }));
     if (a.outcome === 'confirmed') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: the drawing was read as the structure to copy.' }));
     if (a.remarks) for (const t of a.remarks) card.appendChild(el('p', { class: 'note', text: 'Remark of the tester: ' + t }));
     card.appendChild(reviewBlock(a));
@@ -570,7 +624,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       box.checked = on;
       box.onchange = () => { selected = box.checked ? selected.concat(r.runId) : selected.filter((x) => x !== r.runId); keepSelection(); renderRuns(); loadSelected(); };
       const s = r.summary || { arrows: {}, copies: {} };
-      const rev = [...reviews.keys()].filter((k) => k.startsWith(r.runId + '__')).filter((k) => { const v = reviews.get(k); return v && v.expected; }).length;
+      const rev = [...reviews.keys()].filter((k) => k.startsWith(r.runId + '__')).filter((k) => answered(reviews.get(k))).length;
       const rep = r.report ? el('button', { class: 'link', type: 'button', text: reportOf === r.runId ? 'hide' : 'show' }) : el('span', { class: 'muted', text: '–' });
       if (r.report) rep.onclick = () => { reportOf = reportOf === r.runId ? null : r.runId; renderRuns(); };
       body.appendChild(el('tr', { class: on ? 'on' : null }, [
@@ -657,7 +711,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
         const L = loaded.get(id);
         if (!L) continue;
         const mine = L.attempts.filter((a) => a.set === t.set && a.task === t.id
-          && (F.show !== 'failed' || !found(a)) && (F.show !== 'open' || !isReviewed(a)))
+          && (F.show !== 'failed' || !found(a)) && (F.show !== 'open' || (judged(a) && !isReviewed(a))))
           .sort((x, y) => x.attempt - y.attempt);
         if (!mine.length) continue;
         n += mine.length;
@@ -786,12 +840,14 @@ details.convention[open] > summary { margin-bottom: 12px; }
         readings: [], reading: null, reasons: null, message: null, rank: null, versions: x.versions || null };
       if (a.type === 'T1') {
         a.readings = (x.readings || []).map((r) => r.smiles);
+        // the reading the tester confirmed (1-based; 0: none), apart from the answer submitted (decision 58)
+        a.accepted = Number.isInteger(x.accepted) ? x.accepted + 1 : 0;
         a.scene = x.scene || null;
         const rf = pool.ref.get(key);
         a.refArrows = rf && sameLayout(rf.scene, a.scene) ? rf.arrows : [];
         const sub = x.submitted;
         if (!a.readings.length) a.outcome = 'no-reading';
-        else if (!sub) a.outcome = 'not-submitted';
+        else if (!sub) { a.outcome = 'not-submitted'; if (a.accepted) a.rank = a.accepted; }
         else if (sub.match) { a.outcome = 'accepted'; a.rank = x.accepted + 1; }
         else { a.outcome = 'submitted-other'; a.reading = sub.smiles; a.rank = x.accepted + 1; }
       } else {
@@ -935,15 +991,15 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const inDay = (k) => ofDay.has(k.split('__')[0]);
     // disagreements on this date: attempts answered by two or more reviewers with different answers
     const byKey = new Map();
-    for (const id of ids) for (const [k, a] of reviewsOf(id)) if (inDay(k) && a && a.expected) { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); }
+    for (const id of ids) for (const [k, a] of reviewsOf(id)) if (inDay(k) && answered(a)) { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); }
     const differs = (list) => list.length > 1 && (new Set(list.map((a) => a.expected)).size > 1 || new Set(list.map((a) => a.outcome || '')).size > 1);
     const t = $('reviewers');
     t.textContent = '';
     t.appendChild(el('thead', {}, el('tr', {}, ['Reviewer', 'Answers, all dates', 'Answers on ' + (day || '\u2013'), 'Disagreeing with another reviewer on ' + (day || '\u2013'), ''].map((h) => el('th', { text: h })))));
     const body = el('tbody');
     for (const id of ids) {
-      const mineAll = [...reviewsOf(id).values()].filter((a) => a && a.expected).length;
-      const mineDay = [...reviewsOf(id).entries()].filter(([k, a]) => inDay(k) && a && a.expected);
+      const mineAll = [...reviewsOf(id).values()].filter(answered).length;
+      const mineDay = [...reviewsOf(id).entries()].filter(([k, a]) => inDay(k) && answered(a));
       const dis = mineDay.filter(([k]) => differs(byKey.get(k) || [])).length;
       const p = ps[id] || {};
       const btn = el('button', { class: 'link', type: 'button', text: id === viewAs ? 'shown' : 'show answers' });

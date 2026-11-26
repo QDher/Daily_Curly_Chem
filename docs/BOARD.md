@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: analysis of the two tasks linked, item B18; recognizer 0.5.0; decisions 53 to 56. Agent side: R3 answered, agent ink 0.4.0 and reviewer sheet, decision 57).
+Last updated: 2026-11-26 (people side: analysis of the two tasks linked, item B18; recognizer 0.5.0; decisions 53 to 56. Agent side: R3 answered, agent ink 0.4.0 and reviewer sheet, decision 57; people's arrows judged on the accepted reading, decision 58).
 
 ## Links
 
@@ -49,6 +49,10 @@ Note (agent side, 2026-11-26): the upload route was published to the live review
 publishes `tools/agent_review_page.html` from the repository every morning and would have removed it. The source in
 the repository now holds the live page (upload route included) plus the "Arrow convention" panel (decision 57). A
 change made to the live page should also be committed to `tools/agent_review_page.html`.
+Note (agent side, 2026-11-26, decision 58): arrow attempts of people are judged on the reading the tester accepted
+only. On the upload of 2026-11-25: 62 of 68 arrow attempts judged (earlier answers carried over: 61 yes, 1 unsure);
+6 not judged (accepted reading not recorded when nothing was submitted). 42 of the 62 accepted readings are shown
+as SMILES, not drawn (no agent run gave that structure).
 
 ## Open items
 
