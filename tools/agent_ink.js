@@ -23,11 +23,15 @@
 // Ink 0.6.0 (decision 63): on the standard set (option boundary) every arrow attempt sets one measure of the arrow
 // convention on one arrow across a range from right to wrong, and every copy of a tester with a pointer type is a
 // boundary attempt; the value and whether it lies inside the convention are recorded.
+// Ink 0.7.0 (request R5, decision 70): in the copies of testers with a pointer type, bonds meet at a typed atom as at a
+// corner (people place the typed atom at the end of their bonds; before, bonds stopped 0.2 to 0.38 L short of it), and
+// the probability to go on drawing through the next bond is set per pointer type so that the bonds per stroke match
+// people's (TRAIL). Together these bring the joint gap measured by tools/compare_ink.js to that of people.
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -172,6 +176,12 @@ const SIDE = { jointGap: 'low', wobble: 'low', secondLineLength: 'high', secondL
 // quantile ranges per precision (request R4: precise p25 to p50, imprecise p50 to p90, on the side of the measure that
 // is worse; whole middle for the measures without a better side)
 const QRANGE = { high: { low: [0.25, 0.5], high: [0.5, 0.75], mid: [0.25, 0.75] }, low: { low: [0.5, 0.9], high: [0.1, 0.5], mid: [0.1, 0.9] } };
+// Ink 0.7.0 (request R5): probability to draw on through the next bond (atom without a label) in the same stroke, per
+// pointer type, for testers with a pointer type: the tester's trail habit (HABITS.trail) gives its place in the range.
+// Ranges set so that the bonds per bond stroke (second lines left out) match those of people in
+// test/fixtures/drawings_2026-11-20.json and drawings_2026-11-25.json: pen 1.16 (150 drawings), touch 1.47 (16),
+// mouse 1.33 (23); figures of the testers in docs/AGENT_TESTER.md.
+const TRAIL = { pen: [0.2, 0.45], touch: [0.7, 0.98], mouse: [0.4, 0.7] };
 // boundary attempts of copies (request R4, part 3): share of the copy attempts per precision, and the range of each measure
 const BOUNDARY = { rate: { high: 0.2, low: 0.4 }, letterGap: [0, 0.5], secondLineLength: [0.3, 1.0], secondLineSpacing: [0.05, 0.4] };
 
@@ -823,11 +833,13 @@ function structureProfile(d, scene0, box, opt = {}) {
     hand.push(a.el);
   }
   const extent = (id, u) => Math.max(0, ...[].concat(...letters.get(id)).map((p) => (p.x - at.get(id).x) * u.x + (p.y - at.get(id).y) * u.y));
-  // bond end at an atom: beyond a handwritten letter by the letter gap; short of a typed atom by the label gap habit
-  // (a bond between two labels keeps at least a quarter of its length)
+  // bond end at an atom: beyond a handwritten letter by the letter gap; at a typed atom as at a corner (ink 0.7.0,
+  // request R5), except in a boundary attempt on the letter gap, which sets the gap to a typed atom too (a bond
+  // between two labels keeps at least a quarter of its length)
+  const typedAtom = (id) => labelled.has(id) && !letters.has(id) && !(boundary && boundary.name === 'letterGap');
   const endAt = (id, toward) => {
     const p = at.get(id);
-    if (!labelled.has(id)) return p;
+    if (!labelled.has(id) || typedAtom(id)) return p;
     const u = unit(sub(at.get(toward), p));
     const full = len(sub(at.get(toward), p));
     let gap;
@@ -835,16 +847,19 @@ function structureProfile(d, scene0, box, opt = {}) {
     else gap = (boundary && boundary.name === 'letterGap' ? boundary.value : labelled.has(toward) ? Math.min(s.labelGap, 0.2) : s.labelGap) * L;
     return add(p, mul(u, Math.min(gap, (labelled.has(toward) ? 0.375 : 0.75) * full)));
   };
-  // a stroke end at a corner with other bonds stops short of it by about half a joint gap of people
+  // a stroke end at a corner with other bonds (or at a typed atom with other bonds) stops short of it by about half a
+  // joint gap of people
   const cornerEnd = (id, toward) => {
     const p = endAt(id, toward);
-    if (labelled.has(id) || degree.get(id) < 2) return add(p, gauss(d, nz.end * L * 0.2));
+    if ((labelled.has(id) && !typedAtom(id)) || degree.get(id) < 2) return add(p, gauss(d, nz.end * L * 0.2));
     const g = (pv('jointGap') * L) / 2;
     const u = unit(sub(at.get(toward), at.get(id)));
     const phi = (d.r.u() - 0.5) * (Math.PI / 1.8);
     return add(p, mul({ x: u.x * Math.cos(phi) - u.y * Math.sin(phi), y: u.x * Math.sin(phi) + u.y * Math.cos(phi) }, g));
   };
   const strokes = [];
+  const [t0, t1] = TRAIL[P.pointer] || TRAIL.pen;
+  const trailP = t0 + ((t1 - t0) * (s.trail - HABITS.trail[0])) / (HABITS.trail[1] - HABITS.trail[0]);
   const unused = new Set(scene.bonds.map((b, i) => i));
   const bondsOf = (id) => scene.bonds.map((b, i) => [b, i]).filter(([b, i]) => unused.has(i) && (b.a === id || b.b === id));
   const order = scene.bonds.map((b, i) => i).sort((i, j) => Math.min(at.get(scene.bonds[i].a).x, at.get(scene.bonds[i].b).x) - Math.min(at.get(scene.bonds[j].a).x, at.get(scene.bonds[j].b).x));
@@ -853,7 +868,7 @@ function structureProfile(d, scene0, box, opt = {}) {
     unused.delete(i0);
     const b0 = scene.bonds[i0];
     const trail = at.get(b0.a).x <= at.get(b0.b).x ? [b0.a, b0.b] : [b0.b, b0.a];
-    while (!labelled.has(trail[trail.length - 1]) && d.r.u() < s.trail) {
+    while (!labelled.has(trail[trail.length - 1]) && d.r.u() < trailP) {
       const next = bondsOf(trail[trail.length - 1])[0];
       if (!next) break;
       unused.delete(next[1]);
@@ -928,4 +943,4 @@ function structureProfile(d, scene0, box, opt = {}) {
   return { strokes, typed, unsupported: [], L, hand, boundary };
 }
 
-module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, ARROW_BOUNDARY, arrowBreaks, SIDE, QRANGE, BOUNDARY, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };
+module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, ARROW_BOUNDARY, arrowBreaks, SIDE, QRANGE, BOUNDARY, TRAIL, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };

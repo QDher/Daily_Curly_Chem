@@ -50,10 +50,10 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 | john0003 | `55a54912` | high | low | 2203 |
 | john0004 | `4f85c0b1` | low | high | 3307 |
 | john0005 | `cdf81363` | low | low | 4409 |
-| john0006 | `8d3f6873` | high | high | 5501; pen, hand 0.5 |
-| john0007 | `770f7a8b` | low | low | 6607; pen, hand 0.5 |
-| john0008 | `d37c5816` | high | low | 7703; touch, hand 0.5 |
-| john0009 | `c6a16cb5` | low | high | 8809; mouse, hand 0.5 |
+| john0006 | `8d3f6873` | high | high | 5501; pen, hand 0.87 |
+| john0007 | `770f7a8b` | low | low | 6607; pen, hand 0.87 |
+| john0008 | `d37c5816` | high | low | 7703; touch, hand 1 |
+| john0009 | `c6a16cb5` | low | high | 8809; mouse, hand 0.04 |
 
 From 2026-11-26 (request R4, decision 62) the rotation is john0006 to john0009, drawn with ink 0.5.0 (section "Ink of
 people"); john0002 to john0005 have no pointer type, left the rotation and keep their runs and answers.
@@ -149,7 +149,7 @@ pointer type (john0006 and later); the others draw as with ink 0.4.0 (same strok
   the wobble (largest deviation over the chord); a second line has the spacing, the length (shorter over longer) and
   the shift along the bond of the profile. Arrows are unchanged (convention of ink 0.4.0).
 - Handwritten letters: each atom other than carbon (H of N, O, S included) is written by hand with probability
-  `hand` (0.5), with a sample of `data/letter_samples.json` of the same label (O, N, Si, H; those of the tester's
+  `hand` (0.5 until ink 0.7.0; then the share of people with the same pointer type, section "Ink 0.7.0"), with a sample of `data/letter_samples.json` of the same label (O, N, Si, H; those of the tester's
   pointer type when there are 3 or more), scaled to the letter height habit, the bond ending at the letter gap from
   the letter; other labels, and atoms not written, are typed with the row of atoms. A negative charge is written
   with a "-" sample with the same probability; other charges are typed.
@@ -187,6 +187,47 @@ run). On the standard set (same molecules every day, so that only the deviation 
 - `node tools/agent_boundaries.js --runs <dir> --answers <dir>` gives, per measure and band of values, the attempts,
   the share inside the convention, the share judged "should be read" or "should give the right structure", and the
   share the page read as intended.
+
+## Ink 0.7.0 (request R5, 2026-11-26)
+
+Decision 70. Request R5 of the people side (`node tools/compare_ink.js`, decision 69): the joint gap of the agents was
+0.17 to 0.19 L against 0.10 L for people; misread letter samples were diluted; precise testers were read more often
+than people. Measured in this session (scripts not kept): the corners themselves were not counted twice (two stroke
+ends at a corner 0.06 L apart for john0006). The measure was raised by (a) bonds stopping 0.2 to 0.38 L short of a typed
+atom (two such ends 0.35 L apart), where people place the typed atom at the end of their bonds (typed atom to nearest
+bond end: median 0 for pen and mouse), and (b) longer strokes through several bonds (1.44 bonds per bond stroke for
+john0006 against 1.16 for people with a pen), so that fewer corners have two stroke ends and more ends pair with the
+end of a second line (about 0.19 L). Letters: people with a pen or on touch write 87 % and 100 % of the labelled atoms
+by hand, with a mouse 4 %; the testers wrote 50 %, so the misread samples came half as often.
+
+Changes, copies of testers with a pointer type only (arrows and the testers without a pointer type are unchanged):
+- Bonds meet at a typed atom as at a corner (half a joint gap of people when the atom has two or more bonds); the
+  click of the typed atom is at the atom. A boundary attempt on the letter gap still sets the gap to a typed atom.
+- The probability to draw on through the next bond is set per pointer type (`TRAIL`: pen 0.2 to 0.45, touch 0.7 to
+  0.98, mouse 0.4 to 0.7; the tester's trail habit gives its place). Bonds per bond stroke, people against testers:
+  pen 1.16 against 1.15 (john0006) and 1.16 (john0007), touch 1.47 against 1.44, mouse 1.33 against 1.35.
+- `hand` of john0006 to john0009 (before their first run) set to the share of people of their pointer type: pen 0.87,
+  touch 1, mouse 0.04. Samples are drawn uniformly among those of the label, so misread samples keep their share.
+  Letters with no sample (Cl, Br, S, F, I, ...) and positive charges are still typed.
+
+`node tools/compare_ink.js` (recognizer 0.5.0, 43 structures, 2 seeds), ink 0.6.0 then 0.7.0:
+
+| Writer | Read exactly | Joint gap (L) | Stroke length (L) |
+|---|---|---|---|
+| People, pen and touch | 46 % | 0.10 (pen 0.10, touch 0.21) | 0.72 |
+| People, mouse | 57 % | 0.09 | 0.88 |
+| john0006 (pen, precise) | 76 % then 69 % | 0.19 then 0.08 | 0.87 then 0.88 |
+| john0007 (pen, imprecise) | 44 % then 40 % | 0.17 then 0.15 | 0.71 then 0.69 |
+| john0008 (touch, precise) | 78 % then 59 % | 0.17 then 0.21 | 0.85 then 0.88 |
+| john0009 (mouse, imprecise) | 47 % then 44 % | 0.19 then 0.17 | 0.72 then 0.80 |
+
+Precise testers are still read more often than people. On the 29 structures with only C, N, O and H and no charge
+(letters all with samples): people with a pen 59 % (106 drawings), on touch 40 % (15), with a mouse 50 % (16); john0006
+67 %, john0007 43 %, john0008 57 %, john0009 45 % (58 copies each). Moving the precise testers' quantiles from p25 to
+p50 toward the median (p40 to p60, or p50 to p75) did not lower john0006 (61 and 62 of 86), so the ranges of R4 are
+kept. What remains, seen on people's copies not read exactly: letters without samples written by hand (Cl read as O
+in 3), charges written by hand and not read, and one carbon more or less (7 of the pen copies), which the measured
+habits do not produce. Not examined: why the stroke length of the precise testers stays at 0.88 L against 0.72 L.
 
 ## One run
 

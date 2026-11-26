@@ -298,18 +298,59 @@ test('ink 0.5.0: testers with a pointer type take their habits between the quant
   ok(Math.abs(Ink.quantileOf('pen', 'jointGap', 0.5) - require('../data/ink_profile.json').pointers.pen.jointGap.p50) < 1e-9, 'quantile');
 });
 
-test('ink 0.5.0: about half of the atoms other than carbon are written by hand, with samples of people; the others typed', () => {
-  let hand = 0, atoms = 0;
-  for (let s = 0; s < 120; s++) {
-    const out = Ink.structure(Ink.drawing(Ink.writer('john0006'), Ink.seedOf('hand', s)), profileScene, box);
-    const letters = out.hand.filter((x) => x !== '-').length;
-    hand += letters;
-    // labelled atoms: O, N, O and the H of N (drawn as a bond)
-    atoms += 4;
-    ok(out.typed.filter((t) => t.el).length + letters === 4, 'every labelled atom is typed or written: seed ' + s);
-    for (const p of [].concat(...out.strokes)) ok(p.x > -0.5 && p.x < 16.5 && p.y > -0.5 && p.y < 9.5, 'point outside the frame');
+test('ink 0.7.0: the share of the atoms other than carbon written by hand is the tester\'s hand (people of its pointer type), with samples of people; the others typed', () => {
+  for (const name of ['john0006', 'john0009']) {
+    let hand = 0, atoms = 0;
+    const w = Ink.writer(name);
+    for (let s = 0; s < 120; s++) {
+      const out = Ink.structure(Ink.drawing(w, Ink.seedOf('hand', s)), profileScene, box);
+      const letters = out.hand.filter((x) => x !== '-').length;
+      hand += letters;
+      // labelled atoms: O, N, O and the H of N (drawn as a bond)
+      atoms += 4;
+      ok(out.typed.filter((t) => t.el).length + letters === 4, 'every labelled atom is typed or written: seed ' + s);
+      for (const p of [].concat(...out.strokes)) ok(p.x > -0.5 && p.x < 16.5 && p.y > -0.5 && p.y < 9.5, 'point outside the frame');
+    }
+    ok(Math.abs(hand / atoms - w.traits.hand) < 0.08, name + ' share written by hand ' + (hand / atoms).toFixed(2) + ' for hand ' + w.traits.hand);
   }
-  ok(Math.abs(hand / atoms - 0.5) < 0.08, 'share written by hand ' + (hand / atoms).toFixed(2));
+});
+
+test('ink 0.7.0: bonds meet at a typed atom as at a corner (no gap left short of it), except in a boundary attempt on the letter gap', () => {
+  const near = (out, t) => Math.min(...out.strokes.filter((st) => st.length > 2).flatMap((st) => [st[0], st[st.length - 1]]).map((p) => Math.hypot(p.x - t.x, p.y - t.y))) / out.L;
+  const plain = [], gapped = [];
+  for (let s = 0; s < 150; s++) {
+    const d = Ink.drawing(Ink.writer('john0009'), Ink.seedOf('typed', s));
+    d.forceBoundary = null;
+    const out = Ink.structure(d, profileScene, box);
+    for (const t of out.typed.filter((x) => x.el && x.el !== 'H')) plain.push(near(out, t));
+    const d2 = Ink.drawing(Ink.writer('john0009'), Ink.seedOf('typed', s));
+    d2.forceBoundary = { name: 'letterGap', value: 0.4 };
+    const out2 = Ink.structure(d2, profileScene, box);
+    for (const t of out2.typed.filter((x) => x.el && x.el !== 'H')) gapped.push(near(out2, t));
+  }
+  const med = (v) => v.slice().sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  ok(plain.length > 200 && med(plain) < 0.15, 'typed atom to nearest bond end, median ' + med(plain).toFixed(3) + ' L (' + plain.length + ')');
+  ok(med(gapped) > 0.3, 'letter gap boundary 0.4 L: median ' + med(gapped).toFixed(3) + ' L');
+});
+
+test('ink 0.7.0: strokes go on through the next bond with the probability of the pointer type (TRAIL): fewer strokes for touch than for pen', () => {
+  const strokes = (name) => {
+    // every atom typed (hand 0): the strokes are the bond strokes and the second line of the one double bond
+    const w = Ink.writer(name);
+    w.traits = Object.assign({}, w.traits, { hand: 0 });
+    let n = 0;
+    for (let s = 0; s < 80; s++) {
+      const d = Ink.drawing(w, Ink.seedOf('trail', s));
+      d.forceBoundary = null;
+      const out = Ink.structure(d, profileScene, box);
+      ok(!out.hand.length, 'nothing written by hand');
+      n += out.strokes.length - 1;
+    }
+    return n / 80;
+  };
+  ok(Ink.TRAIL.pen[1] < Ink.TRAIL.touch[0], 'ranges');
+  const pen = strokes('john0006'), touch = strokes('john0008');
+  ok(touch < pen, 'strokes per drawing: pen ' + pen.toFixed(2) + ', touch ' + touch.toFixed(2));
 });
 
 test('ink 0.5.0: boundary attempts in about 20 % (precise) and 40 % (imprecise) of the copies, one measure across its range, recorded', () => {
