@@ -15,11 +15,16 @@
 // (src/glyphs.js), so handwritten letters from them would only test the recognizer against itself. Atoms other
 // than carbon and charges are placed as typed atoms (row of atoms), as testers may do. In copies, every hydrogen
 // of a heteroatom is a bond stroke ending on a typed H (ink 0.2.0); hydrogens of carbon stay implicit.
+// Ink 0.5.0 (request R4): testers with a pointer type (john0006 and later) draw their copies with habits taken from
+// the ink of people (data/ink_profile.json: joint gaps, wobble, second lines, letter size and gap, between the
+// quantiles that fit their precision), write a share of their letters by hand with samples of people
+// (data/letter_samples.json), and in a share of their copy attempts set one measure across its whole range (boundary
+// attempt, recorded as `boundary`). Testers without a pointer type draw as with ink 0.4.0.
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -120,7 +125,9 @@ function writer(name) {
   const t = TESTERS.testers[name];
   if (!t) throw new Error('unknown tester ' + name + ' (tools/agent_testers.json: ' + Object.keys(TESTERS.testers).join(', ') + ')');
   const habits = Object.assign(drawHabits(rng(t.seed)), drawHabits(rng(seedOf(t.seed, 'habits2')), HABITS2));
-  return { name, traits: Object.assign({ text: traitsText(t) }, t), habits };
+  const w = { name, traits: Object.assign({ text: traitsText(t) + (t.pointer ? ', ' + t.pointer : '') }, t), habits };
+  if (t.pointer) w.profile = profileHabits(t.precision, rng(seedOf(t.seed, 'profile')));
+  return w;
 }
 
 // One drawing: habits moved towards new random habits by the consistency factor, noise of the precision level.
@@ -131,7 +138,51 @@ function drawing(w, seed) {
   const c = CONSISTENCY[w.traits.consistency];
   const style = {};
   for (const k of Object.keys(HABITS).concat(Object.keys(HABITS2))) style[k] = w.habits[k] + c * (fresh[k] - w.habits[k]);
-  return { seed, style, noise: PRECISION[w.traits.precision], r, rc: rng(seedOf(seed, 'convention')) };
+  const d = { seed, style, noise: PRECISION[w.traits.precision], r, rc: rng(seedOf(seed, 'convention')) };
+  if (w.profile) {
+    // positions in the distributions of people (quantiles) of this drawing, moved by the consistency factor
+    const f = profileHabits(w.traits.precision, rng(seedOf(seed, 'profile')));
+    const q = {};
+    for (const m of Object.keys(SIDE)) q[m] = w.profile[m] + c * (f[m] - w.profile[m]);
+    d.profile = { pointer: w.traits.pointer, precision: w.traits.precision, hand: w.traits.hand || 0, q, rp: rng(seedOf(seed, 'profile ink')), rh: rng(seedOf(seed, 'hand')) };
+    Object.assign(d.style, Object.fromEntries(Object.entries(q).map(([m, v]) => ['q_' + m, v])));
+  }
+  return d;
+}
+
+// ---------- ink of people (ink 0.5.0, request R4) ----------
+const PROFILE = require('../data/ink_profile.json');
+const SAMPLES = require('../data/letter_samples.json').samples;
+// side of each measure where the ink is cleaner: low (gaps, wobble), high (length of a second line) or the middle of
+// the distribution of people
+const SIDE = { jointGap: 'low', wobble: 'low', secondLineLength: 'high', secondLineShift: 'mid', secondLineSpacing: 'mid', letterHeight: 'mid', letterGap: 'mid' };
+// quantile ranges per precision (request R4: precise p25 to p50, imprecise p50 to p90, on the side of the measure that
+// is worse; whole middle for the measures without a better side)
+const QRANGE = { high: { low: [0.25, 0.5], high: [0.5, 0.75], mid: [0.25, 0.75] }, low: { low: [0.5, 0.9], high: [0.1, 0.5], mid: [0.1, 0.9] } };
+// boundary attempts of copies (request R4, part 3): share of the copy attempts per precision, and the range of each measure
+const BOUNDARY = { rate: { high: 0.2, low: 0.4 }, letterGap: [0, 0.5], secondLineLength: [0.3, 1.0], secondLineSpacing: [0.05, 0.4] };
+
+function profileHabits(precision, r) {
+  const out = {};
+  for (const m of Object.keys(SIDE)) { const [lo, hi] = QRANGE[precision][SIDE[m]]; out[m] = lo + (hi - lo) * r.u(); }
+  return out;
+}
+// value of a measure at quantile q for a pointer type (linear between p10, p25, p50, p75, p90; the pen distribution
+// when the pointer type has fewer than 10 values)
+function quantileOf(pointer, m, q) {
+  let dist = PROFILE.pointers[pointer] && PROFILE.pointers[pointer][m];
+  if (!dist || !(dist.n >= 10)) dist = PROFILE.pointers.pen[m];
+  const pts = [[0.1, dist.p10], [0.25, dist.p25], [0.5, dist.p50], [0.75, dist.p75], [0.9, dist.p90]];
+  const x = Math.max(0.1, Math.min(0.9, q));
+  for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) return pts[i - 1][1] + ((pts[i][1] - pts[i - 1][1]) * (x - pts[i - 1][0])) / (pts[i][0] - pts[i - 1][0]);
+  return dist.p90;
+}
+// handwritten samples of a label ('-' for a negative charge); those of the tester's pointer type when there are at
+// least 3, else all
+function samplesOf(label, pointer) {
+  const all = SAMPLES.filter((x) => x.label === label);
+  const own = all.filter((x) => x.pointer === pointer);
+  return own.length >= 3 ? own : all;
 }
 
 const L0 = 1.5;
@@ -143,15 +194,18 @@ const unit = (p) => { const l = len(p) || 1; return { x: p.x / l, y: p.y / l }; 
 const gauss = (d, s) => ({ x: d.r.n() * s, y: d.r.n() * s });
 
 // Points of a line from p to q: a slight bow and small smooth jitter (as ink.js).
-function line(d, p, q, L) {
+// wob (ink 0.5.0, testers with a pointer type): largest deviation from the chord as a fraction of it, as measured on
+// the ink of people; the bow is then that deviation and the jitter is small.
+function line(d, p, q, L, wob) {
   const l = len(sub(q, p)) || 1e-9;
   const n = Math.max(2, Math.round(l / (0.08 * L)));
   const u = unit(sub(q, p));
-  const bow = d.r.n() * d.noise.wobble * L * 1.5;
+  const bow = wob === undefined ? d.r.n() * d.noise.wobble * L * 1.5 : (d.r.u() < 0.5 ? -1 : 1) * wob * l;
   const pts = [];
   for (let i = 0; i <= n; i++) {
     const t = i / n;
-    const off = bow * Math.sin(Math.PI * t) + d.r.n() * d.noise.wobble * L * 0.25;
+    // (written so that testers without a pointer type get the very same numbers as with ink 0.4.0)
+    const off = bow * Math.sin(Math.PI * t) + (wob === undefined ? d.r.n() * d.noise.wobble * L * 0.25 : d.r.n() * 0.004 * L);
     pts.push({ x: p.x + (q.x - p.x) * t - u.y * off, y: p.y + (q.y - p.y) * t + u.x * off });
   }
   return pts;
@@ -506,6 +560,7 @@ function withHydrogens(scene, lh = 1) {
 // 0.2.0). box: { x, y, w, h } free area of the frame. Returns { strokes, typed, unsupported }: strokes are point
 // lists, typed are clicks { el | null, q, x, y } of the row of atoms, all in frame units.
 function structure(d, scene0, box) {
+  if (d.profile) return structureProfile(d, scene0, box);
   const s = d.style, nz = d.noise;
   const scene = withHydrogens(scene0);
   const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
@@ -615,4 +670,169 @@ function structure(d, scene0, box) {
   return { strokes, typed, unsupported: [], L };
 }
 
-module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };
+// A structure copied by a tester with a pointer type (ink 0.5.0): as structure(), with the measures of people for
+// joint gaps, wobble, second lines and letters, a share of the letters written by hand with samples of people (the
+// others typed), and boundary attempts. Returns also hand (atoms and signs written by hand) and boundary ({ name,
+// value } or null). d.forceBoundary (tests, sheet): a boundary to use, or null for none.
+function structureProfile(d, scene0, box) {
+  const s = d.style, nz = d.noise, P = d.profile;
+  const scene = withHydrogens(scene0);
+  const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
+  if (unsupported.length) return { strokes: [], typed: [], unsupported, hand: [], boundary: null };
+  const degree = new Map(scene.atoms.map((a) => [a.id, 0]));
+  for (const b of scene.bonds) { degree.set(b.a, degree.get(b.a) + 1); degree.set(b.b, degree.get(b.b) + 1); }
+  const labelled = new Set(scene.atoms.filter((a) => a.el !== 'C' || degree.get(a.id) === 0).map((a) => a.id));
+  // boundary attempt: one measure set for the whole drawing, drawn among those that apply
+  let boundary = null;
+  const roll = d.rc.u();
+  if (d.forceBoundary !== undefined) boundary = d.forceBoundary;
+  else if (roll < BOUNDARY.rate[P.precision]) {
+    const names = [].concat(labelled.size ? ['letterGap'] : [], scene.bonds.some((b) => b.order >= 2) ? ['secondLineLength', 'secondLineSpacing'] : []);
+    if (names.length) {
+      const name = names[Math.floor(d.rc.u() * names.length)];
+      boundary = { name, value: Math.round(pickU(d.rc, BOUNDARY[name][0], BOUNDARY[name][1]) * 1000) / 1000 };
+    }
+  }
+  const pv = (m) => {
+    if (boundary && boundary.name === m) return boundary.value;
+    const [lo, hi] = QRANGE[P.precision][SIDE[m]];
+    return quantileOf(P.pointer, m, clamp(P.q[m] + P.rp.n() * 0.05, lo - 0.05, hi + 0.05));
+  };
+  // place: centre, scale to the writer's bond length, rotate, shrink to fit the frame, small shift
+  const xs = scene.atoms.map((a) => a.x), ys = scene.atoms.map((a) => a.y);
+  const c = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  const rot = (s.rotation + d.r.n() * nz.angle) * Math.PI / 180;
+  const cs = Math.cos(rot), sn = Math.sin(rot);
+  const rel = new Map(scene.atoms.map((a) => { const v = sub(a, c); return [a.id, { x: v.x * cs - v.y * sn, y: v.x * sn + v.y * cs }]; }));
+  let k = s.scale / L0;
+  const halfW = Math.max(0.01, ...[...rel.values()].map((v) => Math.abs(v.x))), halfH = Math.max(0.01, ...[...rel.values()].map((v) => Math.abs(v.y)));
+  k = Math.min(k, (box.w / 2 - 1.2) / halfW, (box.h / 2 - 1.0) / halfH);
+  const L = L0 * k;
+  const centre = add({ x: box.x + box.w / 2, y: box.y + box.h / 2 }, gauss(d, 0.3));
+  const at = new Map(scene.atoms.map((a) => [a.id, add(add(centre, mul(rel.get(a.id), k)), gauss(d, nz.geometry * L))]));
+  // letters written by hand: a sample of people of the same label, scaled to the writer's letter height
+  const hand = [];
+  const letters = new Map(); // atom id -> point lists
+  const writeSample = (label, centreAt, height) => {
+    const pool = samplesOf(label, P.pointer);
+    const smp = pool[Math.floor(P.rh.u() * pool.length)];
+    const all = [].concat(...smp.strokes);
+    const ys2 = all.map((p) => p[1]), xs2 = all.map((p) => p[0]);
+    const hN = Math.max(Math.max(...ys2) - Math.min(...ys2), label === '-' ? 1e-9 : 0.2);
+    const wN = Math.max(...xs2) - Math.min(...xs2);
+    const sc = label === '-' ? height / Math.max(wN, 1e-9) : height / hN;
+    const cx = (Math.max(...xs2) + Math.min(...xs2)) / 2, cy = (Math.max(...ys2) + Math.min(...ys2)) / 2;
+    return smp.strokes.map((st) => st.map((p) => ({ x: centreAt.x + (p[0] - cx) * sc, y: centreAt.y + (p[1] - cy) * sc })));
+  };
+  for (const a of scene.atoms) {
+    if (!labelled.has(a.id) || !samplesOf(a.el, P.pointer).length || P.rh.u() >= P.hand) continue;
+    letters.set(a.id, writeSample(a.el, at.get(a.id), pv('letterHeight') * L));
+    hand.push(a.el);
+  }
+  const extent = (id, u) => Math.max(0, ...[].concat(...letters.get(id)).map((p) => (p.x - at.get(id).x) * u.x + (p.y - at.get(id).y) * u.y));
+  // bond end at an atom: beyond a handwritten letter by the letter gap; short of a typed atom by the label gap habit
+  // (a bond between two labels keeps at least a quarter of its length)
+  const endAt = (id, toward) => {
+    const p = at.get(id);
+    if (!labelled.has(id)) return p;
+    const u = unit(sub(at.get(toward), p));
+    const full = len(sub(at.get(toward), p));
+    let gap;
+    if (letters.has(id)) gap = extent(id, u) + pv('letterGap') * L;
+    else gap = (boundary && boundary.name === 'letterGap' ? boundary.value : labelled.has(toward) ? Math.min(s.labelGap, 0.2) : s.labelGap) * L;
+    return add(p, mul(u, Math.min(gap, (labelled.has(toward) ? 0.375 : 0.75) * full)));
+  };
+  // a stroke end at a corner with other bonds stops short of it by about half a joint gap of people
+  const cornerEnd = (id, toward) => {
+    const p = endAt(id, toward);
+    if (labelled.has(id) || degree.get(id) < 2) return add(p, gauss(d, nz.end * L * 0.2));
+    const g = (pv('jointGap') * L) / 2;
+    const u = unit(sub(at.get(toward), at.get(id)));
+    const phi = (d.r.u() - 0.5) * (Math.PI / 1.8);
+    return add(p, mul({ x: u.x * Math.cos(phi) - u.y * Math.sin(phi), y: u.x * Math.sin(phi) + u.y * Math.cos(phi) }, g));
+  };
+  const strokes = [];
+  const unused = new Set(scene.bonds.map((b, i) => i));
+  const bondsOf = (id) => scene.bonds.map((b, i) => [b, i]).filter(([b, i]) => unused.has(i) && (b.a === id || b.b === id));
+  const order = scene.bonds.map((b, i) => i).sort((i, j) => Math.min(at.get(scene.bonds[i].a).x, at.get(scene.bonds[i].b).x) - Math.min(at.get(scene.bonds[j].a).x, at.get(scene.bonds[j].b).x));
+  for (const i0 of order) {
+    if (!unused.has(i0)) continue;
+    unused.delete(i0);
+    const b0 = scene.bonds[i0];
+    const trail = at.get(b0.a).x <= at.get(b0.b).x ? [b0.a, b0.b] : [b0.b, b0.a];
+    while (!labelled.has(trail[trail.length - 1]) && d.r.u() < s.trail) {
+      const next = bondsOf(trail[trail.length - 1])[0];
+      if (!next) break;
+      unused.delete(next[1]);
+      trail.push(next[0].a === trail[trail.length - 1] ? next[0].b : next[0].a);
+    }
+    let pts = [];
+    for (let i = 1; i < trail.length; i++) {
+      const p = i === 1 ? cornerEnd(trail[0], trail[1]) : pts[pts.length - 1];
+      const q = i === trail.length - 1 ? cornerEnd(trail[i], trail[i - 1]) : add(endAt(trail[i], trail[i - 1]), gauss(d, nz.end * L * 0.15));
+      const seg = line(d, p, q, L, pv('wobble'));
+      pts = pts.concat(i === 1 ? seg : seg.slice(1));
+    }
+    if ((pts[pts.length - 1].x >= pts[0].x) !== d.r.u() < s.leftToRight) pts.reverse();
+    strokes.push(pts);
+  }
+  // second and third lines: spacing, length (shorter over longer) and shift along the bond as measured on people
+  for (const b of scene.bonds) {
+    if (b.order < 2) continue;
+    const p = endAt(b.a, b.b), q = endAt(b.b, b.a);
+    const u = unit(sub(q, p));
+    const nrm = { x: -u.y, y: u.x };
+    let side = 0;
+    for (const o of scene.bonds) {
+      if (o === b) continue;
+      const shared = o.a === b.a || o.a === b.b ? o.a : o.b === b.a || o.b === b.b ? o.b : null;
+      if (!shared) continue;
+      const other = at.get(o.a === shared ? o.b : o.a);
+      side += (other.x - at.get(shared).x) * nrm.x + (other.y - at.get(shared).y) * nrm.y;
+    }
+    const inner = side === 0 ? (d.r.u() < 0.5 ? 1 : -1) : Math.sign(side);
+    const offs = b.order === 2 ? [d.r.u() < s.doubleInner ? inner : -inner] : [1, -1];
+    const l = len(sub(q, p));
+    for (const o of offs) {
+      const g = o * pv('secondLineSpacing') * L;
+      const half = (Math.min(1, pv('secondLineLength')) * l) / 2;
+      const mid = add(add(between(p, q, 0.5), mul(u, pv('secondLineShift') * l)), mul(nrm, g));
+      let pts = line(d, sub(mid, mul(u, half)), add(mid, mul(u, half)), L, pv('wobble'));
+      if ((pts[pts.length - 1].x >= pts[0].x) !== d.r.u() < s.leftToRight) pts = pts.reverse();
+      strokes.push(pts);
+    }
+  }
+  for (const id of letters.keys()) for (const st of letters.get(id)) strokes.push(st);
+  // typed atoms and charges; a negative charge is written by hand (sample "-") with the same share as letters
+  const typed = [];
+  const click = (p) => add(p, gauss(d, nz.click * L * 0.7));
+  for (const a of scene.atoms) {
+    const p = at.get(a.id);
+    const qn = Math.abs(a.q || 0);
+    if (labelled.has(a.id) && !letters.has(a.id)) {
+      const place = click(p);
+      typed.push({ el: a.el, q: 0, x: place.x, y: place.y });
+      if (qn && !(a.q < 0 && qn === 1 && samplesOf('-', P.pointer).length && P.rh.u() < P.hand)) {
+        for (let n = 0; n < qn; n++) typed.push({ el: null, q: Math.sign(a.q), x: place.x, y: place.y });
+        continue;
+      }
+    }
+    if (!qn) continue;
+    if (a.q < 0 && qn === 1 && samplesOf('-', P.pointer).length && (letters.has(a.id) || P.rh.u() < P.hand)) {
+      // upper right of the atom, in a direction clear of its bonds
+      const dirs = scene.bonds.filter((b) => b.a === a.id || b.b === a.id).map((b) => angleOf(sub(at.get(b.a === a.id ? b.b : b.a), p)));
+      const t = freeDirection(-Math.PI / 4, dirs, 50 * DEG);
+      const r0 = (letters.has(a.id) ? extent(a.id, dirOf(t)) : 0.15 * L) + 0.25 * L;
+      for (const st of writeSample('-', add(p, mul(dirOf(t), r0)), 0.3 * L)) strokes.push(st);
+      hand.push('-');
+      continue;
+    }
+    for (let n = 0; n < qn; n++) {
+      const place = letters.has(a.id) ? click(p) : click(add(p, { x: s.chargeDx * L, y: s.chargeDy * L }));
+      typed.push({ el: null, q: Math.sign(a.q), x: place.x, y: place.y });
+    }
+  }
+  return { strokes, typed, unsupported: [], L, hand, boundary };
+}
+
+module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, SIDE, QRANGE, BOUNDARY, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };

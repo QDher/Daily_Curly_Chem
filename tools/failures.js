@@ -75,6 +75,8 @@ if (require.main === module) {
       const keep = new Set(failures.map((x) => x.index));
       const base = Array.isArray(doc) ? {} : Object.assign({}, doc);
       base.entries = entries.filter((e, i) => keep.has(i));
+      // marks the file for the review page, which asks on its copies "Did the person draw the structure asked?" (R4)
+      base.failuresOnly = true;
       fs.writeFileSync(to, JSON.stringify(base));
       console.log('written: ' + to + ' (' + base.entries.length + ' entries, failures only)');
     }

@@ -50,6 +50,13 @@ Files: `tools/agent_testers.json` (testers and rotation), `tools/agent_ink.js` (
 | john0003 | `55a54912` | high | low | 2203 |
 | john0004 | `4f85c0b1` | low | high | 3307 |
 | john0005 | `cdf81363` | low | low | 4409 |
+| john0006 | `8d3f6873` | high | high | 5501; pen, hand 0.5 |
+| john0007 | `770f7a8b` | low | low | 6607; pen, hand 0.5 |
+| john0008 | `d37c5816` | high | low | 7703; touch, hand 0.5 |
+| john0009 | `c6a16cb5` | low | high | 8809; mouse, hand 0.5 |
+
+From 2026-11-26 (request R4, decision 62) the rotation is john0006 to john0009, drawn with ink 0.5.0 (section "Ink of
+people"); john0002 to john0005 have no pointer type, left the rotation and keep their runs and answers.
 
 - **Precision** (noise of one drawing, fractions of the bond length L): high = bond ends 0.05, atom positions
   0.04, arrow start and end 0.07, clicks 0.05, rotation 2°; low = 0.16, 0.12, 0.22 and 0.25, 0.18, 7°. From ink
@@ -127,6 +134,38 @@ Decisions 53 to 55 (`docs/DECISIONS.md`), rules in `docs/handoff/arrow-conventio
   tester's arrows cannot all be judged "correct" when reviewers answer "should not give the right structure" for the
   broken ones; copies have no rule breaking. The bound is still computed over all judged attempts, as decided.
 
+## Ink of people (ink 0.5.0, 2026-11-26)
+
+Request R4 of `docs/BOARD.md` (`docs/handoff/request-R4-agent-side_2026-11-26.md`), decision 62. For testers with a
+pointer type (john0006 and later); the others draw as with ink 0.4.0 (same strokes for the same seed).
+
+- Habits from `data/ink_profile.json` (people's ink per pointer type, in bond lengths L): joint gap, wobble, second
+  line spacing, length and shift, letter height and gap. A tester's habit is a position (quantile) between p10 and
+  p90 of people: precise testers p25 to p50 on the side of a measure that is worse (joint gap, wobble), p50 to p75
+  for the length of a second line, p25 to p75 for the others; imprecise testers p50 to p90, p10 to p50 and p10 to p90.
+  Consistency moves the position per drawing as for the other habits; each stroke varies it a little (0.05). A
+  pointer type with fewer than 10 values of a measure uses the pen values (mouse: letters).
+- Strokes: a stroke end at a corner with other bonds stops short of it by about half a joint gap; the bow of a line is
+  the wobble (largest deviation over the chord); a second line has the spacing, the length (shorter over longer) and
+  the shift along the bond of the profile. Arrows are unchanged (convention of ink 0.4.0).
+- Handwritten letters: each atom other than carbon (H of N, O, S included) is written by hand with probability
+  `hand` (0.5), with a sample of `data/letter_samples.json` of the same label (O, N, Si, H; those of the tester's
+  pointer type when there are 3 or more), scaled to the letter height habit, the bond ending at the letter gap from
+  the letter; other labels, and atoms not written, are typed with the row of atoms. A negative charge is written
+  with a "-" sample with the same probability; other charges are typed.
+- Boundary attempts (request R4, part 3): in 20 % (precise) or 40 % (imprecise) of the copy attempts one measure is
+  set for the whole drawing across its range: gap between bond and letter 0 to 0.5 L, length of a second line 0.3 to
+  1.0, spacing of a second line 0.05 to 0.4 L (the measure is drawn among those that apply). Recorded as
+  `boundary: { name, value }` (null otherwise); `hand` lists the letters and signs written by hand. Neither is shown
+  to reviewers. `node tools/agent_boundaries.js --runs <dir> --answers <dir>` gives, per measure and band of values,
+  the attempts, the share judged "should be read" and the share read by the page.
+- Check (session of 2026-11-26, recognizer 0.5.0, copies of the standard set and of the daily sets of 2026-11-17 to
+  2026-11-24, 3 seeds, read in Node): read exactly, ink 0.4.0 testers 94 %, 97 %, 43 %, 35 %; ink 0.5.0 testers
+  john0006 75 %, john0007 40 %, john0008 67 %, john0009 42 % (copies with handwritten letters 68 %, 35 %, 61 %, 36 %;
+  typed only 100 %, 72 %, 95 %, 77 %). People (`node tools/measure.js`): 49 % on the tuning set (46 % with
+  handwritten letters), 24 % held-out. Most copies not read exactly have an atom read wrong, with handwritten
+  letters, as for people.
+
 ## One run
 
 1. Clone `main`, `npm ci`, `npm run setup` (in the scheduled session).
@@ -151,6 +190,9 @@ Decisions 53 to 55 (`docs/DECISIONS.md`), rules in `docs/handoff/arrow-conventio
    copies the entries file; the session publishes them with the review page (below).
 
 Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agent-runs/<date>/`, ignored by git).
+`--index <runs/index.json>` (script 0.2.0, used by the scheduled run): the four standard copies are drawn once per
+version of the agent ink: skipped when the index holds a run of this tester with this ink that drew them
+(`standardCopies` of the index line, review data 0.6.0); the run record says so in `skipped`.
 `--types T1` (script 0.1.9) does the arrow tasks only: used for a run made again with a new arrow ink, whose
 copies would be drawn with the same strokes as the first run (ink 0.4.0 draws copies as 0.3.0 did).
 
@@ -185,6 +227,18 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   0.75 rad from every bond; from 2026-11-26, so that an arrow drawn from a charge sign is seen where the tester saw
   the sign; before, the first free of eight directions, which differed for 17 of the 36 charged atoms of the arrow
   tasks up to 2026-11-24).
+- Sampling (request R4, review data 0.6.0): each attempt of a run has `listed`; the page shows only listed attempts
+  (the count left out is in the progress line). Listed: every arrow attempt with a rule broken on purpose, every
+  copy with a boundary measure, every attempt of an imprecise tester, and a fifth of the other attempts of a precise
+  tester, drawn from the attempt's seed (the same for every reviewer). Runs made before have no `listed`: all shown.
+- People's entries files (upload route, `uploads` in the page's database; described in `docs/INTERFACES.md` I4):
+  listed on the day they are added (New York), with the date the tester saved the file beside the tester. A file
+  written by `node tools/failures.js <file> --write <out>` carries `failuresOnly`; its copies ask "Did the person draw
+  the structure asked?" (structure asked beside what the page read). Arrow attempts of people with no accepted
+  reading ask "Do these arrows show the step asked?". Both stored in `outcome` (right, wrong, unsure) with `asked`
+  "drawn-as-asked" (request R4, decision 62).
+- "Not reviewed by you" (2026-11-26): above the runs table, the dates that still hold attempts without an answer of
+  the reviewer shown, with their number (listed attempts less answers saved, per run), each a link to its date.
 - "Arrow convention" panel (2026-11-26): opened, it loads `convention.html` (the reviewer sheet, published with the
   page) and shows its drawings. The page does not show the `convention` of an attempt. Layouts come from `tools/agent_review_data.js` (`scenes` in the run file,
   RDKit 2D coordinates); runs published before 2026-11-16 have them in `runs/<runId>.scenes.json`; RDKit drawings

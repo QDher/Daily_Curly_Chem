@@ -7,9 +7,10 @@ America/New_York and runs every agent tester of the rotation (decisions of the u
 2026-11-23; `visibleFrom` written by `tools/agent_review_data.js`). A change of the prompt is made in the scheduled
 task and here, with identical text.
 
-Backed up on 2026-11-23: renamed "Daily tester"; DATE computed with an explicit command in America/New_York; runs of
-Saturday and Sunday listed from Monday. Previous backup: 2026-11-16 (all testers every day, user request of
-2026-11-16).
+Backed up on 2026-11-26: the four copies of the standard set are drawn once per version of the agent ink (`--index`
+in step 3a); the reports do not say which attempts break a rule of the arrow convention or vary a boundary measure
+(request R4, decision 62). Previous backups: 2026-11-23 (renamed "Daily tester"; DATE in America/New_York; runs of
+Saturday and Sunday listed from Monday), 2026-11-16 (all testers every day).
 
 ```text
 Daily agent tester runs of Daily Curly Chem (scheduled task; plan: docs/AGENT_TESTER.md of QDher/Daily_Curly_Chem).
@@ -27,9 +28,10 @@ outputs are never committed. Review page (claude.ai artifact): https://claude.ai
    path "runs/index.json") and save its content as agent-runs/DATE/site/runs/index.json. A tester whose run
    DATE_TESTER is already listed there is skipped. If no tester is left, stop.
 3. For each remaining TESTER, in the order of TESTERS:
-   a. Run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER`. Exit code 2: report the
-      last lines of its output and go to the next tester. Exit code 0 or 1 (1 = a page error or an entry that does
-      not replay): go on, and report it.
+   a. Run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER --index
+      agent-runs/DATE/site/runs/index.json` (the copies of the standard set are skipped when this tester already drew
+      them with this ink). Exit code 2: report the last lines of its output and go to the next tester. Exit code 0
+      or 1 (1 = a page error or an entry that does not replay): go on, and report it.
    b. Run `node tools/replay.js agent-runs/DATE/TESTER/curly-entries-*.json --verbose`.
    c. Read the run record agent-runs/DATE/TESTER/run-DATE-TESTER.json. Open the screenshots (agent-runs/DATE/TESTER/shots/)
       of the attempts whose outcome is not "accepted", "confirmed" or "not-done", at most 6 per tester. Write
@@ -37,7 +39,9 @@ outputs are never committed. Review page (claude.ai artifact): https://claude.ai
       - Figures: the summary of the run record and the replay line of step b.
       - Errors: page and script errors quoted, or "none".
       - Attempts not as intended: one line each with set, task, attempt, outcome and the cause seen in the screenshot
-        (recognition, snapping, convention, page, or ink of the agent), or "not looked at" beyond 6.
+        (recognition, snapping, convention, page, or ink of the agent), or "not looked at" beyond 6. Describe what is
+        seen; do not say which attempts break a rule on purpose or vary a boundary measure (fields `convention` and
+        `boundary` of the run record): the reviewers answer on what they see.
       - Reference steps of the daily set: only in the report of the first tester run today (the other reports say
         "see the report of" that tester). You are an expert in organic reaction mechanisms; one line per arrow task of
         the daily set: sound, doubtful or wrong, and why. The references are made by a program and are not reviewed

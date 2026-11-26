@@ -5,7 +5,8 @@
 //                       drawn on, readings, outcome, habits; for arrows from ink 0.4.0 also convention and
 //                       arrowCases, the generator's intent) and the structures it shows: laid out by RDKit
 //                       ({ smiles: scene }, drawn by the page) and as RDKit drawings ({ smiles: svg }, fallback)
-//   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names, visibleFrom),
+//   runs/index.json     one line per run (runId, date, tester, traits, figures, report, file names, visibleFrom;
+//                       from data 0.6.0 listedCount, the attempts listed by the sampling, and standardCopies),
 //                       newest last; visibleFrom = the date from which the review page lists the run (a run dated
 //                       Saturday or Sunday: the next Monday, decision of 2026-11-23; Tasks.releaseDate)
 //   entries/<name>      the entries file saved by the page during the run (synthetic, never committed)
@@ -22,11 +23,23 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
 const Scene = require(path.join(repo, 'src', 'scene.js'));
+const { seedOf } = require('./agent_ink.js');
+
+// Sampling (request R4, data 0.6.0): the review page lists every attempt with a rule broken on purpose (arrows) or a
+// boundary measure (copies), every attempt of an imprecise tester, and about a fifth of the other attempts of a
+// precise tester, drawn from the attempt's seed so that every reviewer sees the same ones.
+const SAMPLE = 0.2;
+function listedOf(a, run) {
+  if (a.type === 'T1' && a.convention && a.convention !== 'ok') return true;
+  if (a.type === 'T2' && a.boundary) return true;
+  if (!run.traits || run.traits.precision !== 'high') return true;
+  return seedOf(a.seed, 'review sample') / 4294967296 < SAMPLE;
+}
 
 function args() {
   const a = process.argv.slice(2);
@@ -91,6 +104,10 @@ function build(R, run, opt) {
     // purpose) and where each arrow starts and ends; kept for the analysis, not shown to reviewers (data 0.5.0)
     if (a.convention !== undefined) doc.convention = a.convention;
     if (a.arrowCases !== undefined) doc.arrowCases = a.arrowCases;
+    // copies from ink 0.5.0: letters written by hand and the boundary measure (data 0.6.0), not shown to reviewers
+    if (a.hand !== undefined) doc.hand = a.hand;
+    if (a.boundary !== undefined) doc.boundary = a.boundary;
+    doc.listed = listedOf(a, run);
     if (a.type === 'T1' && doc.scene) {
       // hydrogen counts: recorded from script 0.1.2; earlier records take them from the same start scene as the page
       if (doc.scene.atoms.some((x) => x.h === undefined) && def) {
@@ -140,7 +157,7 @@ function build(R, run, opt) {
   }
 
   const runDoc = {
-    runId, date: run.date, tester: run.tester, label: run.label, traits: run.traits, habits: run.habits,
+    runId, date: run.date, tester: run.tester, label: run.label, traits: run.traits, habits: run.habits, skipped: run.skipped || null,
     dailyDate, commit: run.commit || null, versions: run.versions, script: run.version, ink: run.ink, data: VERSION,
     summary: run.summary, replay: { replayed: run.replay.replayed, of: run.replay.of, failures: run.replay.failures.length },
     errors: run.errors, started: run.started, finished: run.finished, tasks, attemptCount: attempts.length,
@@ -166,6 +183,7 @@ function write(out, built, opt) {
   index.push({
     runId, date: r.date, visibleFrom: Tasks.releaseDate(r.date), tester: r.tester, label: r.label, traits: r.traits, dailyDate: r.dailyDate, commit: r.commit, ink: r.ink, script: r.script,
     summary: r.summary, replay: r.replay, errors: (r.errors || []).length, attemptCount: r.attemptCount,
+    listedCount: built.attempts.filter((a) => a.listed).length, standardCopies: built.attempts.filter((a) => a.set === 'standard' && a.type === 'T2').length,
     report: r.report, source: r.source, file, entries: r.entries, added: r.added,
   });
   fs.writeFileSync(path.join(out, 'runs', 'index.json'), JSON.stringify(index, null, 1));

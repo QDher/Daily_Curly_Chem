@@ -317,6 +317,10 @@ for phase 3. Its entries (people, and judged agent entries below) are the data f
   From agent ink 0.4.0 (decisions 53 to 55 and 57), arrows follow a written convention and one rule is broken on purpose in
   20 % of the arrow attempts of the precise testers and 40 % of those of the imprecise testers, so that no tester's
   arrows stay always correct; copies have no rule breaking; the bound is computed over all judged attempts as above.
+  From ink 0.5.0 (decision 62) the testers' copies follow the ink of people (`data/ink_profile.json`, handwritten
+  letters from `data/letter_samples.json`) and a share of them are boundary attempts; the review page lists every
+  boundary attempt and every attempt with a rule broken, every attempt of an imprecise tester and a fifth of the
+  other attempts of a precise tester (sampling); the four standard copies are drawn once per ink version.
 - Several reviewers (decision of 2026-11-16): members of the team review the agent testers in the same review page,
   each under their own claude.ai account; each reviewer's answers are kept apart and reviewers do not see each
   other's answers (the owner and Editors see all). Every judgement is a record of its own: one attempt can be

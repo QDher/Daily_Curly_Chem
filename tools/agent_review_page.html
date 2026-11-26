@@ -119,6 +119,8 @@ details.habits dd { margin: 0; }
 .runs button.link { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
 .report { background: var(--soft); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; font-size: 13px; max-height: 420px; overflow: auto; margin-top: 10px; }
 .colhead small { display: block; }
+.todo { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.todo button { font: inherit; font-size: 12.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--fg); cursor: pointer; }
 .upload { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 details.convention > summary { cursor: pointer; }
 details.convention > summary h2 { display: inline; }
@@ -146,6 +148,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     </div>
     <div class="table-wrap"><table id="runs" class="runs"></table></div>
     <p class="status" id="runs-status">Loading runs&hellip;</p>
+    <p class="todo" id="todo" hidden></p>
     <div id="report-box"></div>
     <div class="upload" id="upload-box" hidden>
       <label>Add a person's entries file (or a prepared run file) <input type="file" id="upload" accept=".json,application/json"></label>
@@ -458,12 +461,19 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const k = a.accepted !== undefined ? a.accepted : (a.outcome === 'accepted' || a.outcome === 'submitted-other' ? a.rank : null);
     return k && a.readings && a.readings[k - 1] ? { k, smiles: a.readings[k - 1] } : null;
   };
-  const judged = (a) => !personArrows(a) || !!acceptedOf(a);
-  const askedOf = (a) => (personArrows(a) ? 'accepted-reading' : noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
+  // Request R4: copies in a run of people's failures (an entries file written by tools/failures.js --write) ask "Did the
+  // person draw the structure asked?"; arrow attempts of people with no accepted reading ask "Do these arrows show the
+  // step asked?". Both stored in outcome (right, wrong, unsure) with asked "drawn-as-asked".
+  const failureCopy = (a) => !!a.person && a.type === 'T2' && !!a.failuresRun;
+  const drawnAsAsked = (a) => failureCopy(a) || (personArrows(a) && !acceptedOf(a));
+  // Sampling (request R4, review data 0.6.0): attempts with listed false are left out of the page
+  const judged = (a) => a.listed !== false;
+  const askedOf = (a) => (drawnAsAsked(a) ? 'drawn-as-asked' : personArrows(a) ? 'accepted-reading' : noStructure(a) ? 'no-reading' : a.type === 'T1' ? 'arrows' : 'reading');
   // an answer to the outcome question counts only when it was given to the question shown now; answers saved before
   // the field "asked" existed were given to the question then shown, which differs only for copies with no structure
   const outcomeOf = (a, r) => {
     if (!r) return null;
+    if (drawnAsAsked(a)) return r.asked === 'drawn-as-asked' ? r.outcome || null : null;
     if (personArrows(a)) {
       if (r.asked === 'accepted-reading') return r.outcome || null;
       if (!acceptedOf(a)) return null;
@@ -476,16 +486,18 @@ details.convention[open] > summary { margin-bottom: 12px; }
     }
     return r.outcome && (r.asked ? r.asked === askedOf(a) : !(a.type === 'T2' && noStructure(a))) ? r.outcome : null;
   };
-  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return personArrows(a) ? !!outcomeOf(a, r) : !!r.expected && (found(a) || !!outcomeOf(a, r)); };
-  // an answer counted in the tables: "should give the right structure", or the accepted reading of a person's arrows
-  const answered = (v) => !!v && (!!v.expected || (v.asked === 'accepted-reading' && !!v.outcome));
+  const isReviewed = (a) => { const r = reviews.get(keyOf(a)) || {}; return personArrows(a) || failureCopy(a) ? !!outcomeOf(a, r) : !!r.expected && (found(a) || !!outcomeOf(a, r)); };
+  // an answer counted in the tables: "should give the right structure", or one of the single questions on people's
+  // attempts (accepted reading, drawn as asked)
+  const answered = (v) => !!v && (!!v.expected || ((v.asked === 'accepted-reading' || v.asked === 'drawn-as-asked') && !!v.outcome));
   const refreshers = new Map();
   const shownAttempts = () => [].concat(...selected.filter((id) => loaded.has(id)).map((id) => loaded.get(id).attempts));
   function setProgress() {
-    const list = shownAttempts().filter(judged);
+    const all = shownAttempts();
+    const list = all.filter(judged);
     const done = list.filter(isReviewed).length;
     const where = dbState === 'ready' ? '' : dbState === 'loading' ? ' · loading answers…' : dbState === 'slow' ? ' · saved answers cannot be reached yet' : ' · answers cannot be saved in this view';
-    $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + where;
+    $('progress').textContent = done + ' of ' + list.length + ' attempts of the chosen runs reviewed' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + (all.length > list.length ? ' (' + (all.length - list.length) + ' left out by sampling)' : '') + where;
   }
 
   function resultOf(a) {
@@ -506,8 +518,9 @@ details.convention[open] > summary { margin-bottom: 12px; }
       if (readingScenes(a)) box.appendChild(el('p', { class: 'note muted', text: 'Readings drawn from the arrows on the tester\u2019s structure: bonds formed or changed in colour, bonds broken dotted.' }));
       const sub = { accepted: 'the structure of the problem', 'submitted-other': 'another structure than that of the problem', 'not-submitted': null }[a.outcome];
       if (a.outcome !== 'no-reading') box.appendChild(el('p', { class: 'note muted', text: sub ? 'Submitted as the answer: ' + sub + ' (not judged here: the tester may have drawn another reaction).' : 'Not submitted as an answer.' }));
-      if (!acc) box.appendChild(el('p', { class: 'note', text: a.outcome === 'no-reading' ? 'No reading: the page gave no structure for these arrows. Not judged.'
-        : a.accepted === undefined ? 'Which reading the tester accepted is not recorded in this upload (added before 2026-11-26). Not judged.' : 'The tester accepted no reading. Not judged.' }));
+      if (!acc) box.appendChild(el('p', { class: 'note', text: (a.outcome === 'no-reading' ? 'No reading: the page gave no structure for these arrows.'
+        : a.accepted === undefined ? 'Which reading the tester accepted is not recorded in this upload (added before 2026-11-26).' : 'The tester accepted no reading.')
+        + ' The step asked is the one whose result is shown at the top of this task (dashed arrows: the reference, where the layout allows).' }));
       return box;
     }
     if (a.type === 'T1' && a.outcome === 'none-intended') {
@@ -544,14 +557,21 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const box = el('div', { class: 'review' });
     const status = el('span', { class: 'status' });
     const T1 = a.type === 'T1';
-    const qs = personArrows(a) ? [] : [
+    const qs = personArrows(a) || failureCopy(a) ? [] : [
       a.person ? null : ['drawing', null, [['not-person', 'Click if a person would not draw this']]],
       ['expected', T1 ? 'Should these arrows have given the right structure?' : 'Should this drawing have given the right structure?', [['yes', 'yes'], ['no', 'no'], ['unsure', 'unsure']]],
     ].filter(Boolean);
-    if (personArrows(a)) {
-      // only the reading the tester accepted is judged (decision 58)
-      if (acceptedOf(a)) qs.push(['outcome', 'Is this structure what these arrows show?', [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']], resultOf(a)]);
-      else box.appendChild(resultOf(a));
+    const yn = [['right', 'yes'], ['wrong', 'no'], ['unsure', 'unsure']];
+    if (failureCopy(a)) {
+      // request R4: the structure asked beside what the page read
+      const t = ((runs.get(a.runId) || {}).tasks || []).find((x) => x.set === a.set && x.id === a.task);
+      const both = el('div', { class: 'result' }, [el('p', { class: 'note', text: 'Structure asked:' }), el('div', { class: 'readings one' }, el('figure', {}, mol(t && t.target)))]);
+      both.appendChild(resultOf(a));
+      qs.push(['outcome', 'Did the person draw the structure asked?', yn, both]);
+    } else if (personArrows(a)) {
+      // the reading the tester accepted (decision 58); with none, whether the arrows show the step asked (R4)
+      if (acceptedOf(a)) qs.push(['outcome', 'Is this structure what these arrows show?', yn, resultOf(a)]);
+      else qs.push(['outcome', 'Do these arrows show the step asked?', yn, resultOf(a)]);
     } else if (!found(a)) {
       // stored as right / wrong / unsure in every case; for "no reading" the question is whether that is correct
       const none = noStructure(a);
@@ -569,7 +589,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
         b.onclick = () => {
           const now = valueOf(reviews.get(k), field) === v ? null : v;
           // for a person's arrows an earlier "should give the right structure" answer is replaced by this one
-          save(field === 'outcome' ? Object.assign({ outcome: now, asked: now ? askedOf(a) : null }, personArrows(a) ? { expected: null } : {}) : { [field]: now });
+          save(field === 'outcome' ? Object.assign({ outcome: now, asked: now ? askedOf(a) : null }, personArrows(a) || failureCopy(a) ? { expected: null } : {}) : { [field]: now });
         };
         q.appendChild(b);
         return [v, b];
@@ -601,7 +621,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const r = reviews.get(k) || {};
       for (const f of Object.keys(buttons)) for (const [v, b] of buttons[f]) { b.setAttribute('aria-pressed', String(valueOf(r, f) === v)); b.disabled = !writable(); }
       if (earlier) {
-        const old = !personArrows(a) && r.outcome && !outcomeOf(a, r) ? r.outcome : null;
+        const old = !personArrows(a) && !failureCopy(a) && r.outcome && !outcomeOf(a, r) ? r.outcome : null;
         earlier.hidden = !old;
         earlier.textContent = old ? 'Earlier answer, to the question “Reading of the drawing”: ' + old + '. Please answer this question.' : '';
       }
@@ -619,6 +639,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const acc = personArrows(a) ? acceptedOf(a) : null;
     const [cls, txt] = personArrows(a)
       ? (acc ? ['ok', () => 'reading ' + acc.k + ' accepted by the tester'] : a.outcome === 'no-reading' ? ['warn', () => 'no reading'] : ['warn', () => (a.accepted === undefined ? 'accepted reading not recorded' : 'no reading accepted')])
+      : failureCopy(a) ? ['warn', () => 'failed copy of a person']
       : OUT[a.outcome] || ['warn', () => a.outcome];
     const card = el('article', { class: 'attempt' });
     card.appendChild(el('div', { class: 'attempt-head' }, [el('h3', { text: 'Attempt ' + a.attempt }), el('span', { class: 'pill ' + cls, text: txt(a) })]));
@@ -645,11 +666,12 @@ details.convention[open] > summary { margin-bottom: 12px; }
   let hiddenRuns = 0;
   // Runs dated Saturday or Sunday are listed from the next Monday (visibleFrom of runs/index.json, decision of
   // 2026-11-23): the page changes Monday to Friday, the agent testers run every day.
-  const todayNY = (() => {
-    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const dateNY = (t) => {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(t);
     const v = (k) => p.find((x) => x.type === k).value;
     return v('year') + '-' + v('month') + '-' + v('day');
-  })();
+  };
+  const todayNY = dateNY(new Date());
   let laterRuns = 0;
   let day = null;
   const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
@@ -675,7 +697,32 @@ details.convention[open] > summary { margin-bottom: 12px; }
   $('day-prev').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i > 0) showDay(ds[i - 1]); };
   $('day-next').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i >= 0 && i < ds.length - 1) showDay(ds[i + 1]); };
   let reportOf = null;
+  // Dates with attempts not reviewed yet by the reviewer shown (request R4 session, 2026-11-26): runs added to an
+  // earlier date (people's files, runs made again) are otherwise missed. Count per run: attempts listed by the sampling
+  // (listedCount, else attemptCount) less the answers given on that run.
+  function renderTodo() {
+    const box = $('todo');
+    box.textContent = '';
+    if (!me || dbState !== 'ready') { box.hidden = true; return; }
+    const mineBy = new Map();
+    for (const k of reviews.keys()) if (answered(reviews.get(k))) { const id = k.split('__')[0]; mineBy.set(id, (mineBy.get(id) || 0) + 1); }
+    const left = new Map();
+    for (const r of runs.values()) {
+      const n = Math.max(0, (r.listedCount !== undefined ? r.listedCount : r.attemptCount || 0) - (mineBy.get(r.runId) || 0));
+      if (n) left.set(r.date, (left.get(r.date) || 0) + n);
+    }
+    const ds = [...left.keys()].sort();
+    box.hidden = !ds.length;
+    if (!ds.length) return;
+    box.appendChild(el('span', { class: 'muted', text: (viewAs && viewAs !== me ? 'Not reviewed by this reviewer:' : 'Not reviewed by you:') }));
+    for (const d of ds) {
+      const b = el('button', { type: 'button', text: d + ' (' + left.get(d) + ')', 'aria-pressed': String(d === day) });
+      b.onclick = () => showDay(d);
+      box.appendChild(b);
+    }
+  }
   function renderRuns() {
+    renderTodo();
     const t = $('runs');
     t.textContent = '';
     const ds = dates(), i = ds.indexOf(day);
@@ -697,7 +744,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       if (r.report) rep.onclick = () => { reportOf = reportOf === r.runId ? null : r.runId; renderRuns(); };
       body.appendChild(el('tr', { class: on ? 'on' : null }, [
         el('td', { class: 'pick' }, box),
-        el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester), el('small', { class: 'muted', text: r.ink ? ' ink ' + r.ink : '' })]),
+        el('td', {}, [el('span', { class: 'swatch', style: 'background:' + colorOf(r.tester) }), document.createTextNode(r.tester), el('small', { class: 'muted', text: (r.ink ? ' ink ' + r.ink : '') + (r.savedDate && r.savedDate !== r.date ? ' · file saved ' + r.savedDate : '') + (r.failuresOnly ? ' · failures only' : '') })]),
         el('td', { text: (r.traits && r.traits.text) || '' }),
         el('td', { class: 'mono', text: r.dailyDate || '–' }),
         el('td', { class: 'num', text: s.arrows.acceptedFirstAttemptFirstReading + ' / ' + s.arrows.accepted + ' of ' + s.arrows.tasks }),
@@ -729,7 +776,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
           if (!res.ok) throw { message: 'file ' + r.file + ' answered ' + res.status };
           data = await res.json();
         }
-        const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date, person: !!r.person }, a));
+        const attempts = (data.attempts || []).map((a) => Object.assign({ runId: id, tester: r.tester, date: r.date, person: !!r.person, failuresRun: !!(data.failuresOnly || r.failuresOnly) }, a));
         let scenes = data.scenes || null;
         if (!scenes) {
           // runs published before 2026-11-16 keep their layouts in a separate file
@@ -778,8 +825,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
       for (const id of chosen) {
         const L = loaded.get(id);
         if (!L) continue;
-        const mine = L.attempts.filter((a) => a.set === t.set && a.task === t.id
-          && (F.show !== 'failed' || !found(a)) && (F.show !== 'open' || (judged(a) && !isReviewed(a))))
+        const mine = L.attempts.filter((a) => a.set === t.set && a.task === t.id && judged(a)
+          && (F.show !== 'failed' || !found(a)) && (F.show !== 'open' || !isReviewed(a)))
           .sort((x, y) => x.attempt - y.attempt);
         if (!mine.length) continue;
         n += mine.length;
@@ -850,7 +897,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
   function watchUploads() {
     db.collection('uploads').onSnapshot((snap) => {
       let added = false;
-      for (const d of snap.docs) { const r = d.data(); if (r && r.runId && !runs.has(r.runId)) { runs.set(r.runId, Object.assign({}, r, { fromDb: true })); added = true; } }
+      // listed on the day the file was added (New York), not the day the tester saved it (request R4 session)
+      for (const d of snap.docs) { const r = d.data(); if (r && r.runId && !runs.has(r.runId)) { const on = r.added ? dateNY(new Date(r.added)) : r.date; runs.set(r.runId, Object.assign({}, r, { fromDb: true, savedDate: r.date, date: on, visibleFrom: on })); added = true; } }
       if (!added) return;
       if (!day) chooseDefault(); else renderRuns();
     }, () => { /* uploads not readable in this view */ });
@@ -974,14 +1022,14 @@ details.convention[open] > summary { margin-bottom: 12px; }
       '## Notes', '', '- Structures read from copies are drawn with the tester’s own layout; whether they are valid structures was not checked.',
       '- Readings of arrows that no agent run gave are shown as SMILES.',
       '- Reference arrows are shown where the tester’s layout is the agents’ (' + attempts.filter((a) => a.type === 'T1' && a.refArrows.length).length + ' of ' + attempts.filter((a) => a.type === 'T1').length + ' arrow attempts).']).join('\n') + '\n';
-    return { runId, date, tester: T, label: T, person: true, level: raw.level || '', device: raw.device || '',
+    return { runId, date, tester: T, label: T, person: true, failuresOnly: !!raw.failuresOnly, level: raw.level || '', device: raw.device || '',
       traits: { text: 'person' + (raw.level ? ', ' + raw.level + ' level' : '') }, dailyDate: dailyDates.length ? dailyDates[0] + (dailyDates.length > 1 ? ' to ' + dailyDates[dailyDates.length - 1] : '') : '–',
       summary, replay: null, errors: [], tasks, attemptCount: attempts.length, report, source: 'entries file of a person, saved ' + (raw.saved || '?') + ', added from the review page',
       attempts, svg: {}, scenes };
   }
   async function storeRun(run) {
     const meta = {};
-    for (const k of ['runId', 'date', 'tester', 'label', 'person', 'level', 'device', 'traits', 'dailyDate', 'summary', 'replay', 'attemptCount', 'report', 'source']) if (run[k] !== undefined) meta[k] = run[k];
+    for (const k of ['runId', 'date', 'tester', 'label', 'person', 'failuresOnly', 'level', 'device', 'traits', 'dailyDate', 'summary', 'replay', 'attemptCount', 'report', 'source']) if (run[k] !== undefined) meta[k] = run[k];
     const text = JSON.stringify(Object.assign({}, run, { added: undefined }));
     const parts = Math.ceil(text.length / PART);
     for (let i = 0; i < parts; i++) {
@@ -1007,10 +1055,10 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const ex = await db.doc('uploads/' + run.runId).get();
       if (ex && ex.exists) throw { message: 'run ' + run.runId + ' was already added' };
       const meta = await storeRun(run);
-      runs.set(run.runId, Object.assign({}, meta, { fromDb: true }));
+      runs.set(run.runId, Object.assign({}, meta, { fromDb: true, savedDate: meta.date, date: todayNY, visibleFrom: todayNY }));
       st.textContent = 'Added run ' + run.runId + ' (' + run.attemptCount + ' attempts) on ' + run.date + '.';
       selected = selected.concat(run.runId);
-      showDay(run.date);
+      showDay(todayNY);
     } catch (e) {
       st.textContent = 'Not added: ' + ((e && e.message) || 'error') + '.';
     }

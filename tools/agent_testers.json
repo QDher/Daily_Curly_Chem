@@ -1,11 +1,15 @@
 {
-  "note": "Agent testers (docs/AGENT_TESTER.md), named john0002, john0003, and so on (user decision of 2026-11-14). Each is one synthetic writer: fixed habits drawn from its seed, and two traits. precision: high = ink close to the ideal geometry, low = careless. consistency: high = habits nearly the same at every drawing, low = habits drawn anew at every drawing. The label in its entries is the first 8 hex digits of the SHA-256 of 'agent-' + name; that code opens only the page served locally by tools/agent_tester.js, not the live site. rotation: one tester per day, in this order, counted from epoch. To add a tester: a new name and seed here and in the rotation. Never reuse a name, and never change the seed or traits of a tester that has run (its entries would no longer match its record).",
+  "note": "Agent testers (docs/AGENT_TESTER.md), named john0002, john0003, and so on (user decision of 2026-11-14). Each is one synthetic writer: fixed habits drawn from its seed, and two traits. precision: high = ink close to the ideal geometry, low = careless. consistency: high = habits nearly the same at every drawing, low = habits drawn anew at every drawing. The label in its entries is the first 8 hex digits of the SHA-256 of 'agent-' + name; that code opens only the page served locally by tools/agent_tester.js, not the live site. rotation: one tester per day, in this order, counted from epoch. To add a tester: a new name and seed here and in the rotation. Never reuse a name, and never change the seed or traits of a tester that has run (its entries would no longer match its record). From ink 0.5.0 (request R4): pointer (pen, touch, mouse) = the pointer type whose ink of people (data/ink_profile.json) the tester's copies follow; hand = share of the atoms other than carbon (and of the negative charges) written by hand with samples of people (data/letter_samples.json). john0002 to john0005 have neither and left the rotation on 2026-11-26.",
   "epoch": "2026-11-15",
-  "rotation": ["john0002", "john0003", "john0004", "john0005"],
+  "rotation": ["john0006", "john0007", "john0008", "john0009"],
   "testers": {
     "john0002": { "precision": "high", "consistency": "high", "seed": 1101 },
     "john0003": { "precision": "high", "consistency": "low", "seed": 2203 },
     "john0004": { "precision": "low", "consistency": "high", "seed": 3307 },
-    "john0005": { "precision": "low", "consistency": "low", "seed": 4409 }
+    "john0005": { "precision": "low", "consistency": "low", "seed": 4409 },
+    "john0006": { "precision": "high", "consistency": "high", "seed": 5501, "pointer": "pen", "hand": 0.5 },
+    "john0007": { "precision": "low", "consistency": "low", "seed": 6607, "pointer": "pen", "hand": 0.5 },
+    "john0008": { "precision": "high", "consistency": "low", "seed": 7703, "pointer": "touch", "hand": 0.5 },
+    "john0009": { "precision": "low", "consistency": "high", "seed": 8809, "pointer": "mouse", "hand": 0.5 }
   }
 }

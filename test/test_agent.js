@@ -252,10 +252,10 @@ test('the reviewer sheet (tools/agent_convention_sheet.html) is current with the
   ok((cur.match(/class="cv-fig cv-wrong"/g) || []).length === Object.keys(Ink.BREAKS).length, 'one wrong drawing per rule broken on purpose');
 });
 
-test('one tester per day: john0002, john0003, john0004, john0005 in turn from 2026-11-15; each has its own label', () => {
+test('one tester per day in the order of the rotation from its epoch (john0006 to john0009 from ink 0.5.0); each has its own label', () => {
   const days = ['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19'].map(testerFor);
-  ok(days.join() === 'john0002,john0003,john0004,john0005,john0002', 'rotation ' + days.join());
-  const labels = Ink.TESTERS.rotation.map(labelOf);
+  ok(days.join() === 'john0006,john0007,john0008,john0009,john0006', 'rotation ' + days.join());
+  const labels = Object.keys(Ink.TESTERS.testers).map(labelOf);
   ok(new Set(labels).size === labels.length && labels.every((l) => /^[0-9a-f]{8}$/.test(l)), 'labels');
   ok(labelOf('john0002') === 'cf87ec24', 'label of john0002');
   // the labels of people and of Claude Code sessions (data/testers.json) are never those of agent testers
@@ -270,6 +270,76 @@ test('reasons for a wrong reading: bond order, missing bond, letter, charge', ()
   ok(reasons(want, { atoms: [{ el: 'C' }, { el: 'O' }], bonds: [] }).join() === 'bond-missing', 'missing');
   ok(reasons(want, { atoms: [{ el: 'C' }, { el: 'N' }], bonds: [{ order: 2 }] }).join() === 'letter', 'letter');
   ok(reasons(want, { atoms: [{ el: 'C' }, { el: 'O', q: -1 }], bonds: [{ order: 2 }] }).join() === 'charge', 'charge');
+});
+
+// ---------- ink 0.5.0: ink of people, handwritten letters, boundary attempts (request R4) ----------
+const profileScene = (() => {
+  // a ring with C=O, an N-H and a negative O: labels, a double bond and a charge
+  const atoms = [];
+  for (let i = 0; i < 6; i++) atoms.push({ id: 'a' + i, el: 'C', q: 0, h: 1, x: 1.5 * Math.cos((i * Math.PI) / 3), y: 1.5 * Math.sin((i * Math.PI) / 3) });
+  atoms.push({ id: 'o', el: 'O', q: 0, h: 0, x: 3, y: 0 }, { id: 'n', el: 'N', q: 0, h: 1, x: -3, y: 0 }, { id: 'm', el: 'O', q: -1, h: 0, x: 0.75, y: -2.8 });
+  const bonds = [];
+  for (let i = 0; i < 6; i++) bonds.push({ a: 'a' + i, b: 'a' + ((i + 1) % 6), order: 1 });
+  bonds.push({ a: 'a0', b: 'o', order: 2 }, { a: 'a3', b: 'n', order: 1 }, { a: 'a5', b: 'm', order: 1 });
+  return { atoms, bonds };
+})();
+
+test('ink 0.5.0: testers with a pointer type take their habits between the quantiles of people that fit their precision', () => {
+  for (const name of ['john0006', 'john0007', 'john0008', 'john0009']) {
+    const w = Ink.writer(name);
+    ok(w.profile && w.traits.pointer, name + ': no profile');
+    for (const [m, q] of Object.entries(w.profile)) {
+      const [lo, hi] = Ink.QRANGE[w.traits.precision][Ink.SIDE[m]];
+      ok(q >= lo && q <= hi, name + ' ' + m + ' ' + q);
+    }
+  }
+  ok(!Ink.writer('john0002').profile, 'john0002 has no profile');
+  // quantiles: p50 of the pen joint gap at q 0.5
+  ok(Math.abs(Ink.quantileOf('pen', 'jointGap', 0.5) - require('../data/ink_profile.json').pointers.pen.jointGap.p50) < 1e-9, 'quantile');
+});
+
+test('ink 0.5.0: about half of the atoms other than carbon are written by hand, with samples of people; the others typed', () => {
+  let hand = 0, atoms = 0;
+  for (let s = 0; s < 120; s++) {
+    const out = Ink.structure(Ink.drawing(Ink.writer('john0006'), Ink.seedOf('hand', s)), profileScene, box);
+    const letters = out.hand.filter((x) => x !== '-').length;
+    hand += letters;
+    // labelled atoms: O, N, O and the H of N (drawn as a bond)
+    atoms += 4;
+    ok(out.typed.filter((t) => t.el).length + letters === 4, 'every labelled atom is typed or written: seed ' + s);
+    for (const p of [].concat(...out.strokes)) ok(p.x > -0.5 && p.x < 16.5 && p.y > -0.5 && p.y < 9.5, 'point outside the frame');
+  }
+  ok(Math.abs(hand / atoms - 0.5) < 0.08, 'share written by hand ' + (hand / atoms).toFixed(2));
+});
+
+test('ink 0.5.0: boundary attempts in about 20 % (precise) and 40 % (imprecise) of the copies, one measure across its range, recorded', () => {
+  for (const [name, rate] of [['john0006', 0.2], ['john0007', 0.4]]) {
+    let b = 0;
+    const seen = new Set();
+    for (let s = 0; s < 400; s++) {
+      const out = Ink.structure(Ink.drawing(Ink.writer(name), Ink.seedOf('boundary', s)), profileScene, box);
+      if (!out.boundary) continue;
+      b += 1;
+      seen.add(out.boundary.name);
+      const [lo, hi] = Ink.BOUNDARY[out.boundary.name];
+      ok(out.boundary.value >= lo && out.boundary.value <= hi, name + ' value ' + JSON.stringify(out.boundary));
+    }
+    ok(Math.abs(b / 400 - rate) < 0.06, name + ': ' + b + ' of 400');
+    ok(seen.size === 3, name + ': measures ' + [...seen].join());
+  }
+  // a structure without labels or multiple bonds has no measure to vary
+  const plain = { atoms: [{ id: 'c1', el: 'C', q: 0, h: 3, x: 0, y: 0 }, { id: 'c2', el: 'C', q: 0, h: 3, x: 1.5, y: 0 }], bonds: [{ a: 'c1', b: 'c2', order: 1 }] };
+  for (let s = 0; s < 50; s++) ok(!Ink.structure(Ink.drawing(Ink.writer('john0007'), s), plain, box).boundary, 'boundary on ethane');
+});
+
+test('ink 0.5.0: a boundary on the second line sets its length and spacing as given', () => {
+  const ethene = { atoms: [{ id: 'c1', el: 'C', q: 0, h: 2, x: 0, y: 0 }, { id: 'c2', el: 'C', q: 0, h: 2, x: 1.5, y: 0 }], bonds: [{ a: 'c1', b: 'c2', order: 2 }] };
+  const d = Ink.drawing(Ink.writer('john0006'), 3);
+  d.forceBoundary = { name: 'secondLineLength', value: 0.4 };
+  const out = Ink.structure(d, ethene, box);
+  const chord = (st) => Math.hypot(st[st.length - 1].x - st[0].x, st[st.length - 1].y - st[0].y);
+  const [a, b] = out.strokes.map(chord).sort((x, y) => x - y);
+  ok(Math.abs(a / b - 0.4) < 0.06, 'second line / first ' + (a / b).toFixed(2));
 });
 
 // End to end: the standard set with the precise, consistent tester, in a temporary folder
@@ -317,6 +387,35 @@ test('end to end: the precise tester gets every arrow task of the standard set o
   ok(run.summary.arrows.ruleBroken === t1.filter((a) => a.convention !== 'ok').length, 'summary of rules broken');
 });
 
+// End to end, ink 0.5.0: john0006 on the standard set (letters written by hand go through the page), then a run of
+// copies only with an index saying its standard copies were drawn with this ink: none drawn again
+let run6 = null, runSkip = null;
+const dir6 = fs.mkdtempSync(path.join(os.tmpdir(), 'agent6-'));
+try { execFileSync('node', [path.join(__dirname, '..', 'tools', 'agent_tester.js'), '--agent', 'john0006', '--date', '2026-11-26', '--sets', 'standard', '--out', dir6], { stdio: 'pipe', timeout: 300000 }); } catch (e) { /* checked below */ }
+try { run6 = JSON.parse(fs.readFileSync(path.join(dir6, 'run-2026-11-26-john0006.json'), 'utf8')); } catch (e) { run6 = null; }
+const idx = path.join(dir6, 'index.json');
+fs.writeFileSync(idx, JSON.stringify([{ runId: '2026-11-26_john0006', tester: 'john0006', ink: Ink.VERSION, standardCopies: 4 }]));
+const dirS = path.join(dir6, 'skip');
+try { execFileSync('node', [path.join(__dirname, '..', 'tools', 'agent_tester.js'), '--agent', 'john0006', '--date', '2026-11-27', '--sets', 'standard', '--types', 'T2', '--index', idx, '--out', dirS], { stdio: 'pipe', timeout: 300000 }); } catch (e) { /* checked below */ }
+try { runSkip = JSON.parse(fs.readFileSync(path.join(dirS, 'run-2026-11-27-john0006.json'), 'utf8')); } catch (e) { runSkip = null; }
+
+test('end to end, ink 0.5.0: john0006 does the standard set without error; copies record hand and boundary; entries replay', () => {
+  ok(run6, 'no run record');
+  ok(run6.errors.length === 0, 'errors: ' + run6.errors.join('; '));
+  ok(run6.ink === '0.5.0' && run6.traits.pointer === 'pen', 'ink and pointer');
+  const copies = run6.attempts.filter((a) => a.type === 'T2');
+  ok(copies.length >= 4 && copies.every((a) => Array.isArray(a.hand) && a.boundary !== undefined), 'hand and boundary recorded');
+  ok(run6.replay.of > 0 && run6.replay.replayed === run6.replay.of, 'replayed ' + run6.replay.replayed + '/' + run6.replay.of);
+  ok(run6.summary.copies.standard === copies.filter((a) => a.set === 'standard').length, 'standard copies counted');
+});
+
+test('end to end: standard copies are drawn once per ink version (--index): skipped when already drawn with this ink', () => {
+  ok(runSkip, 'no run record');
+  ok(runSkip.attempts.filter((a) => a.type === 'T2').length === 0, 'copies drawn again');
+  ok(runSkip.skipped && /2026-11-26_john0006/.test(runSkip.skipped.standardCopies), 'skipped not recorded');
+});
+
+fs.rmSync(dir6, { recursive: true, force: true });
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(pass + '/' + total + ' passed');
 process.exit(pass === total ? 0 : 1);
