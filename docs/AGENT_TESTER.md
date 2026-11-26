@@ -270,6 +270,15 @@ copies would be drawn with the same strokes as the first run (ink 0.4.0 draws co
   data 0.4.0 writes `visibleFrom` (`Tasks.releaseDate`) in each line of `runs/index.json`, and the page leaves out a
   run whose `visibleFrom` is after today in New York ("waiting" count in the status line). The agents open the test
   page with `?ahead=1` (script 0.1.7), so a run on Sunday tests the set dated Saturday.
+- Workflow job `testers` (decision 72, 2026-11-26): the mechanical steps (3a, tester runs, and 3b, replay) run in
+  `.github/workflows/pages.yml` right after the daily set is built (scheduled run at 03:30 UTC, or a manual run;
+  input `testers_only` runs only this job, dated today). Each tester's folder (run record, entries file, `shots/`,
+  `tester.txt`, `exit.txt`, `replay.txt`) goes into the artifact `agent-runs-<date>` (14 days; about 14 MB for four
+  testers), never committed; the figures are in the job summary. Runs are dated the next day in New York, the
+  morning the task publishes them, as before. The scheduled task fetches the artifact (step 2b: GitHub tools, then a
+  download link on `productionresultssa*.blob.core.windows.net`) and does steps 3a and 3b itself when it cannot.
+  The download host must be allowed in the network settings of the environment; on 2026-11-26 it was not (proxy
+  answer 403), so until then the task does the steps itself and says so. A failure of the job does not stop the site.
 - The session changes nothing in the repository and commits nothing; its outputs go to the review page only.
 - `console/` (Managed Agents agent, environment and deployment of 2026-11-14) is kept but not used: it was never
   applied.

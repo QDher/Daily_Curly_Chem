@@ -7,10 +7,11 @@ America/New_York and runs every agent tester of the rotation (decisions of the u
 2026-11-23; `visibleFrom` written by `tools/agent_review_data.js`). A change of the prompt is made in the scheduled
 task and here, with identical text.
 
-Backed up on 2026-11-26 (second time): `--index` removed from step 3a, the standard copies are drawn at every run again
-(decision 63, the standard set is the boundary panel); the reports do not say which attempts break a rule of the arrow
-convention or vary a boundary measure (request R4, decision 62). Previous backups: 2026-11-26 (`--index`, standard
-copies once per ink version, decision 62), 2026-11-23 (renamed "Daily tester"; DATE in America/New_York; runs of
+Backed up on 2026-11-26 (third time): step 2b, steps 3a and 3b come from the artifact of the workflow job `testers`
+(decision 72), done in the session only when the artifact cannot be fetched. Previous backups: 2026-11-26 (second
+time: `--index` removed from step 3a, the standard copies drawn at every run again, decision 63; the reports do not
+say which attempts break a rule of the arrow convention or vary a boundary measure, decision 62), 2026-11-26
+(`--index`, standard copies once per ink version, decision 62), 2026-11-23 (renamed "Daily tester"; DATE in America/New_York; runs of
 Saturday and Sunday listed from Monday), 2026-11-16 (all testers every day).
 
 ```text
@@ -28,11 +29,23 @@ outputs are never committed. Review page (claude.ai artifact): https://claude.ai
 2. Read the review page's published file runs/index.json with the Artifact tool (action "read", the url above,
    path "runs/index.json") and save its content as agent-runs/DATE/site/runs/index.json. A tester whose run
    DATE_TESTER is already listed there is skipped. If no tester is left, stop.
+2b. Workflow outputs. The job "testers" of the workflow "Daily curly chem" (.github/workflows/pages.yml) does steps 3a
+   and 3b for every tester each evening, right after the daily set is built, and keeps the outputs as the artifact
+   agent-runs-DATE: one folder per tester with the run record, the entries file, shots/, tester.txt (output of step
+   3a), exit.txt (its exit code) and replay.txt (output of step 3b). With the GitHub tools (owner QDher, repo
+   Daily_Curly_Chem): actions_list, method list_workflow_runs, resource pages.yml; among the newest runs whose event
+   is schedule or workflow_dispatch, list_workflow_run_artifacts until one named agent-runs-DATE, not expired, is
+   found. actions_get, method download_workflow_run_artifact, gives a link valid for a short time: download it at
+   once with `curl -fsSL -o agent-runs/DATE.zip '<link>'` and unzip it into agent-runs/DATE. A tester whose folder
+   agent-runs/DATE/TESTER holds run-DATE-TESTER.json has steps 3a and 3b done: use its tester.txt, exit.txt and
+   replay.txt as their outputs. If no such artifact is found, the GitHub tools are not available or the download
+   fails (the host of the link may not be allowed by the network settings of the environment), say which in the final
+   message and do steps 3a and 3b for every tester.
 3. For each remaining TESTER, in the order of TESTERS:
-   a. Run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER`. Exit code 2: report the
-      last lines of its output and go to the next tester. Exit code 0 or 1 (1 = a page error or an entry that does
-      not replay): go on, and report it.
-   b. Run `node tools/replay.js agent-runs/DATE/TESTER/curly-entries-*.json --verbose`.
+   a. Unless step 2b gave it: run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER`.
+      Exit code 2: report the last lines of its output and go to the next tester. Exit code 0 or 1 (1 = a page error
+      or an entry that does not replay): go on, and report it.
+   b. Unless step 2b gave it: run `node tools/replay.js agent-runs/DATE/TESTER/curly-entries-*.json --verbose`.
    c. Read the run record agent-runs/DATE/TESTER/run-DATE-TESTER.json. Open the screenshots (agent-runs/DATE/TESTER/shots/)
       of the attempts whose outcome is not "accepted", "confirmed" or "not-done", at most 6 per tester. Write
       agent-runs/DATE/TESTER/report.md, brief and neutral, with these sections:
@@ -57,8 +70,10 @@ outputs are never committed. Review page (claude.ai artifact): https://claude.ai
    "publish", the url above, file_path tools/agent_review_page.html, files = runs/index.json and, for every run of
    step 3, its runs/<runId>.json and entries/<file> (all under agent-runs/DATE/site, as printed in step d), no
    capabilities field (the page keeps the ones it has). All these files are produced in this session by the scripts
-   you ran. The files of earlier runs stay published. If the publish is refused, report why and stop.
-5. Final message: per tester the figures and the replay line, the published version, and the main points of the
+   you ran or by the workflow of step 2b. The files of earlier runs stay published. If the publish is refused, report
+   why and stop.
+5. Final message: per tester the figures and the replay line, and whether steps 3a and 3b came from the workflow
+   artifact (with its workflow run id) or were done in this session; the published version; the main points of the
    reports in at most 8 lines.
 
 Rules. The entries are synthetic (labels of agent testers) and never tester data. Do not change the testers, the

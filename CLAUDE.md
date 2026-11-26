@@ -93,7 +93,8 @@ once it is in `docs/DECISIONS.md`; chat transcripts are not read by the other si
   or traits of a tester that has run; a change of `tools/agent_ink.js` increases its `VERSION` and is followed by
   `node tools/agent_convention_sheet.js` (reviewer sheet of the arrow convention, decisions 53 to 55 and 57);
   `npm run test:agent` must end with N/N passed. Daily runs: Claude Code scheduled task, prompt in
-  `docs/AGENT_TASK_PROMPT.md` (change both together); each run is published with the review page
+  `docs/AGENT_TASK_PROMPT.md` (change both together); its mechanical steps (tester runs, replay) run in the job
+  `testers` of `.github/workflows/pages.yml`, whose artifact the task fetches (decision 72); each run is published with the review page
   (`tools/agent_review_page.html`, `tools/agent_review_data.js`); `console/` is not used.
   The review page keeps each reviewer's answers apart (`reviews/<reviewer id>/answers/...`, rules declared with the page);
   every judgement counts on its own (2026-11-16). Attempts judged in the review page are "judged agent entries" (2026-11-14): kept with the answers, right or wrong, used to find weaknesses and as labelled training examples; frequencies and model evaluations use entries of people only. A tester always judged correct, or always incorrect, with more than 98 % confidence is retired and replaced by a new tester (new name) closer to the less clear-cut cases; rules in `docs/PLAN.md`, section F.

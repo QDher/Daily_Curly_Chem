@@ -30,7 +30,7 @@ Last updated: 2026-11-26 (people side: boundary panel and two-phase stopping rul
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| `.github/workflows/pages.yml` | agent side | job `testers` after the daily set (mechanical steps of the "Daily tester" task, user 2026-11-26); the set build and the site jobs are not changed | 2026-11-26 | this push |
+| – | – | none in progress | – | – |
 
 Note (agent side, 2026-11-26): `tools/failures.js` (people side's tool) now adds `failuresOnly: true` to the file it
 writes with `--write`, so that the review page asks its question on these files (R4); nothing else changed in it.
@@ -39,6 +39,10 @@ Note (agent side, 2026-11-26, decision 63): the standard set is the boundary pan
 one measure of the convention across a range from right to wrong, every standard copy is a boundary attempt, and the
 standard copies are drawn at every run again. Answers on them give, per measure, where reviewers stop accepting
 (`node tools/agent_boundaries.js`).
+
+Note (agent side, 2026-11-26, decision 72): `.github/workflows/pages.yml` has a job `testers` after the daily set
+(tester runs and replay, artifact `agent-runs-<date>`); the set build takes its date once (`steps.day`), otherwise
+unchanged; the deploy does not wait for the testers. Manual run with `testers_only` runs this job alone.
 
 Note (agent side, 2026-11-26, decision 65): the review page shows five copies of people per weekday in a panel
 "Drawings of people" (same for every reviewer, agents' copy questions); people's entries files are no longer shown

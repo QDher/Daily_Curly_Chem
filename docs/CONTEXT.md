@@ -132,7 +132,9 @@ Push to `main` deploys the site in 2 to 3 minutes (`.github/workflows/pages.yml`
   of new problems, and 68 and 177 in the backlog, so empty days are expected now and then.
 - Where it runs: `.github/workflows/pages.yml`, on schedule (03:30 UTC) and on manual run: downloads both
   `data/problems.json` from `main` of the sites, runs `tools/make_daily.js` with the New York date, commits
-  `data/daily/` when it changed, then tests and deploys. No Claude session and no secret is involved. Local run:
+  `data/daily/` when it changed, then tests and deploys. No Claude session and no secret is involved. Then the job
+  `testers` runs the agent testers on the set just built and keeps their outputs as the artifact `agent-runs-<date>`
+  (decision 72; the scheduled task "Daily tester" reports and publishes them). Local run:
   `node tools/make_daily.js --onepot FILE --namerxn FILE [--date YYYY-MM-DD] [--dry]` (about 1 minute).
 - Page (user request of 2026-11-16): the intro has a day selection (earlier and later buttons, list of the days
   that have a set, newest marked "latest", a day marked "✓ done" when all its tasks were finished in this browser)

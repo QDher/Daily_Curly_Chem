@@ -5,12 +5,18 @@ name: Daily curly chem
 # of the two sites dated before that day), committed to main when it changed, then tests and the site.
 # A set is built every day; the page lists a set dated Saturday or Sunday from the next Monday (Tasks.releaseDate,
 # decision of 2026-11-23), so that the page changes Monday to Friday.
+# Then, on the daily and manual runs, the agent testers draw the set just built (job testers, decision 72).
 on:
   push:
     branches: [main]
   schedule:
     - cron: '30 3 * * *'
   workflow_dispatch:
+    inputs:
+      testers_only:
+        description: 'Only the agent testers (no daily set, no site); their runs are dated today in New York'
+        type: boolean
+        default: false
 permissions:
   contents: write
   pages: write
@@ -23,8 +29,14 @@ concurrency:
 # ("Re-run failed jobs") without building or committing the daily set again.
 jobs:
   build:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.testers_only) }}
     runs-on: ubuntu-latest
+    # date of the daily set in New York, taken once (the job testers dates its runs from it)
+    outputs:
+      day: ${{ steps.day.outputs.date }}
     steps:
+      - id: day
+        run: echo "date=$(TZ=America/New_York date +%F)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -36,13 +48,13 @@ jobs:
           mkdir -p _in
           curl -fsSL https://raw.githubusercontent.com/QDher/Daily-organic-chemistry-puzzles/main/data/problems.json -o _in/onepot.json
           curl -fsSL https://raw.githubusercontent.com/QDher/Daily-name-reaction-puzzle/main/data/problems.json -o _in/namerxn.json
-          node tools/make_daily.js --onepot _in/onepot.json --namerxn _in/namerxn.json --date "$(TZ=America/New_York date +%F)"
+          node tools/make_daily.js --onepot _in/onepot.json --namerxn _in/namerxn.json --date "${{ steps.day.outputs.date }}"
           rm -rf _in
           if [ -n "$(git status --porcelain data/daily)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/daily
-            git commit -m "Daily set $(TZ=America/New_York date +%F)"
+            git commit -m "Daily set ${{ steps.day.outputs.date }}"
             git push
           fi
       - run: npm test
@@ -65,3 +77,68 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # Agent testers (decision 72, user 2026-11-26): the mechanical steps of the scheduled task "Daily tester" (3a and 3b
+  # of docs/AGENT_TASK_PROMPT.md) run here, right after the daily set is built, so that they always draw the set just
+  # built. Each tester of the rotation (tools/agent_testers.json) does the standard set and the newest daily set in
+  # headless Chromium (tools/agent_tester.js); its entries are then replayed (tools/replay.js). The outputs are kept
+  # as the artifact agent-runs-<date> for 14 days, never committed; the scheduled task fetches it, writes the reports
+  # and publishes the runs with the review page, and does these steps itself when it cannot fetch it. Runs are dated
+  # the next day in New York, the morning the task publishes them (as before); with testers_only, today. A failure
+  # here does not stop the site (deploy needs only build).
+  testers:
+    needs: build
+    if: ${{ !cancelled() && github.event_name != 'push' && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run setup
+      - name: Browser (Playwright 1.63.0, as in the cloud sessions)
+        run: |
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run the testers of the rotation and replay their entries
+        id: run
+        env:
+          SET_DAY: ${{ needs.build.outputs.day }}
+        run: |
+          set +e
+          if [ -n "$SET_DAY" ]; then DATE=$(date -d "$SET_DAY + 1 day" +%F); else DATE=$(TZ=America/New_York date +%F); fi
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          SET=$(node -e "console.log(require('./data/daily/latest.json').date)")
+          echo "### Agent testers: runs of $DATE (newest daily set $SET, commit $(git rev-parse --short HEAD))" >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          for T in $(node -e "console.log(require('./tools/agent_testers.json').rotation.join(' '))"); do
+            OUT="agent-runs/$DATE/$T"
+            mkdir -p "$OUT"
+            node tools/agent_tester.js --agent "$T" --date "$DATE" --out "$OUT" > "$OUT/tester.txt" 2>&1
+            code=$?
+            echo "$code" > "$OUT/exit.txt"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**$T** (exit $code)" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" = "2" ]; then
+              echo "::error::$T: tools/agent_tester.js exit 2"
+              tail -n 20 "$OUT/tester.txt"
+              status=1
+              continue
+            fi
+            [ "$code" = "0" ] || echo "::warning::$T: exit $code (a page error or an entry that does not replay)"
+            node tools/replay.js "$OUT"/curly-entries-*.json --verbose > "$OUT/replay.txt" 2>&1
+            { echo '```'; grep -E '^(arrow tasks|copy tasks|entries) ' "$OUT/tester.txt"; tail -n 1 "$OUT/replay.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.run.outputs.date != '' }}
+        with:
+          name: agent-runs-${{ steps.run.outputs.date }}
+          path: agent-runs/${{ steps.run.outputs.date }}
+          retention-days: 14
+          if-no-files-found: error
