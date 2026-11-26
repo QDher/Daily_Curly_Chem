@@ -1,0 +1,19 @@
+# Cloudflare Worker for the entries of the Daily Curly Chem test run (worker/README.md).
+name = "curly-entries"
+main = "src/index.js"
+compatibility_date = "2026-10-23"
+workers_dev = true
+
+[vars]
+# Pages allowed to call the Worker from a browser (comma-separated).
+ALLOWED_ORIGINS = "https://qdher.github.io"
+# Tester labels accepted: first 8 hex digits of the first six hashes of data/testers.json (the creator and the five
+# testers; not the code of Claude Code sessions). Not secret. worker/test/test.mjs checks them against that file.
+MECH_TESTERS = "4f7c82a3,3005a301,c7eda040,1d947771,cb9ecc7f,6527e5a7"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "curly-entries"
+# D1 database "curly-entries", created 2026-11-26 (table of migrations/0001 applied by hand that day).
+database_id = "5e8a08c4-a80e-44b8-8d9f-2b29f93581ac"
+migrations_dir = "migrations"
