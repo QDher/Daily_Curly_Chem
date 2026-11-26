@@ -20,11 +20,14 @@
 // quantiles that fit their precision), write a share of their letters by hand with samples of people
 // (data/letter_samples.json), and in a share of their copy attempts set one measure across its whole range (boundary
 // attempt, recorded as `boundary`). Testers without a pointer type draw as with ink 0.4.0.
+// Ink 0.6.0 (decision 63): on the standard set (option boundary) every arrow attempt sets one measure of the arrow
+// convention on one arrow across a range from right to wrong, and every copy of a tester with a pointer type is a
+// boundary attempt; the value and whether it lies inside the convention are recorded.
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -78,6 +81,16 @@ const CONVENTION = {
   atomGap: 30, // approached from a side at least this far from each bond of that atom
   pairMid: [0.45, 0.55], // end of a new single bond at the middle between the two atoms (or on the receiving atom)
   shortArc: 0.3, // smallest height of the arc of a short arrow (bond to one of its own atoms)
+};
+// Graded measures of arrows for boundary attempts (ink 0.6.0, standard set): one measure set on one arrow, across a
+// range from inside to outside the convention. Units: L, degrees or fractions as stated.
+const ARROW_BOUNDARY = {
+  lpDistance: { range: [0.05, 0.7], text: 'start from a lone pair: distance from the atom (L)' },
+  lpAngle: { range: [0, 90], text: 'start from a lone pair: angle to the nearest bond of the atom (degrees)' },
+  bondStart: { range: [0, 0.5], text: 'start on a bond: distance from its nearer end (fraction of the bond)' },
+  multipleStart: { range: [0.2, 0.8], text: 'start on a multiple bond: fraction toward the atom that forms the new bond' },
+  atomEnd: { range: [0, 0.5], text: 'end on an atom: distance from it (L)' },
+  pairEnd: { range: [0.45, 1.0], text: 'end of a new bond: fraction of the way to the receiving atom' },
 };
 // Rules that an attempt may break on purpose (one arrow, one rule), with the rule of the convention they break.
 const BREAKS = {
@@ -314,6 +327,9 @@ function plan(ref, G) {
     if (p.short) p.breakable.push('short-off-bond');
   }
   if (p.to === 'pair' && pairBetween(len(sub(G.A.get(p.forming), G.A.get(p.receiving))))) p.breakable.push('pair-end-between');
+  // graded measures that apply to this arrow (boundary attempts, ink 0.6.0)
+  p.measures = [].concat(p.from === 'lp' ? ['lpDistance'].concat(G.dirs(p.atom).length ? ['lpAngle'] : []) : [p.multi ? 'multipleStart' : 'bondStart'],
+    p.to === 'atom' ? ['atomEnd'] : p.to === 'pair' ? ['pairEnd'] : []);
   return p;
 }
 
@@ -333,11 +349,23 @@ function idealEnd(G, p) {
 }
 
 // Start of an arrow (rule 1 from a lone pair or a charge; rules 2 and 3 from a bond), or the start that breaks rule br.
-function startOf(d, G, p, br) {
+function startOf(d, G, p, br, bm) {
   const L = L0, s = d.style, nz = d.noise, C = CONVENTION;
   if (p.from === 'lp') {
     const a = G.A.get(p.atom), dirs = G.dirs(p.atom);
     const target = idealEnd(G, p);
+    if (bm && (bm.name === 'lpDistance' || bm.name === 'lpAngle')) {
+      // boundary attempt: the measure at its value, the rest as the convention without noise
+      let away0 = { x: 0, y: 0 };
+      for (const t0 of dirs) away0 = sub(away0, dirOf(t0));
+      const tow = unit(sub(target, a));
+      away0 = len(away0) > 1e-6 ? unit(away0) : tow;
+      const t = freeDirection(angleOf(add(mul(tow, s.lpFacing), mul(away0, 1 - s.lpFacing))), dirs, C.lpGap * DEG);
+      if (bm.name === 'lpDistance') return { pt: add(a, mul(dirOf(t), bm.value * L)), kind: 'lp' };
+      const b0 = dirs.reduce((m, u) => (angDiff(t, u) < angDiff(t, m) ? u : m), dirs[0]);
+      const sg = Math.atan2(Math.sin(t - b0), Math.cos(t - b0)) >= 0 ? 1 : -1;
+      return { pt: add(a, mul(dirOf(b0 + sg * bm.value * DEG), clamp(s.lpRadius, C.lpR[0], C.lpR[1]) * L)), kind: 'lp' };
+    }
     if (br === 'lp-start-on-bond') {
       const t = dirs[Math.floor(d.rc.u() * dirs.length)];
       const pt = add(add(a, mul(dirOf(t), pickU(d.rc, C.lpR[0], C.lpR[1]) * L)), mul(dirOf(t + Math.PI / 2), clamp(d.r.n() * 0.02, -0.04, 0.04) * L));
@@ -370,6 +398,8 @@ function startOf(d, G, p, br) {
   const T = G.A.get(p.toward), O = G.A.get(p.bond[0] === p.toward ? p.bond[1] : p.bond[0]);
   const n = normalOf(O, T);
   const perp = () => clamp(d.r.n() * nz.arrowStart * 0.5, -C.onLine, C.onLine) * L;
+  if (bm && bm.name === 'bondStart') return { pt: between(O, T, d.rc.u() < 0.5 ? bm.value : 1 - bm.value), kind: p.short ? 'bond-short' : 'bond' };
+  if (bm && bm.name === 'multipleStart') return { pt: between(O, T, bm.value), kind: 'multiple-toward' };
   let f;
   if (br === 'bond-start-outer') f = d.rc.u() < 0.5 ? pickU(d.rc, 0.06, 0.2) : pickU(d.rc, 0.8, 0.94);
   else if (br === 'multiple-start-far-half') f = pickU(d.rc, 0.25, 0.45);
@@ -381,9 +411,10 @@ function startOf(d, G, p, br) {
 }
 
 // End on an atom: within 0.2 L of it, on a side at least 30 degrees from each of its bonds, nearest to the start.
-function atomEnd(d, G, id, from) {
+function atomEnd(d, G, id, from, r) {
   const L = L0, C = CONVENTION, X = G.A.get(id), dirs = G.dirs(id);
   const t = freeDirection(angleOf(sub(from, X)), dirs, C.atomGap * DEG);
+  if (r !== undefined) return add(X, mul(dirOf(t), r * L)); // boundary attempt: at that distance, no noise
   const ideal = add(X, mul(dirOf(t), clamp(d.style.undershoot, 0, C.atomEnd) * L));
   const ok = (q) => {
     const v = sub(q, X), r = len(v);
@@ -394,9 +425,9 @@ function atomEnd(d, G, id, from) {
 }
 
 // End of an arrow (rule 2 on an atom, rule 3 on a bond or between two atoms), or the end that breaks rule br.
-function endOf(d, G, p, from, br) {
+function endOf(d, G, p, from, br, bm) {
   const L = L0, nz = d.noise, C = CONVENTION;
-  if (p.to === 'atom') return { pt: atomEnd(d, G, p.target, from), kind: 'atom' };
+  if (p.to === 'atom') return { pt: atomEnd(d, G, p.target, from, bm && bm.name === 'atomEnd' ? bm.value : undefined), kind: 'atom' };
   const perp = () => clamp(d.r.n() * nz.arrowEnd * 0.5, -C.onLine, C.onLine) * L;
   if (p.to === 'bond') {
     const U = G.A.get(p.tbond[0]), V = G.A.get(p.tbond[1]);
@@ -404,6 +435,7 @@ function endOf(d, G, p, from, br) {
     return { pt: add(between(U, V, f), mul(normalOf(U, V), perp())), kind: 'bond' };
   }
   const F = G.A.get(p.forming), Z = G.A.get(p.receiving), dist = len(sub(Z, F)) || L;
+  if (bm && bm.name === 'pairEnd') return { pt: between(F, Z, bm.value), kind: 'pair-measure' };
   if (br === 'pair-end-between') {
     const [lo, hi] = pairBetween(dist);
     return { pt: add(between(F, Z, pickU(d.rc, lo, hi)), mul(normalOf(F, Z), clamp(d.r.n() * 0.02, -0.04, 0.04) * L)), kind: 'pair-between' };
@@ -468,12 +500,23 @@ function arc(d, start, end, o = {}) {
 // otherwise an attempt breaks one rule with the probability breakRate of the precision level: the rule is drawn
 // among those that apply to the arrows of the step, then the arrow among those it applies to.
 // Returns { strokes, cases (where each arrow starts and ends), convention: 'ok' | { arrow (1-based), rule, text } }.
+// opt.boundary (ink 0.6.0, the standard set): instead of breaking a rule, one graded measure is set on one arrow
+// (drawn among those that apply, then the arrow, then the value across its range); the result has boundary
+// { arrow (1-based), name, value, inside (the arrow keeps every rule of the convention) } and convention 'boundary'.
 function arrows(d, scene, reference, opt = {}) {
   const G = geometry(scene);
   const plans = reference.map((r) => plan(r, G));
-  let broken = null;
+  let broken = null, bnd = null;
   const roll = d.rc.u();
-  if (opt.force !== undefined) broken = opt.force;
+  if (opt.boundary) {
+    const names = Object.keys(ARROW_BOUNDARY).filter((k) => plans.some((p) => p.measures.includes(k)));
+    if (names.length) {
+      const name = names[Math.floor(d.rc.u() * names.length)];
+      const idx = plans.map((p, i) => i).filter((i) => plans[i].measures.includes(name));
+      const [lo, hi] = ARROW_BOUNDARY[name].range;
+      bnd = { arrow: idx[Math.floor(d.rc.u() * idx.length)], name, value: Math.round(pickU(d.rc, lo, hi) * 1000) / 1000 };
+    }
+  } else if (opt.force !== undefined) broken = opt.force;
   else if (roll < d.noise.breakRate) {
     const rules = Object.keys(BREAKS).filter((k) => plans.some((p) => p.breakable.includes(k)));
     if (rules.length) {
@@ -485,14 +528,63 @@ function arrows(d, scene, reference, opt = {}) {
   const strokes = [], cases = [];
   plans.forEach((p, i) => {
     const br = broken && broken.arrow === i ? broken.rule : null;
-    const st = startOf(d, G, p, br);
-    const en = endOf(d, G, p, st.pt, br);
+    const bm = bnd && bnd.arrow === i ? bnd : null;
+    const st = startOf(d, G, p, br, bm && ['lpDistance', 'lpAngle', 'bondStart', 'multipleStart'].includes(bm.name) ? bm : null);
+    const en = endOf(d, G, p, st.pt, br, bm && (bm.name === 'atomEnd' || bm.name === 'pairEnd') ? bm : null);
     // rule 3: an arrow from a multiple bond to another atom bulges on the side of the atom that forms the bond
     const toward = p.multi ? sub(G.A.get(p.toward), G.A.get(p.bond[0] === p.toward ? p.bond[1] : p.bond[0])) : null;
     strokes.push(arc(d, st.pt, en.pt, { short: !!p.short, toward, segs: G.segs, prev: strokes.slice() }));
     cases.push({ start: st.kind, end: en.kind });
   });
+  if (bnd) {
+    const k = bnd.arrow;
+    const inside = arrowBreaks(scene, reference[k], strokes[k], G.charges[reference[k].from.lp]).length === 0;
+    return { strokes, cases, convention: 'boundary', boundary: { arrow: k + 1, name: bnd.name, value: bnd.value, inside } };
+  }
   return { strokes, cases, convention: broken ? { arrow: broken.arrow + 1, rule: broken.rule, text: BREAKS[broken.rule].text } : 'ok' };
+}
+
+// The rules of the convention an arrow breaks, read from its stroke alone (start and end points): [] when it keeps
+// them all. Same checks as test/test_agent.js. sign: the charge sign of a lone-pair atom, if any.
+function arrowBreaks(sc, ref, st, sign) {
+  const L = L0, E = 1e-6;
+  const at = (id) => sc.atoms.find((a) => a.id === id);
+  const bondDirs = (id) => sc.bonds.filter((b) => b.a === id || b.b === id).map((b) => { const o = at(b.a === id ? b.b : b.a), a = at(id); return Math.atan2(o.y - a.y, o.x - a.x); });
+  const gapD = (v, dirs) => (gapOf(angleOf(v), dirs) * 180) / Math.PI;
+  const along = (q, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy); return { f: ((q.x - a.x) * dx + (q.y - a.y) * dy) / (l * l), perp: Math.abs((q.x - a.x) * dy - (q.y - a.y) * dx) / l }; };
+  const s = st[0], e = st[st.length - 1];
+  const out = [];
+  if (ref.from.lp) {
+    const a = at(ref.from.lp), dirs = bondDirs(a.id), v = sub(s, a), r = len(v);
+    const atSign = sign && len(sub(s, sign)) <= 0.05 * L + E;
+    if (r >= 0.5 * L) out.push('lp-start-far');
+    else if (dirs.length && sc.bonds.some((b) => (b.a === a.id || b.b === a.id) && segDist(s, at(b.a), at(b.b)) <= 0.05 * L)) out.push('lp-start-on-bond');
+    else if (!atSign && (r < 0.15 * L - E || r > 0.3 * L + E || (dirs.length && gapD(v, dirs) < 30 - E) || sc.bonds.some((b) => segDist(s, at(b.a), at(b.b)) < 0.15 * L - E))) out.push('lp-start-other');
+  } else {
+    const [x, y] = ref.from.bond, t = ref.to;
+    const toward = t.atom && (t.atom === x || t.atom === y) ? t.atom : t.atom ? t.via : t.bond ? [x, y].find((u) => t.bond.includes(u)) : [x, y].find((u) => t.pair.includes(u));
+    const T = at(toward), O = at(toward === x ? y : x);
+    const bond = sc.bonds.find((b) => (b.a === x && b.b === y) || (b.a === y && b.b === x));
+    const forms = !!(t.pair || (t.atom && t.atom !== x && t.atom !== y));
+    const g = along(s, O, T);
+    if (bond && bond.order >= 2 && forms) {
+      if (g.f < 0.5) out.push('multiple-start-far-half');
+      else if (g.f < 0.55 - E || g.f > 0.75 + E || g.perp > 0.1 * L + E) out.push('multiple-start-other');
+    } else if (g.perp >= 0.25 * L) out.push('short-off-bond');
+    else if (g.f < 0.25 - E || g.f > 0.75 + E) out.push('bond-start-outer');
+    else if (g.perp > 0.1 * L + E) out.push('bond-start-other');
+  }
+  const atomOk = (id) => { const X = at(id), v = sub(e, X), r = len(v); const dirs = bondDirs(id); return r <= 0.2 * L + E && (r < 0.05 * L || !dirs.length || gapD(v, dirs) >= 30 - E); };
+  if (ref.to.atom && !atomOk(ref.to.atom)) out.push('atom-end');
+  if (ref.to.bond) { const g = along(e, at(ref.to.bond[0]), at(ref.to.bond[1])); if (g.f < 0.3 - E || g.f > 0.7 + E || g.perp > 0.1 * L + E) out.push('bond-end'); }
+  if (ref.to.pair) {
+    const src = ref.from.lp ? [ref.from.lp] : ref.from.bond;
+    const F = ref.to.pair.find((u) => src.includes(u)), Z = ref.to.pair.find((u) => u !== F);
+    const g = along(e, at(F), at(Z));
+    const middle = g.f >= 0.45 - E && g.f <= 0.55 + E && g.perp <= 0.1 * L + E;
+    if (!middle && !atomOk(Z)) out.push(g.f > 0.55 ? 'pair-end-between' : 'pair-end-other');
+  }
+  return out;
 }
 
 // A drawing without noise and with middle habits (reviewer sheet, tests); over: habits to set.
@@ -559,8 +651,8 @@ function withHydrogens(scene, lh = 1) {
 // the page (bond length 1.5). Hydrogens of heteroatoms are drawn as bonds with a typed H at their end (from ink
 // 0.2.0). box: { x, y, w, h } free area of the frame. Returns { strokes, typed, unsupported }: strokes are point
 // lists, typed are clicks { el | null, q, x, y } of the row of atoms, all in frame units.
-function structure(d, scene0, box) {
-  if (d.profile) return structureProfile(d, scene0, box);
+function structure(d, scene0, box, opt = {}) {
+  if (d.profile) return structureProfile(d, scene0, box, opt);
   const s = d.style, nz = d.noise;
   const scene = withHydrogens(scene0);
   const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
@@ -674,7 +766,8 @@ function structure(d, scene0, box) {
 // joint gaps, wobble, second lines and letters, a share of the letters written by hand with samples of people (the
 // others typed), and boundary attempts. Returns also hand (atoms and signs written by hand) and boundary ({ name,
 // value } or null). d.forceBoundary (tests, sheet): a boundary to use, or null for none.
-function structureProfile(d, scene0, box) {
+// opt.boundary (ink 0.6.0, the standard set): every copy that has a measure to vary is a boundary attempt.
+function structureProfile(d, scene0, box, opt = {}) {
   const s = d.style, nz = d.noise, P = d.profile;
   const scene = withHydrogens(scene0);
   const unsupported = scene.atoms.filter((a) => !ROW.includes(a.el)).map((a) => a.el);
@@ -686,7 +779,7 @@ function structureProfile(d, scene0, box) {
   let boundary = null;
   const roll = d.rc.u();
   if (d.forceBoundary !== undefined) boundary = d.forceBoundary;
-  else if (roll < BOUNDARY.rate[P.precision]) {
+  else if (opt.boundary || roll < BOUNDARY.rate[P.precision]) {
     const names = [].concat(labelled.size ? ['letterGap'] : [], scene.bonds.some((b) => b.order >= 2) ? ['secondLineLength', 'secondLineSpacing'] : []);
     if (names.length) {
       const name = names[Math.floor(d.rc.u() * names.length)];
@@ -835,4 +928,4 @@ function structureProfile(d, scene0, box) {
   return { strokes, typed, unsupported: [], L, hand, boundary };
 }
 
-module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, SIDE, QRANGE, BOUNDARY, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };
+module.exports = { VERSION, TESTERS, withHydrogens, PRECISION, CONSISTENCY, HABITS, HABITS2, CONVENTION, BREAKS, ARROW_BOUNDARY, arrowBreaks, SIDE, QRANGE, BOUNDARY, quantileOf, writer, drawing, ideal, arrows, arc, chargeSigns, structure, seedOf, ROW };

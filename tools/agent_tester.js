@@ -25,10 +25,11 @@
 //                                 [--types T1,T2] [--out DIR] [--tasks N] [--chromium PATH]
 // --types T1: arrow tasks only (script 0.1.9), e.g. for a run made again with a new arrow ink, whose copies would be
 // drawn with the same strokes as in the first run.
-// --index FILE (script 0.2.0, request R4): runs/index.json of the review page; the four copies of the standard set
-// are drawn once per version of the agent ink: skipped when a run of this tester with this ink already drew them.
-// Copies of testers with a pointer type (ink 0.5.0) record `hand` (letters and signs written by hand) and `boundary`
-// (the measure set across its range in a boundary attempt, or null): the generator's intent, not shown to reviewers.
+// The standard set is the boundary panel (script 0.2.1, decision 63): every arrow attempt sets one graded measure of
+// the convention on one arrow and every copy of a tester with a pointer type is a boundary attempt (`boundary`: name,
+// value, and for arrows whether it lies inside the convention); its copies are drawn at every run (the option
+// --index of script 0.2.0, once per ink version, is withdrawn and ignored). Copies of testers with a pointer type
+// record `hand` (letters and signs written by hand). The generator's intent, not shown to reviewers.
 // --agent auto (default): the tester of the day in the rotation of tools/agent_testers.json.
 // Exit code 1 when the page reported an error or an entry does not replay.
 'use strict';
@@ -40,7 +41,7 @@ const { execSync } = require('child_process');
 const Ink = require('./agent_ink.js');
 const { replay } = require('./replay.js');
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const root = path.join(__dirname, '..');
 const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const codeOf = (name) => 'agent-' + name;
@@ -204,10 +205,11 @@ async function main() {
       rec.intended = geo.intended;
       // arrows by the convention of ink 0.4.0 (decisions 53 to 55); in some attempts one arrow breaks one rule on
       // purpose, stated in rec.convention (the generator's intent, not a judgement)
-      const drawn = Ink.arrows(d, geo.scene, task.reference);
+      const drawn = Ink.arrows(d, geo.scene, task.reference, { boundary: set === 'standard' });
       const strokes = drawn.strokes;
       rec.convention = drawn.convention;
       rec.arrowCases = drawn.cases;
+      if (drawn.boundary) rec.boundary = drawn.boundary;
       await page.click('#m-arrow');
       await drawStrokes(strokes, d.style.speed);
       rec.strokes = strokes.length;
@@ -267,7 +269,7 @@ async function main() {
       const d = Ink.drawing(w, seed);
       const rec = { set, task: task.id, type: 'T2', attempt, seed, style: round(d.style), intended: target.smiles };
       run.attempts.push(rec);
-      const ink = Ink.structure(d, target.scene, box);
+      const ink = Ink.structure(d, target.scene, box, { boundary: set === 'standard' });
       if (ink.unsupported.length) { rec.outcome = 'not-drawn'; rec.message = 'elements not in the row: ' + ink.unsupported.join(','); return; }
       if (ink.hand) { rec.hand = ink.hand; rec.boundary = ink.boundary || null; }
       const before = await seqs();
@@ -319,15 +321,6 @@ async function main() {
     }
   }
 
-  // standard copies once per version of the agent ink (request R4): skipped when the index of the review page holds
-  // a run of this tester with this ink that drew them
-  let skipStandardCopies = null;
-  if (opt.index && fs.existsSync(opt.index)) {
-    const idx = JSON.parse(fs.readFileSync(opt.index, 'utf8'));
-    const done = (Array.isArray(idx) ? idx : []).find((r) => r && r.tester === name && r.ink === Ink.VERSION && r.standardCopies > 0);
-    if (done) skipStandardCopies = done.runId;
-  }
-  run.skipped = skipStandardCopies ? { standardCopies: 'drawn in run ' + skipStandardCopies + ' (ink ' + Ink.VERSION + ')' } : null;
   let first = true;
   for (const set of opt.sets) {
     // ?ahead=1: the newest daily set also when it is dated Saturday or Sunday (testers see it from Monday)
@@ -347,7 +340,6 @@ async function main() {
     for (let i = 0; i < tasks.length && info.done < opt.tasks; i++) {
       const task = tasks[i];
       if ((task.type === 'T1' || task.type === 'T2') && !opt.types.includes(task.type)) continue;
-      if (task.type === 'T2' && set === 'standard' && skipStandardCopies) continue;
       if (task.type !== 'T1' && task.type !== 'T2') {
         run.attempts.push({ set, task: task.id, type: task.type, attempt: 0, outcome: 'not-done', message: task.type === 'T3' ? 'drawing a species next to a structure is not built' : 'votes on a mechanism are not part of the agent tester' });
         continue;
@@ -382,7 +374,8 @@ async function main() {
       accepted: by('T1', 'accepted').length,
       noReading: by('T1', 'no-reading').length,
       noneIntended: by('T1', 'none-intended').length,
-      ruleBroken: by('T1').filter((a) => a.convention && a.convention !== 'ok').length,
+      ruleBroken: by('T1').filter((a) => a.convention && typeof a.convention === 'object').length,
+      boundary: by('T1').filter((a) => a.boundary).length,
     },
     copies: {
       tasks: tasksOf('T2'),
@@ -405,8 +398,8 @@ async function main() {
 
   const s = run.summary;
   console.log('tester ' + name + ' (' + w.traits.text + '), date ' + date + ', label ' + label + ', device ' + run.device);
-  console.log('arrow tasks ' + s.arrows.tasks + ': accepted ' + s.arrows.accepted + ' (first attempt, first reading ' + s.arrows.acceptedFirstAttemptFirstReading + '); no reading ' + s.arrows.noReading + '; no reading as intended ' + s.arrows.noneIntended + '; attempts with a rule broken on purpose ' + s.arrows.ruleBroken);
-  console.log('copy tasks ' + s.copies.tasks + ': confirmed ' + s.copies.confirmed + ' (first attempt ' + s.copies.confirmedFirstAttempt + '); flagged ' + s.copies.flagged + '; no reading ' + s.copies.noReading + '; not drawn ' + s.copies.notDrawn + '; with handwritten letters ' + s.copies.handwritten + '; boundary attempts ' + s.copies.boundary + (run.skipped ? '; standard copies ' + run.skipped.standardCopies : ''));
+  console.log('arrow tasks ' + s.arrows.tasks + ': accepted ' + s.arrows.accepted + ' (first attempt, first reading ' + s.arrows.acceptedFirstAttemptFirstReading + '); no reading ' + s.arrows.noReading + '; no reading as intended ' + s.arrows.noneIntended + '; attempts with a rule broken on purpose ' + s.arrows.ruleBroken + '; boundary attempts ' + s.arrows.boundary);
+  console.log('copy tasks ' + s.copies.tasks + ': confirmed ' + s.copies.confirmed + ' (first attempt ' + s.copies.confirmedFirstAttempt + '); flagged ' + s.copies.flagged + '; no reading ' + s.copies.noReading + '; not drawn ' + s.copies.notDrawn + '; with handwritten letters ' + s.copies.handwritten + '; boundary attempts ' + s.copies.boundary);
   console.log('entries ' + s.entries + '; replayed ' + run.replay.replayed + '/' + run.replay.of + '; errors ' + errors.length);
   for (const e of errors) console.log('  ' + e);
   console.log('files: ' + path.join(out, run.file) + ', ' + path.join(out, record));

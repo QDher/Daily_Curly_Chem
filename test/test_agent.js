@@ -342,6 +342,39 @@ test('ink 0.5.0: a boundary on the second line sets its length and spacing as gi
   ok(Math.abs(a / b - 0.4) < 0.06, 'second line / first ' + (a / b).toFixed(2));
 });
 
+test('ink 0.6.0: in a boundary attempt (standard set) one graded measure is set on one arrow, at its value; the other arrows follow the convention; inside is the check of the convention', () => {
+  const seen = new Set();
+  let inside = 0, n = 0;
+  for (const name of ['john0006', 'john0007']) for (let s = 0; s < 200; s++) {
+    for (const step of [SN2, ALDOL]) {
+      const out = Ink.arrows(Ink.drawing(Ink.writer(name), Ink.seedOf(name, 'bm', s)), step.scene, step.reference, { boundary: true });
+      const bd = out.boundary;
+      ok(out.convention === 'boundary' && bd && Ink.ARROW_BOUNDARY[bd.name], 'no boundary');
+      const [lo, hi] = Ink.ARROW_BOUNDARY[bd.name].range;
+      ok(bd.value >= lo && bd.value <= hi, 'value ' + JSON.stringify(bd));
+      seen.add(bd.name);
+      const signs = Ink.chargeSigns(step.scene);
+      const found = out.strokes.map((st, i) => broken(step.scene, step.reference[i], st, step.reference[i].from.lp ? signs[step.reference[i].from.lp] : null));
+      found.forEach((f, i) => { if (i !== bd.arrow - 1) ok(!f.length, 'other arrow ' + (i + 1) + ' breaks ' + f.join()); });
+      ok(bd.inside === !found[bd.arrow - 1].length, 'inside flag ' + JSON.stringify(bd) + ' ' + found[bd.arrow - 1].join());
+      // the measure is where it says: distance of a lone-pair start, distance of an end from its atom
+      const st = out.strokes[bd.arrow - 1], ref = step.reference[bd.arrow - 1];
+      if (bd.name === 'lpDistance') { const a = at(step.scene, ref.from.lp); ok(Math.abs(Math.hypot(st[0].x - a.x, st[0].y - a.y) / L - bd.value) < 1e-6, 'lpDistance'); }
+      if (bd.name === 'atomEnd') { const X = at(step.scene, ref.to.atom), e = st[st.length - 1]; ok(Math.abs(Math.hypot(e.x - X.x, e.y - X.y) / L - bd.value) < 1e-6, 'atomEnd'); }
+      n += 1; inside += bd.inside ? 1 : 0;
+    }
+  }
+  ok(seen.size === Object.keys(Ink.ARROW_BOUNDARY).length, 'measures seen: ' + [...seen].join());
+  ok(inside > 0.15 * n && inside < 0.6 * n, 'inside ' + inside + ' of ' + n);
+});
+
+test('ink 0.6.0: on the standard set every copy with a measure to vary is a boundary attempt', () => {
+  for (let s = 0; s < 60; s++) {
+    const out = Ink.structure(Ink.drawing(Ink.writer('john0006'), s), profileScene, box, { boundary: true });
+    ok(out.boundary && Ink.BOUNDARY[out.boundary.name], 'seed ' + s);
+  }
+});
+
 // End to end: the standard set with the precise, consistent tester, in a temporary folder
 let run = null;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-'));
@@ -377,42 +410,32 @@ test('end to end: each attempt is linked to the entries it recorded, with its se
   ok(linked.size === doc.entries.length, 'linked ' + linked.size + ' of ' + doc.entries.length);
 });
 
-test('end to end: the precise tester gets every arrow task of the standard set on the first reading; each arrow attempt states its convention', () => {
-  // arrow readings follow fixed rules (src/readings.js); with exact intent and small noise they should match (seeds of
-  // 2026-11-15: one attempt breaks a rule on purpose, short-off-bond, and is still read as intended)
-  ok(run.summary.arrows.acceptedFirstAttemptFirstReading === 6, 'first readings ' + run.summary.arrows.acceptedFirstAttemptFirstReading);
+test('end to end: on the standard set every arrow attempt is a boundary attempt (ink 0.6.0), recorded with its measure; arrows inside the convention are read as intended', () => {
   const t1 = run.attempts.filter((a) => a.type === 'T1' && a.attempt > 0);
-  ok(t1.every((a) => a.convention === 'ok' || (a.convention && a.convention.rule && a.convention.arrow)), 'convention recorded');
+  ok(t1.every((a) => a.convention === 'boundary' && a.boundary && Ink.ARROW_BOUNDARY[a.boundary.name] && typeof a.boundary.inside === 'boolean'), 'boundary recorded');
   ok(t1.every((a) => Array.isArray(a.arrowCases) && a.arrowCases.length === a.strokes), 'arrow cases recorded');
-  ok(run.summary.arrows.ruleBroken === t1.filter((a) => a.convention !== 'ok').length, 'summary of rules broken');
+  ok(run.summary.arrows.boundary === t1.length, 'summary of boundary attempts');
+  // with exact intent and small noise, an attempt whose varied arrow stays inside the convention is read as intended
+  // (t1-cc-bond aside: its new bond is longer than the page reaches when it ends at the middle)
+  const inside = t1.filter((a) => a.boundary.inside && a.task !== 't1-cc-bond');
+  ok(inside.length && inside.every((a) => a.outcome === 'accepted'), 'inside the convention, not accepted: ' + inside.filter((a) => a.outcome !== 'accepted').map((a) => a.task).join(', '));
 });
 
-// End to end, ink 0.5.0: john0006 on the standard set (letters written by hand go through the page), then a run of
-// copies only with an index saying its standard copies were drawn with this ink: none drawn again
-let run6 = null, runSkip = null;
+// End to end, ink 0.5.0 and 0.6.0: john0006 on the standard set (letters written by hand go through the page; every
+// copy is a boundary attempt)
+let run6 = null;
 const dir6 = fs.mkdtempSync(path.join(os.tmpdir(), 'agent6-'));
 try { execFileSync('node', [path.join(__dirname, '..', 'tools', 'agent_tester.js'), '--agent', 'john0006', '--date', '2026-11-26', '--sets', 'standard', '--out', dir6], { stdio: 'pipe', timeout: 300000 }); } catch (e) { /* checked below */ }
 try { run6 = JSON.parse(fs.readFileSync(path.join(dir6, 'run-2026-11-26-john0006.json'), 'utf8')); } catch (e) { run6 = null; }
-const idx = path.join(dir6, 'index.json');
-fs.writeFileSync(idx, JSON.stringify([{ runId: '2026-11-26_john0006', tester: 'john0006', ink: Ink.VERSION, standardCopies: 4 }]));
-const dirS = path.join(dir6, 'skip');
-try { execFileSync('node', [path.join(__dirname, '..', 'tools', 'agent_tester.js'), '--agent', 'john0006', '--date', '2026-11-27', '--sets', 'standard', '--types', 'T2', '--index', idx, '--out', dirS], { stdio: 'pipe', timeout: 300000 }); } catch (e) { /* checked below */ }
-try { runSkip = JSON.parse(fs.readFileSync(path.join(dirS, 'run-2026-11-27-john0006.json'), 'utf8')); } catch (e) { runSkip = null; }
 
-test('end to end, ink 0.5.0: john0006 does the standard set without error; copies record hand and boundary; entries replay', () => {
+test('end to end: john0006 does the standard set without error; every standard copy is a boundary attempt and records hand; entries replay', () => {
   ok(run6, 'no run record');
   ok(run6.errors.length === 0, 'errors: ' + run6.errors.join('; '));
-  ok(run6.ink === '0.5.0' && run6.traits.pointer === 'pen', 'ink and pointer');
+  ok(run6.ink === Ink.VERSION && run6.traits.pointer === 'pen', 'ink and pointer');
   const copies = run6.attempts.filter((a) => a.type === 'T2');
-  ok(copies.length >= 4 && copies.every((a) => Array.isArray(a.hand) && a.boundary !== undefined), 'hand and boundary recorded');
+  ok(copies.length >= 4 && copies.every((a) => Array.isArray(a.hand) && a.boundary && Ink.BOUNDARY[a.boundary.name]), 'hand and boundary recorded');
   ok(run6.replay.of > 0 && run6.replay.replayed === run6.replay.of, 'replayed ' + run6.replay.replayed + '/' + run6.replay.of);
   ok(run6.summary.copies.standard === copies.filter((a) => a.set === 'standard').length, 'standard copies counted');
-});
-
-test('end to end: standard copies are drawn once per ink version (--index): skipped when already drawn with this ink', () => {
-  ok(runSkip, 'no run record');
-  ok(runSkip.attempts.filter((a) => a.type === 'T2').length === 0, 'copies drawn again');
-  ok(runSkip.skipped && /2026-11-26_john0006/.test(runSkip.skipped.standardCopies), 'skipped not recorded');
 });
 
 fs.rmSync(dir6, { recursive: true, force: true });

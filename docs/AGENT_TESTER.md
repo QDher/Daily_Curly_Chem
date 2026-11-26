@@ -168,6 +168,26 @@ pointer type (john0006 and later); the others draw as with ink 0.4.0 (same strok
   2026-11-25): copies confirmed on the first attempt 7, 3, 5, 6 of 9 (john0006 to john0009), arrow tasks on the first
   reading 10, 9, 9, 8 of 11; no page error; every entry replays.
 
+## The standard set as boundary panel (ink 0.6.0, 2026-11-26)
+
+Decision 63 (user: more variance on the standard set, to find sooner what reviewers accept; standard copies at every
+run). On the standard set (same molecules every day, so that only the deviation changes):
+
+- Every arrow attempt sets one measure of the convention on one arrow at a value drawn across its range (the other
+  arrows follow the convention; no rule is broken on purpose there): start from a lone pair at 0.05 to 0.7 L from the
+  atom (`lpDistance`) or at 0 to 90 degrees from its nearest bond (`lpAngle`); start on a bond at 0 to 0.5 of its
+  length from the nearer end (`bondStart`); start on a multiple bond at 0.2 to 0.8 of the way toward the atom that
+  forms the new bond (`multipleStart`); end at 0 to 0.5 L from the target atom (`atomEnd`); end of a new bond at 0.45 to
+  1.0 of the way to the receiving atom (`pairEnd`). The measure is drawn among those that apply to the step, then the
+  arrow. Recorded: `convention: 'boundary'`, `boundary: { arrow, name, value, inside }` (`inside`: the arrow keeps every
+  rule of the convention, checked by `arrowBreaks`, the same checks as the tests).
+- Every copy of a tester with a pointer type is a boundary attempt (measures of section "Ink of people").
+- The four standard copies are drawn at every run (script 0.2.1; `--index` of script 0.2.0 is withdrawn).
+- Daily sets keep the rates of decisions 55 (arrows) and 62 (copies). Review data 0.6.1 lists every boundary attempt.
+- `node tools/agent_boundaries.js --runs <dir> --answers <dir>` gives, per measure and band of values, the attempts,
+  the share inside the convention, the share judged "should be read" or "should give the right structure", and the
+  share the page read as intended.
+
 ## One run
 
 1. Clone `main`, `npm ci`, `npm run setup` (in the scheduled session).
@@ -192,9 +212,8 @@ pointer type (john0006 and later); the others draw as with ink 0.4.0 (same strok
    copies the entries file; the session publishes them with the review page (below).
 
 Locally: `npm run agent -- --agent john0004 --date 2026-11-17` (outputs in `agent-runs/<date>/`, ignored by git).
-`--index <runs/index.json>` (script 0.2.0, used by the scheduled run): the four standard copies are drawn once per
-version of the agent ink: skipped when the index holds a run of this tester with this ink that drew them
-(`standardCopies` of the index line, review data 0.6.0); the run record says so in `skipped`.
+`--index` (script 0.2.0, standard copies once per ink version) was withdrawn by decision 63 (script 0.2.1): the
+standard copies are drawn at every run.
 `--types T1` (script 0.1.9) does the arrow tasks only: used for a run made again with a new arrow ink, whose
 copies would be drawn with the same strokes as the first run (ink 0.4.0 draws copies as 0.3.0 did).
 

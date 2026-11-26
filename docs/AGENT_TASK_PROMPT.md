@@ -7,9 +7,10 @@ America/New_York and runs every agent tester of the rotation (decisions of the u
 2026-11-23; `visibleFrom` written by `tools/agent_review_data.js`). A change of the prompt is made in the scheduled
 task and here, with identical text.
 
-Backed up on 2026-11-26: the four copies of the standard set are drawn once per version of the agent ink (`--index`
-in step 3a); the reports do not say which attempts break a rule of the arrow convention or vary a boundary measure
-(request R4, decision 62). Previous backups: 2026-11-23 (renamed "Daily tester"; DATE in America/New_York; runs of
+Backed up on 2026-11-26 (second time): `--index` removed from step 3a, the standard copies are drawn at every run again
+(decision 63, the standard set is the boundary panel); the reports do not say which attempts break a rule of the arrow
+convention or vary a boundary measure (request R4, decision 62). Previous backups: 2026-11-26 (`--index`, standard
+copies once per ink version, decision 62), 2026-11-23 (renamed "Daily tester"; DATE in America/New_York; runs of
 Saturday and Sunday listed from Monday), 2026-11-16 (all testers every day).
 
 ```text
@@ -28,10 +29,9 @@ outputs are never committed. Review page (claude.ai artifact): https://claude.ai
    path "runs/index.json") and save its content as agent-runs/DATE/site/runs/index.json. A tester whose run
    DATE_TESTER is already listed there is skipped. If no tester is left, stop.
 3. For each remaining TESTER, in the order of TESTERS:
-   a. Run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER --index
-      agent-runs/DATE/site/runs/index.json` (the copies of the standard set are skipped when this tester already drew
-      them with this ink). Exit code 2: report the last lines of its output and go to the next tester. Exit code 0
-      or 1 (1 = a page error or an entry that does not replay): go on, and report it.
+   a. Run `node tools/agent_tester.js --agent TESTER --date DATE --out agent-runs/DATE/TESTER`. Exit code 2: report the
+      last lines of its output and go to the next tester. Exit code 0 or 1 (1 = a page error or an entry that does
+      not replay): go on, and report it.
    b. Run `node tools/replay.js agent-runs/DATE/TESTER/curly-entries-*.json --verbose`.
    c. Read the run record agent-runs/DATE/TESTER/run-DATE-TESTER.json. Open the screenshots (agent-runs/DATE/TESTER/shots/)
       of the attempts whose outcome is not "accepted", "confirmed" or "not-done", at most 6 per tester. Write

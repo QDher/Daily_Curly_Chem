@@ -23,7 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VERSION = '0.6.0';
+const VERSION = '0.6.1';
 const repo = path.join(__dirname, '..');
 const rdkitDir = path.join(repo, 'node_modules', '@rdkit', 'rdkit');
 const Tasks = require(path.join(repo, 'src', 'tasks.js'));
@@ -36,7 +36,7 @@ const { seedOf } = require('./agent_ink.js');
 const SAMPLE = 0.2;
 function listedOf(a, run) {
   if (a.type === 'T1' && a.convention && a.convention !== 'ok') return true;
-  if (a.type === 'T2' && a.boundary) return true;
+  if (a.boundary) return true; // boundary attempts of arrows (standard set, data 0.6.1) and of copies
   if (!run.traits || run.traits.precision !== 'high') return true;
   return seedOf(a.seed, 'review sample') / 4294967296 < SAMPLE;
 }
