@@ -39,6 +39,12 @@ Note (people side, 2026-11-26): recognizer 0.5.0 is pushed (three rules, `docs/R
 drawings, so it can also read more agent copies that reviewers judged not readable (B16): the judged agent
 entries were not replayed from this side. Fixtures of people: 5 of 14 and 84 of 168.
 
+Note (people side, 2026-11-26): the review page holds an entries file of a person uploaded by a reviewer (database
+collection `uploads`, run `2026-11-25_3005a301_m4e3`, 234 attempts, with that reviewer's judgements). The people
+side read it from there: 30 new copies (12 read exactly with recognizer 0.5.0, 11 with 0.4.2) and 18 new arrow
+attempts; weakness cases 20 to 22. Nothing of it is in the repository (no agreement recorded for these strokes).
+This upload route is not described in `docs/INTERFACES.md`.
+
 ## Open items
 
 | # | Item | Owner | Status | Notes |
