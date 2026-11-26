@@ -17,6 +17,7 @@ Last updated: 2026-11-26 (people side: weakness case 19, decision 52, page 0.8.1
 | What | Link |
 |---|---|
 | Workflow of the two sides (flow chart, 15 steps; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/XxThPg1cfRoqeTtsEGNHoR |
+| Order of the six stages with results so far (flow chart of 2026-11-26; claude.ai artifact, private to the owner unless shared) | https://claude.ai/artifact/AfNdFJjebW9KjvzS78mJVH |
 | Review page of the agent testers (claude.ai artifact) | https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 |
 | Test page (unlisted, opened with a tester link) | https://qdher.github.io/Daily_Curly_Chem/ |
 | Deployments (GitHub Actions: "Daily curly chem" here, "Deploy GitHub Pages" in the two site repositories) | https://github.com/QDher/Daily_Curly_Chem/actions/workflows/pages.yml · https://github.com/QDher/Daily-organic-chemistry-puzzles/actions/workflows/pages.yml · https://github.com/QDher/Daily-name-reaction-puzzle/actions/workflows/pages.yml |
