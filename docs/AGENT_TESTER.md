@@ -260,6 +260,17 @@ https://claude.ai/artifact/FBAAfPecNh2iYkYfb7Fbi4 (claude.ai artifact, private t
   "drawn-as-asked" (request R4, decision 62).
 - "Not reviewed by you" (2026-11-26): above the runs table, the dates that still hold attempts without an answer of
   the reviewer shown, with their number (listed attempts less answers saved, per run), each a link to its date.
+  People's entries files are not counted there; the five copies of the panel below are, for dates up to today.
+- "Drawings of people" (decision 65, 2026-11-26): below the runs, five structures copied by people for the date shown,
+  the same for every reviewer, with the questions of the agents' copies. Pool of a date: the copies with ink of the
+  people's entries files added up to that date (not files of failures only), only those whose structure to copy has a
+  layout in the file (the daily set of 2026-11-13 has none: 40 of the 166 copies of the file of 2026-11-25 are left
+  out); files in the order they were added, within a file one copy of each task before a second one, tasks and copies
+  ordered by a hash of their keys. The k-th weekday from the date of the first file takes copies 5k to 5k + 4, from
+  the start again once used up; Saturday and Sunday show Friday's copies; a past date keeps its copies. Answers are
+  stored under the attempt's key (`reviews/<reviewer id>/answers/<runId>__<set>__<task>__<attempt>`), so an answer
+  given when the file was shown as a run counts here too. People's files are no longer shown as runs by default;
+  they can be ticked in the runs table.
 - "Arrow convention" panel (2026-11-26): opened, it loads `convention.html` (the reviewer sheet, published with the
   page) and shows its drawings. The page does not show the `convention` of an attempt. Layouts come from `tools/agent_review_data.js` (`scenes` in the run file,
   RDKit 2D coordinates); runs published before 2026-11-16 have them in `runs/<runId>.scenes.json`; RDKit drawings

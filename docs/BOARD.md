@@ -10,7 +10,7 @@ other side is a row under "Requests between the sides", answered in the row or i
 links. Before changing a shared file (`src/`, `index.html`, `data/tasks.json`), add a row under "Shared files being
 changed" and remove it when the change is pushed. Figures come from files or command outputs, with their date.
 
-Last updated: 2026-11-26 (people side: all proposals asked by the user, decision 61: people-side parts pushed (page 0.9.0, measure, ink profile, letter samples, failures tool, held-out fixture), request R4 to the agent side; implementation proposal for proposals 2 to 6 linked, agreement of the tester and the reviewer on their data, decision 60; analysis of the two tasks linked, item B18; recognizer 0.5.0; decisions 53 to 56. Agent side: R3 answered, agent ink 0.4.0 and reviewer sheet, decision 57; people's arrows judged on the accepted reading, decision 58; their readings drawn from the arrows, decision 59; ink comparison runs of 2026-11-25 published, item B19; request R4 implemented, decision 62; standard set as boundary panel, decision 63).
+Last updated: 2026-11-26 (people side: all proposals asked by the user, decision 61: people-side parts pushed (page 0.9.0, measure, ink profile, letter samples, failures tool, held-out fixture), request R4 to the agent side; implementation proposal for proposals 2 to 6 linked, agreement of the tester and the reviewer on their data, decision 60; analysis of the two tasks linked, item B18; recognizer 0.5.0; decisions 53 to 56. Agent side: R3 answered, agent ink 0.4.0 and reviewer sheet, decision 57; people's arrows judged on the accepted reading, decision 58; their readings drawn from the arrows, decision 59; ink comparison runs of 2026-11-25 published, item B19; request R4 implemented, decision 62; standard set as boundary panel, decision 63; five copies of people a day on the review page, decision 65).
 
 ## Links
 
@@ -39,6 +39,10 @@ Note (agent side, 2026-11-26, decision 63): the standard set is the boundary pan
 one measure of the convention across a range from right to wrong, every standard copy is a boundary attempt, and the
 standard copies are drawn at every run again. Answers on them give, per measure, where reviewers stop accepting
 (`node tools/agent_boundaries.js`).
+
+Note (agent side, 2026-11-26, decision 65): the review page shows five copies of people per weekday in a panel
+"Drawings of people" (same for every reviewer, agents' copy questions); people's entries files are no longer shown
+as runs by default. Answers keep the attempt's key, so `tools/measure.js` reads them as before.
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver

@@ -122,6 +122,9 @@ details.habits dd { margin: 0; }
 .todo { margin-top: 8px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .todo button { font: inherit; font-size: 12.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--fg); cursor: pointer; }
 .upload { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#people { margin-top: 10px; }
+.people-task { display: grid; gap: 4px; font-size: 13px; }
+.people-task .mol { max-width: 200px; }
 details.convention > summary { cursor: pointer; }
 details.convention > summary h2 { display: inline; }
 details.convention[open] > summary { margin-bottom: 12px; }
@@ -131,7 +134,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
   <header class="intro">
     <h1>Agent tester review</h1>
     <p class="muted">Agent testers john0002, john0003, and so on: synthetic entries, never tester data. Every run is kept here; new runs are added, none is replaced.</p>
-    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session.</p>
+    <p>The arrows next to “Runs” go from one run date to another; the runs of the date shown are listed, and each task shows them side by side, with the ink of each attempt as the page recorded it. For each attempt, mark it if a person would not draw it, and say whether it should have given the right structure. When the right structure was not found, the structure the page gave (or its message) is shown: say whether that outcome is right for this ink. Your answers are saved with this page under your account, apart from those of other reviewers, who do not see them; the owner sees everyone's answers and can read them back in the Claude session. Below the runs, “Drawings of people” shows five structures copied by people each weekday, with the same questions.</p>
   </header>
 
   <details class="panel convention" id="convention-panel">
@@ -155,6 +158,12 @@ details.convention[open] > summary { margin-bottom: 12px; }
       <span class="status" id="upload-status"></span>
     </div>
     <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" id="people-panel" hidden>
+    <h2 style="margin-bottom:4px">Drawings of people</h2>
+    <p class="status" id="people-status"></p>
+    <div class="cols" id="people"></div>
   </section>
 
   <section class="panel" id="reviewers-panel" hidden>
@@ -212,8 +221,12 @@ details.convention[open] > summary { margin-bottom: 12px; }
   // ---------- state ----------
   const runs = new Map(); // runId -> run document
   const loaded = new Map(); // runId -> { attempts, svg } once read
-  const loading = new Set();
   let selected = [];
+  // people's entries files added from the page (not files of failures only): shown five copies a day in the panel
+  // "Drawings of people" (decision 65)
+  const inPanel = (r) => !!r.person && !!r.fromDb && !r.failuresOnly;
+  const peopleCards = new Map();
+  let peopleShown = [], peopleOf = null;
   // answers of each reviewer (reviewer id -> Map(attempt key -> answer)); the page shows those of viewAs
   const answers = new Map();
   let me = null, viewAs = null, seeAll = false, isOwner = false, userApi = null;
@@ -378,7 +391,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     }
     return svg;
   }
-  const lookup = (field, smi) => { for (const id of selected) { const L = loaded.get(id); if (L && L[field] && L[field][smi]) return L[field][smi]; } return null; };
+  // the runs shown first, then every run read (the people's runs of the panel "Drawings of people")
+  const lookup = (field, smi) => { for (const id of selected.concat([...loaded.keys()])) { const L = loaded.get(id); if (L && L[field] && L[field][smi]) return L[field][smi]; } return null; };
   // structures shown are drawn by the page from their layout (hydrogens of heteroatoms as bonds); RDKit's drawing
   // is the fallback for runs published without layouts
   const mol = (smi) => {
@@ -552,8 +566,9 @@ details.convention[open] > summary { margin-bottom: 12px; }
     return box;
   }
 
-  function reviewBlock(a) {
-    const k = keyOf(a);
+  // tag: '' for the cards of the runs shown, 'p:' for those of the panel "Drawings of people" (one attempt can be in both)
+  function reviewBlock(a, tag) {
+    const k = keyOf(a), tk = (tag || '') + k;
     const box = el('div', { class: 'review' });
     const status = el('span', { class: 'status' });
     const T1 = a.type === 'T1';
@@ -597,7 +612,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       box.appendChild(q);
       if (field === 'outcome') { earlier = el('p', { class: 'note muted' }); box.appendChild(earlier); }
     }
-    const ta = el('textarea', { id: 'note-' + k, rows: '2', maxlength: '1000', placeholder: 'Note (optional)' });
+    const ta = el('textarea', { id: 'note-' + tk, rows: '2', maxlength: '1000', placeholder: 'Note (optional)' });
     const saveBtn = el('button', { class: 'save', type: 'button', text: 'Save note' });
     saveBtn.onclick = () => save({ note: ta.value.trim() });
     box.appendChild(ta);
@@ -610,7 +625,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       try {
         await ensureReviewer();
         await db.doc('reviews/' + me + '/answers/' + k).set(next);
-        reviews.set(k, next); refresh(); setProgress(); renderRuns();
+        reviews.set(k, next); for (const t of ['', 'p:']) { const f = refreshers.get(t + k); if (f) f(); } setProgress(); renderRuns();
         status.textContent = 'Saved';
       } catch (e) {
         if (e && e.code === 'invalid_argument') { canWrite = false; status.textContent = 'You can read this page but not save answers.'; refreshAll(); }
@@ -628,14 +643,14 @@ details.convention[open] > summary { margin-bottom: 12px; }
       if (document.activeElement !== ta) ta.value = r.note || '';
       ta.disabled = !writable(); saveBtn.disabled = !writable();
     }
-    refreshers.set(k, refresh);
+    refreshers.set(tk, refresh);
     refresh();
     return box;
   }
   const writable = () => !!db && canWrite && !!me && viewAs === me;
   const refreshAll = () => { for (const f of refreshers.values()) f(); setProgress(); };
 
-  function attemptCard(a) {
+  function attemptCard(a, tag) {
     const acc = personArrows(a) ? acceptedOf(a) : null;
     const [cls, txt] = personArrows(a)
       ? (acc ? ['ok', () => 'reading ' + acc.k + ' accepted by the tester'] : a.outcome === 'no-reading' ? ['warn', () => 'no reading'] : ['warn', () => (a.accepted === undefined ? 'accepted reading not recorded' : 'no reading accepted')])
@@ -647,7 +662,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     if (a.outcome === 'accepted' && !personArrows(a)) card.appendChild(el('p', { class: 'note', text: 'The right structure was found: reading ' + a.rank + ' of ' + a.readings.length + ' offered.' }));
     if (a.outcome === 'confirmed') card.appendChild(el('p', { class: 'note', text: 'The right structure was found: the drawing was read as the structure to copy.' }));
     if (a.remarks) for (const t of a.remarks) card.appendChild(el('p', { class: 'note', text: 'Remark of the tester: ' + t }));
-    card.appendChild(reviewBlock(a));
+    card.appendChild(reviewBlock(a, tag));
     if (a.person) { card.appendChild(el('p', { class: 'note muted', text: 'Drawn by a person' + (a.seconds != null ? ' in ' + a.seconds + ' s' : '') + '.' })); return card; }
     const hb = el('details', { class: 'habits' }, [el('summary', { text: 'Habits used in this drawing (seed ' + a.seed + ')' })]);
     const dl = el('dl');
@@ -673,15 +688,17 @@ details.convention[open] > summary { margin-bottom: 12px; }
   };
   const todayNY = dateNY(new Date());
   let laterRuns = 0;
-  let day = null;
+  let day = null, indexRead = false;
   const dates = () => [...new Set([...runs.values()].map((r) => r.date))].sort();
   const runsOf = (d) => [...runs.values()].filter((r) => r.date === d).map((r) => r.runId).sort();
   const keepSelection = () => { try { localStorage.setItem(KEEP, JSON.stringify({ day, selected, known: runsOf(day) })); } catch (e) { /* storage unavailable */ } };
   // shown by default: the newest run of each tester on that date (a run made again with a new ink replaces the
   // earlier one in the view; both stay listed). A selection kept in this browser is used until a run is added.
+  // People's entries files are not shown by default: their copies come five a day in the panel "Drawings of people"
+  // (decision 65); the file can still be ticked.
   function newestPerTester(d) {
     const best = new Map();
-    for (const r of runs.values()) if (r.date === d) { const b = best.get(r.tester); if (!b || String(r.added || '') > String(b.added || '')) best.set(r.tester, r); }
+    for (const r of runs.values()) if (r.date === d && !inPanel(r)) { const b = best.get(r.tester); if (!b || String(r.added || '') > String(b.added || '')) best.set(r.tester, r); }
     return [...best.values()].map((r) => r.runId);
   }
   function showDay(d, keep) {
@@ -693,6 +710,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
     keepSelection();
     renderRuns();
     loadSelected();
+    renderPeople();
   }
   $('day-prev').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i > 0) showDay(ds[i - 1]); };
   $('day-next').onclick = () => { const ds = dates(), i = ds.indexOf(day); if (i >= 0 && i < ds.length - 1) showDay(ds[i + 1]); };
@@ -708,8 +726,16 @@ details.convention[open] > summary { margin-bottom: 12px; }
     for (const k of reviews.keys()) if (answered(reviews.get(k))) { const id = k.split('__')[0]; mineBy.set(id, (mineBy.get(id) || 0) + 1); }
     const left = new Map();
     for (const r of runs.values()) {
+      if (inPanel(r)) continue;
       const n = Math.max(0, (r.listedCount !== undefined ? r.listedCount : r.attemptCount || 0) - (mineBy.get(r.runId) || 0));
       if (n) left.set(r.date, (left.get(r.date) || 0) + n);
+    }
+    // the five copies of people of each date up to today (panel "Drawings of people")
+    for (const d of dates()) {
+      if (d > todayNY) continue;
+      const b = peopleBatch(d);
+      const n = b.state === 'ready' ? b.items.filter((a) => !isReviewed(a)).length : 0;
+      if (n) left.set(d, (left.get(d) || 0) + n);
     }
     const ds = [...left.keys()].sort();
     box.hidden = !ds.length;
@@ -723,6 +749,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
   }
   function renderRuns() {
     renderTodo();
+    peopleStatus();
     const t = $('runs');
     t.textContent = '';
     const ds = dates(), i = ds.indexOf(day);
@@ -760,13 +787,16 @@ details.convention[open] > summary { margin-bottom: 12px; }
     const rb = $('report-box');
     rb.textContent = '';
     if (reportOf && runs.get(reportOf) && runs.get(reportOf).report) rb.appendChild(el('div', { class: 'report', text: 'Report of ' + reportOf + '\n\n' + runs.get(reportOf).report }));
-    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each tester. Tick or untick a run to show or hide it.' + (hiddenRuns ? ' Runs drawn with ink ' + HIDDEN_INK.join(', ') + ' are not listed (' + hiddenRuns + ').' : '') + (laterRuns ? ' Runs of Saturday and Sunday are listed from Monday (' + laterRuns + ' waiting).' : '');
+    $('runs-status').textContent = list.length + ' run' + (list.length > 1 ? 's' : '') + ' on ' + day + ' (date ' + (i + 1) + ' of ' + ds.length + '). Shown by default: the newest run of each agent tester (people\u2019s files: five copies a day in \u201cDrawings of people\u201d). Tick or untick a run to show or hide it.' + (hiddenRuns ? ' Runs drawn with ink ' + HIDDEN_INK.join(', ') + ' are not listed (' + hiddenRuns + ').' : '') + (laterRuns ? ' Runs of Saturday and Sunday are listed from Monday (' + laterRuns + ' waiting).' : '');
   }
 
-  async function loadSelected() {
-    for (const id of selected) {
-      if (loaded.has(id) || loading.has(id) || !runs.has(id)) continue;
-      loading.add(id);
+  // One run read once (file published with the page, or upload in the page's database); callers wait for the same read.
+  const pending = new Map();
+  const unreadable = new Set();
+  function loadRun(id) {
+    if (loaded.has(id) || unreadable.has(id) || !runs.has(id)) return Promise.resolve();
+    if (pending.has(id)) return pending.get(id);
+    const p = (async () => {
       try {
         const r = runs.get(id);
         let data;
@@ -782,13 +812,19 @@ details.convention[open] > summary { margin-bottom: 12px; }
           // runs published before 2026-11-16 keep their layouts in a separate file
           try { const sr = await fetch(r.file.replace(/\.json$/, '.scenes.json')); if (sr.ok) scenes = (await sr.json()).scenes || null; } catch (e) { scenes = null; }
         }
-        runs.set(id, Object.assign({}, r, { tasks: data.tasks || [] }));
+        runs.set(id, Object.assign({}, runs.get(id), { tasks: data.tasks || [] }));
         loaded.set(id, { attempts, svg: data.svg || {}, scenes: scenes || {} });
       } catch (e) {
+        unreadable.add(id);
         $('runs-status').textContent = 'Run ' + id + ' could not be read: ' + ((e && e.message) || 'error') + '.';
       }
-      loading.delete(id);
-    }
+      pending.delete(id);
+    })();
+    pending.set(id, p);
+    return p;
+  }
+  async function loadSelected() {
+    for (const id of selected) await loadRun(id);
     render();
   }
 
@@ -853,6 +889,87 @@ details.convention[open] > summary { margin-bottom: 12px; }
   }
   render();
 
+  // ---------- drawings of people (user, 2026-11-26; decision 65) ----------
+  // Five copies of people per weekday, the same for every reviewer, with the questions asked on the agents' copies.
+  // Pool of a date: the copies with ink of the people's entries files added up to that date (New York date of the
+  // upload; files of failures only are not used), files in the order they were added; the copies of one file in a fixed
+  // mixed order that takes one copy of each task before a second one (tasks and copies ordered by a hash of their
+  // keys), so that the five copies of a day are of different tasks while the file has enough. The k-th weekday from the date of the first file takes copies 5k to 5k + 4
+  // of the pool, from the start again once the pool is used up; Saturday and Sunday show Friday's copies. A date's
+  // copies therefore never change once the date is past. Answers are those of the attempt (same key as when the file
+  // is shown as a run).
+  const PEOPLE_PER_DAY = 5;
+  const peopleRuns = () => [...runs.values()].filter((r) => inPanel(r) && !unreadable.has(r.runId))
+    .sort((x, y) => String(x.added || '').localeCompare(String(y.added || '')) || x.runId.localeCompare(y.runId));
+  const hashOf = (t) => {
+    let h = 2166136261;
+    for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+    return h >>> 0;
+  };
+  const byHash = (f) => (x, y) => hashOf(f(x)) - hashOf(f(y)) || f(x).localeCompare(f(y));
+  // weekdays counted from Monday 1970-01-05; Saturday and Sunday take the number of the Friday before
+  const weekdayNo = (d) => { const n = Math.round((Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) - Date.UTC(1970, 0, 5)) / 864e5); const w = Math.floor(n / 7); return w * 5 + Math.min(n - 7 * w, 4); };
+  function peopleBatch(d) {
+    const list = d ? peopleRuns().filter((r) => r.date <= d) : [];
+    if (!list.length) return { state: 'none', items: [] };
+    if (list.some((r) => !loaded.has(r.runId))) return { state: 'loading', items: [] };
+    const pool = [];
+    for (const r of list) {
+      const groups = new Map();
+      // only copies whose structure to copy can be drawn from the file itself (its layout came from an agent run of the
+      // same set when the file was added; the daily set of 2026-11-13 has none), so that the pool depends on the file only
+      const L = loaded.get(r.runId);
+      const known = new Set((runs.get(r.runId).tasks || []).filter((t) => t.target && L.scenes[t.target]).map((t) => t.set + '/' + t.id));
+      for (const a of L.attempts) if (a.type === 'T2' && a.ink && a.ink.length && known.has(a.set + '/' + a.task)) { const t = r.runId + '/' + a.set + '/' + a.task; if (!groups.has(t)) groups.set(t, []); groups.get(t).push(a); }
+      const order = [...groups.keys()].sort(byHash((t) => t)).map((t) => groups.get(t).sort(byHash(keyOf)));
+      for (let i = 0; order.some((g) => i < g.length); i++) for (const g of order) if (i < g.length) pool.push(g[i]);
+    }
+    const k = weekdayNo(d) - weekdayNo(list.reduce((m, r) => (r.date < m ? r.date : m), list[0].date));
+    if (!pool.length || k < 0) return { state: 'none', items: [] };
+    const items = [];
+    for (let j = 0; j < Math.min(PEOPLE_PER_DAY, pool.length); j++) items.push(pool[(k * PEOPLE_PER_DAY + j) % pool.length]);
+    return { state: 'ready', items, k, size: pool.length };
+  }
+  async function loadPeople() {
+    const ids = peopleRuns().map((r) => r.runId).filter((id) => !loaded.has(id));
+    if (!ids.length) return;
+    await Promise.all(ids.map(loadRun));
+    renderPeople(); renderRuns();
+  }
+  function peopleCard(a) {
+    const k = keyOf(a);
+    if (peopleCards.has(k)) return peopleCards.get(k);
+    const t = ((runs.get(a.runId) || {}).tasks || []).find((x) => x.set === a.set && x.id === a.task);
+    const col = el('div', { class: 'col' }, [
+      el('div', { class: 'people-task' }, [
+        el('div', {}, [el('span', { class: 'tag', text: a.set === 'daily' ? 'daily set' : 'standard' }), el('span', { class: 'mono', text: a.task })]),
+        mol(t.target),
+        el('span', { class: 'note muted', text: 'structure to copy' }),
+      ]),
+      attemptCard(a, 'p:'),
+    ]);
+    peopleCards.set(k, col);
+    return col;
+  }
+  function renderPeople() {
+    const panel = $('people-panel'), box = $('people');
+    const b = peopleBatch(day);
+    panel.hidden = b.state === 'none';
+    box.textContent = '';
+    peopleShown = b.items; peopleOf = b;
+    if (b.state === 'loading') { $('people-status').textContent = 'Loading the drawings of people…'; loadPeople(); return; }
+    for (const a of b.items) box.appendChild(peopleCard(a));
+    peopleStatus();
+  }
+  function peopleStatus() {
+    if (!peopleShown.length) return;
+    const done = peopleShown.filter(isReviewed).length;
+    $('people-status').textContent = 'Structures copied by people, ' + PEOPLE_PER_DAY + ' a day: the same for every reviewer, new ones with each weekday shown above. Same questions as for the copies of the agent testers. '
+      + done + ' of ' + peopleShown.length + ' reviewed' + (viewAs && viewAs !== me ? ' by this reviewer' : me ? ' by you' : '') + '. Copies '
+      + ((peopleOf.k * PEOPLE_PER_DAY) % peopleOf.size + 1) + ' to ' + ((peopleOf.k * PEOPLE_PER_DAY + peopleShown.length - 1) % peopleOf.size + 1) + ' of the ' + peopleOf.size + ' in the people\u2019s files whose structure to copy can be drawn.';
+  }
+
   // ---------- runs (files published with the page) ----------
   // the date shown last in this browser, else the newest date
   function chooseDefault() {
@@ -877,6 +994,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     } catch (e) {
       $('runs-status').textContent = 'The list of runs could not be read: ' + ((e && e.message) || 'error') + '.';
     }
+    // the date is chosen once the published runs are known (uploads read earlier are already in runs)
+    indexRead = true;
     chooseDefault();
     if (!day) { renderRuns(); render(); }
   })();
@@ -899,8 +1018,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
       let added = false;
       // listed on the day the file was added (New York), not the day the tester saved it (request R4 session)
       for (const d of snap.docs) { const r = d.data(); if (r && r.runId && !runs.has(r.runId)) { const on = r.added ? dateNY(new Date(r.added)) : r.date; runs.set(r.runId, Object.assign({}, r, { fromDb: true, savedDate: r.date, date: on, visibleFrom: on })); added = true; } }
-      if (!added) return;
-      if (!day) chooseDefault(); else renderRuns();
+      if (!added || !indexRead) return;
+      if (!day) chooseDefault(); else { renderRuns(); renderPeople(); }
     }, () => { /* uploads not readable in this view */ });
   }
   // Task definitions, layouts and reference arrows from the newest agent run of each daily set (and of the standard set).
@@ -1097,7 +1216,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       let name = 'another reviewer';
       try { if (userApi) { const ps = await userApi.profiles([viewAs]); name = ps[viewAs].name || name; } } catch (e) { /* unresolved */ }
       const back = el('button', { class: 'chip', type: 'button', text: 'Back to my answers' });
-      back.onclick = () => { viewAs = me; cards.clear(); render(); renderReviewers(); renderRuns(); };
+      back.onclick = () => { viewAs = me; cards.clear(); peopleCards.clear(); render(); renderPeople(); renderReviewers(); renderRuns(); };
       v.appendChild(document.createTextNode('Answers of ' + name + ' (read only) '));
       v.appendChild(back);
     }
@@ -1106,7 +1225,8 @@ details.convention[open] > summary { margin-bottom: 12px; }
     let ps = {};
     try { if (userApi) ps = await userApi.profiles(ids); } catch (e) { ps = {}; }
     const ofDay = new Set([...runs.values()].filter((r) => r.date === day).map((r) => r.runId));
-    const inDay = (k) => ofDay.has(k.split('__')[0]);
+    const panelDay = new Set(peopleBatch(day).items.map(keyOf));
+    const inDay = (k) => ofDay.has(k.split('__')[0]) || panelDay.has(k);
     // disagreements on this date: attempts answered by two or more reviewers with different answers
     const byKey = new Map();
     for (const id of ids) for (const [k, a] of reviewsOf(id)) if (inDay(k) && answered(a)) { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); }
@@ -1122,7 +1242,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const p = ps[id] || {};
       const btn = el('button', { class: 'link', type: 'button', text: id === viewAs ? 'shown' : 'show answers' });
       btn.disabled = id === viewAs;
-      btn.onclick = () => { viewAs = id; cards.clear(); render(); renderReviewers(); renderRuns(); };
+      btn.onclick = () => { viewAs = id; cards.clear(); peopleCards.clear(); render(); renderPeople(); renderReviewers(); renderRuns(); };
       body.appendChild(el('tr', { class: id === viewAs ? 'on' : null }, [
         el('td', { text: (p.name || 'Someone') + (id === me ? ' (you)' : '') }),
         el('td', { class: 'num', text: String(mineAll) }),
