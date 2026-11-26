@@ -27,7 +27,7 @@ Last updated: 2026-11-26 (people side: decisions 53 to 55; request R3 to the age
 
 | Files | Side | What | Since | Until |
 |---|---|---|---|---|
-| – | – | none in progress | – | – |
+| `src/recognize.js`, `test/fixtures/` | people side | Improvement cycle 2: remaining causes of weakness cases 13 and 14 on the people's drawings (starts from recognizer 0.4.1) | 2026-11-26 | end of the cycle |
 
 Note (people side, 2026-11-21): pushed and finished: page 0.3.0 (comparison before the confirmation in copy tasks,
 `Tasks.differences`) and page 0.4.0 (arrow entries recorded as applied, answer check up to hydrogen positions; solver
