@@ -14,12 +14,18 @@
 // is relevant: the reviewers and the page differ at a value inside or next to the range people use (p10 to p90 of
 // data/ink_profile.json, pen; widened by one band; arrows have no measure of people, so every value counts), or two
 // reviewers differ at two values or more (more than one band apart). Unsure answers are left out.
+// Phase 2 (0.4.0): each task of a phase 2 round (tools/agent_panel.js --phase 2) refines one threshold of one measure
+// (target: centre, band of phase 1, side accepted). Determined when, going from the accepted side, one value has 80 %
+// or more "yes" and the next 20 % or less, each with at least 10 judgements; else the 50 % point (interpolated) is the
+// centre of the next round; after round 3 "no sharp threshold" with the width between the last value at 80 % or more
+// and the first at 20 % or less; when the 50 % points of two reviewers lie more than one band apart, "reviewers
+// disagree" (to the user).
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { BOUNDARY, ARROW_BOUNDARY } = require('./agent_ink.js');
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const arg = (name) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
 const RANGES = Object.assign({}, Object.fromEntries(['letterGap', 'secondLineLength', 'secondLineSpacing'].map((k) => [k, BOUNDARY[k]])),
@@ -69,8 +75,10 @@ function panelTable(runsDir, answersDir) {
   for (const f of walk(runsDir).filter((x) => x.endsWith('.json') && !x.endsWith('index.json'))) {
     let run; try { run = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { continue; }
     if (!run.panel || !run.tasks) continue;
+    const phase = (run.panel && run.panel.phase) || 1;
     for (const t of run.tasks) {
       const values = t.values;
+      const measure = t.measure || t.id;
       const all = values.map(() => ({ yes: 0, n: 0 }));
       const per = {}; // reviewer -> per value { yes, n }
       for (const a of run.attempts.filter((x) => x.task === t.id)) {
@@ -83,8 +91,13 @@ function panelTable(runsDir, answersDir) {
       }
       const accept = (cells) => cells.map((c) => (c.n ? c.yes / c.n >= 0.5 : null));
       const page = run.offline && run.offline[t.id] ? run.offline[t.id].read.map((k, i) => k / run.offline[t.id].n[i] >= 0.5) : values.map(() => null);
+      if (phase === 2) {
+        out.push(Object.assign({ runId: run.runId, phase: 2, round: run.panel.round, task: t.id, measure, chain: t.target.chain, target: t.target, values, all, per, page,
+          judged: all.reduce((m, c) => m + c.n, 0) }, phase2Rule(values, all, per, t.target)));
+        continue;
+      }
       const band = (t.range[1] - t.range[0]) / values.length;
-      const pr = profile[t.id] ? [profile[t.id].p10, profile[t.id].p90] : null;
+      const pr = profile[measure] ? [profile[measure].p10, profile[measure].p90] : null;
       const near = values.map((v) => !pr || (v >= pr[0] - band && v <= pr[1] + band));
       const rev = accept(all);
       const reasons = [];
@@ -96,11 +109,59 @@ function panelTable(runsDir, answersDir) {
         const d = values.filter((v, i) => ax[i] !== null && ay[i] !== null && ax[i] !== ay[i]).length;
         if (d >= 2) reasons.push('two reviewers differ at ' + d + ' values');
       }
-      out.push({ runId: run.runId, measure: t.id, values, all, per, reviewers: rev, page, people: pr, near, threshold: { reviewers: thresholds(values, rev), page: thresholds(values, page) },
+      out.push({ runId: run.runId, phase: 1, task: t.id, measure, band, range: t.range, values, all, per, reviewers: rev, page, people: pr, near, threshold: { reviewers: thresholds(values, rev), page: thresholds(values, page) },
+        cuts: { reviewers: cuts(values, rev), page: cuts(values, page), perReviewer: Object.fromEntries(ids.map((id) => [id, cuts(values, accept(per[id]))])) },
         perReviewer: Object.fromEntries(ids.map((id) => [id, thresholds(values, accept(per[id]))])), judged: all.reduce((m, c) => m + c.n, 0), relevant: reasons.length > 0, reasons });
     }
   }
   return out;
+}
+// the same as numbers: [{ lo, hi, center, accepted: 'lo' | 'hi' }] between neighbouring known values that differ
+function cuts(values, acc) {
+  const known = acc.map((x, i) => [x, i]).filter(([x]) => x !== null);
+  const out = [];
+  for (let k = 1; k < known.length; k++) {
+    const [a, i] = known[k - 1], [b, j] = known[k];
+    if (a !== b) out.push({ lo: values[i], hi: values[j], center: (values[i] + values[j]) / 2, accepted: a ? 'lo' : 'hi' });
+  }
+  return out;
+}
+// phase 2 rule on the cells of one task (values in any order); target: { band, accepted, round }
+function phase2Rule(values, all, per, target) {
+  const order = values.map((v, i) => i).sort((a, b) => (target.accepted === 'lo' ? values[a] - values[b] : values[b] - values[a]));
+  const sh = (c) => (c && c.n ? c.yes / c.n : null);
+  let determined = null;
+  for (let k = 1; k < order.length; k++) {
+    const a = all[order[k - 1]], b = all[order[k]];
+    if (a.n >= 10 && b.n >= 10 && sh(a) >= 0.8 && sh(b) <= 0.2) { determined = { lo: Math.min(values[order[k - 1]], values[order[k]]), hi: Math.max(values[order[k - 1]], values[order[k]]) }; break; }
+  }
+  const fifty = (cells) => {
+    const seq = order.map((i) => [values[i], sh(cells[i])]).filter(([, x]) => x !== null);
+    if (!seq.length) return null;
+    for (let k = 1; k < seq.length; k++) {
+      const [v0, s0] = seq[k - 1], [v1, s1] = seq[k];
+      if (s0 >= 0.5 && s1 < 0.5) return v0 + ((s0 - 0.5) / (s0 - s1)) * (v1 - v0);
+    }
+    const step = seq.length > 1 ? seq[1][0] - seq[0][0] : (target.band || 0) / 2;
+    // every value on one side of 50 %: the point lies beyond the values, one step further
+    return seq.every(([, x]) => x >= 0.5) ? seq[seq.length - 1][0] + step : seq[0][0] - step;
+  };
+  const f = fifty(all);
+  const perFifty = Object.fromEntries(Object.entries(per).map(([id, cells]) => [id, fifty(cells)]));
+  const fs2 = Object.values(perFifty).filter((x) => x !== null);
+  const disagree = fs2.length > 1 && Math.max(...fs2) - Math.min(...fs2) > target.band;
+  let width = null;
+  if (!determined) {
+    const seq = order.map((i) => [values[i], sh(all[i])]).filter(([, x]) => x !== null);
+    const a = [...seq].reverse().find(([, x]) => x >= 0.8), ia = a ? seq.indexOf(a) : -1;
+    const b = seq.find(([, x], k) => k > ia && x <= 0.2);
+    width = a && b ? Math.abs(b[0] - a[0]) : seq.length ? Math.abs(seq[seq.length - 1][0] - seq[0][0]) : null;
+  }
+  const outcome = determined ? 'determined between ' + determined.lo + ' and ' + determined.hi
+    : disagree ? 'reviewers disagree (50 % points ' + fs2.map((x) => x.toFixed(3)).join(', ') + ')'
+    : target.round >= 3 ? 'no sharp threshold (width ' + (width === null ? '?' : width.toFixed(3)) + ')'
+    : 'not determined: next round around ' + (f === null ? '?' : f.toFixed(3));
+  return { determined, fifty: f, perFifty, disagree, width, outcome };
 }
 // boundaries between neighbouring values where acceptance changes: "a | b" (accepted on the side shown first);
 // "all accepted", "none accepted" or "not judged"
@@ -117,7 +178,7 @@ function thresholds(values, acc) {
   return out.join('; ');
 }
 
-module.exports = { table, panelTable, thresholds, VERSION, RANGES };
+module.exports = { table, panelTable, thresholds, cuts, phase2Rule, VERSION, RANGES };
 
 if (require.main === module && process.argv.includes('--panel')) {
   const runs = arg('--runs'), answers = arg('--answers');
@@ -125,9 +186,18 @@ if (require.main === module && process.argv.includes('--panel')) {
   const rows = panelTable(runs, answers);
   if (!rows.length) { console.log('no panel run in ' + runs); process.exit(0); }
   const pct = (c) => (c.n ? c.yes + '/' + c.n : '–');
+  const p2 = rows.filter((r) => r.phase === 2);
+  if (p2.length) {
+    console.log('Phase 2');
+    console.log('| Panel | Round | Measure (target) | Values | Yes / judged per value | 50 % point | Outcome |');
+    console.log('|---|---|---|---|---|---|---|');
+    for (const r of p2) console.log('| ' + r.runId + ' | ' + r.round + ' | ' + r.measure + ' (' + r.chain + ') | ' + r.values.join(', ') + ' | ' + r.all.map(pct).join(', ') + ' | ' + (r.fifty === null ? '–' : r.fifty.toFixed(3)) + ' | ' + r.outcome + ' |');
+    console.log('');
+    console.log('Phase 1');
+  }
   console.log('| Panel | Measure | Values | Yes / judged per value | Reviewers\' threshold | Each reviewer | Page reads (offline) | Page\'s threshold | People (p10 to p90) | Relevant |');
   console.log('|---|---|---|---|---|---|---|---|---|---|');
-  for (const r of rows) {
+  for (const r of rows.filter((x) => x.phase === 1)) {
     console.log('| ' + r.runId + ' | ' + r.measure + ' | ' + r.values.join(', ') + ' | ' + r.all.map(pct).join(', ') + ' | ' + r.threshold.reviewers + ' | '
       + Object.entries(r.perReviewer).map(([id, t]) => id.slice(0, 8) + ': ' + t).join('<br>') + ' | ' + r.page.map((x) => (x === null ? '–' : x ? 'yes' : 'no')).join(', ') + ' | '
       + r.threshold.page + ' | ' + (r.people ? r.people.map((v) => v.toFixed(2)).join(' to ') : 'not measured') + ' | ' + (r.relevant ? 'yes: ' + r.reasons.join('; ') : r.judged ? 'no' : 'not judged') + ' |');

@@ -265,7 +265,23 @@ Thresholds of what reviewers accept come from a panel in which a drawing varies 
 - While a panel is open, review data 0.7.0 does not list boundary attempts of the daily runs (`listed` false); the
   scheduled task needs no change, since it passes the live index. To close a panel:
   `node tools/agent_panel.js --close <runId> --index <runs/index.json of the live page> --out <dir>`, then publish
-  `runs/index.json`. Phase 2 (relevant measures only) is not written yet.
+  `runs/index.json`.
+- Phase 2 (`tools/agent_panel.js` 0.2.0, `tools/agent_boundaries.js` 0.4.0, decision 74):
+  `node tools/agent_panel.js --phase 2 --runs <dir> --answers <dir> --out <dir> --index <live runs/index.json>` reads
+  the panel runs and the answers (export as for `tools/measure.js`) and writes the next round, `<date>_panel2r<round>`:
+  round 1 takes the measures phase 1 marks relevant, around the reviewers' threshold (else the page's, else each
+  reviewer's; one target per threshold); rounds 2 and 3 take the targets not determined, around their 50 % point. A
+  target has 4 values half a band of phase 1 apart (kept inside the range) and 6 drawings per value (simple structure
+  4 times, crowded twice; no drawing repeated), 24 drawings. Rule (`--panel` of `tools/agent_boundaries.js`):
+  determined when, from the accepted side, one value has 80 % or more "yes" and the next 20 % or less, each with at
+  least 10 judgements; "reviewers disagree" when the 50 % points of two reviewers lie more than a band apart; after
+  round 3 "no sharp threshold" with its width. The tool waits (exit 2) while the round before has fewer than 6
+  judgements per value (phase 1) or 10 (phase 2), unless `--force`. A new round closes every other open panel; when
+  nothing is left it closes the last one. Publish the files it prints with the review page, which shows the phase and
+  round. Checked on made-up answers of two reviewers (letter gap determined in round 2, end on an atom "reviewers
+  disagree" after round 1, a gradual reviewer "no sharp threshold" after round 3); no real answers yet.
+- The phase 1 panel published on 2026-11-26 repeats one drawing per value for the end of a new bond (its two
+  structures are the same step and had the same seed); later builds keep the seeds apart.
 - Offline reading of the phase 1 values (panel of 2026-11-26): the page reads every value of the eight measures other
   than the letter gap; the letter gap is not read at 0.45 L (0 of 20) and is read below it. So any "no" of the
   reviewers at a value the page reads points to a reading too permissive there.

@@ -536,6 +536,54 @@ test('panel tool: 9 measures x 5 values x 3 drawings, values at band centres, fi
   fs.rmSync(out, { recursive: true, force: true });
 });
 
+test('panel phase 2: the 80 / 20 rule, the 50 % point, no sharp threshold after round 3, reviewers who disagree; values inside the range', () => {
+  const B = require('../tools/agent_boundaries.js');
+  const P = require('../tools/agent_panel.js');
+  const c = (y, n) => ({ yes: y, n });
+  const t = { band: 0.1, accepted: 'lo', round: 1 };
+  ok(B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(12, 12), c(11, 12), c(1, 12), c(0, 12)], {}, t).determined.lo === 0.25, 'determined');
+  ok(!B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(9, 9), c(9, 9), c(0, 9), c(0, 9)], {}, t).determined, 'fewer than 10 judgements: not determined');
+  const nd = B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(12, 12), c(8, 12), c(5, 12), c(2, 12)], {}, t);
+  ok(!nd.determined && Math.abs(nd.fifty - 0.2833) < 1e-3 && /next round/.test(nd.outcome), 'next round around the 50 % point: ' + nd.outcome);
+  ok(/no sharp threshold/.test(B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(12, 12), c(8, 12), c(5, 12), c(2, 12)], {}, Object.assign({}, t, { round: 3 })).outcome), 'round 3');
+  const dis = B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(12, 12), c(6, 12), c(6, 12), c(6, 12)], { a: [c(6, 6), c(6, 6), c(6, 6), c(6, 6)], b: [c(6, 6), c(0, 6), c(0, 6), c(0, 6)] }, t);
+  ok(dis.disagree && /reviewers disagree/.test(dis.outcome), 'disagree');
+  const hi = B.phase2Rule([0.2, 0.25, 0.3, 0.35], [c(0, 12), c(1, 12), c(11, 12), c(12, 12)], {}, Object.assign({}, t, { accepted: 'hi' }));
+  ok(hi.determined && hi.determined.lo === 0.25 && hi.determined.hi === 0.3, 'accepted on the high side');
+  const v = P.targetValues({ center: 0.02, band: 0.1, range: [0, 0.5] });
+  ok(v.length === 4 && v[0] === 0 && Math.abs(v[1] - v[0] - 0.05) < 1e-9, 'values kept inside the range: ' + v.join());
+});
+
+test('panel phase 2: from phase 1 answers the tool writes round 1 for the relevant measures only (4 values x 6 drawings), and closes the open panel', () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'panel2-'));
+  const tool = path.join(__dirname, '..', 'tools', 'agent_panel.js');
+  execFileSync('node', [tool, '--out', path.join(out, 'p1'), '--date', '2026-01-05', '--seeds', '1'], { stdio: 'pipe' });
+  const run1 = JSON.parse(fs.readFileSync(path.join(out, 'p1', 'runs', '2026-01-05_panel1.json'), 'utf8'));
+  // two reviewers: letter gap accepted below 0.3, every other measure accepted at every value
+  for (const id of ['r1', 'r2']) {
+    const d = path.join(out, 'answers', 'reviews', id, 'answers');
+    fs.mkdirSync(d, { recursive: true });
+    for (const a of run1.attempts) fs.writeFileSync(path.join(d, [run1.runId, a.set, a.task, a.attempt].join('__') + '.json'),
+      JSON.stringify({ runId: run1.runId, set: 'panel', task: a.task, attempt: a.attempt, expected: a.task === 'letterGap' && a.boundary.value > 0.3 ? 'no' : 'yes', asked: 'panel', reviewer: id }));
+  }
+  const log = execFileSync('node', [tool, '--phase', '2', '--runs', path.join(out, 'p1', 'runs'), '--answers', path.join(out, 'answers'), '--out', path.join(out, 'p2'),
+    '--index', path.join(out, 'p1', 'runs', 'index.json'), '--date', '2026-01-06', '--seeds', '1'], { stdio: 'pipe' }).toString();
+  const run2 = JSON.parse(fs.readFileSync(path.join(out, 'p2', 'runs', '2026-01-06_panel2r1.json'), 'utf8'));
+  const index = JSON.parse(fs.readFileSync(path.join(out, 'p2', 'runs', 'index.json'), 'utf8'));
+  // the page reads the letter gap up to 0.35 and the reviewers up to 0.25: relevant; the others closed
+  ok(run2.tasks.length === 1 && run2.tasks[0].measure === 'letterGap' && run2.tasks[0].target.round === 1, 'targets ' + run2.tasks.map((t) => t.id).join());
+  ok(run2.tasks[0].values.length === 4 && run2.attempts.length === 24 && run2.panel.phase === 2 && run2.panel.round === 1, 'round size');
+  ok(run2.tasks[0].values[0] < 0.3 && run2.tasks[0].values[3] > 0.3, 'values around the threshold: ' + run2.tasks[0].values.join());
+  ok(new Set(run2.attempts.map((a) => a.seed + a.structure + a.boundary.value)).size === 24, 'no drawing repeated');
+  ok(index.length === 2 && index[0].panel.open === false && index[1].panel.open === true, 'phase 1 closed, round 1 open');
+  ok(/closed in phase 1/.test(log), 'closed measures listed');
+  // round 1 not judged yet: the next call waits
+  let waited = false;
+  try { execFileSync('node', [tool, '--phase', '2', '--runs', path.join(out, 'p2', 'runs'), '--answers', path.join(out, 'answers'), '--out', path.join(out, 'p3'), '--seeds', '1'], { stdio: 'pipe' }); } catch (e) { waited = e.status === 2; }
+  ok(waited, 'waits for judgements');
+  fs.rmSync(out, { recursive: true, force: true });
+});
+
 fs.rmSync(dir6, { recursive: true, force: true });
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(pass + '/' + total + ' passed');
