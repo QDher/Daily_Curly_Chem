@@ -5,6 +5,11 @@
 // The order of the 15 drawings of a measure is mixed by a fixed hash, the same for every reviewer. The run also holds
 // the offline reading of the same values on more drawings (copies: src/recognize.js, read exactly; arrows:
 // src/readings.js, the intended structure among the readings): the threshold of the page for tools/agent_boundaries.js.
+// Second pass of phase 1 (0.3.0, user 2026-11-27): --pass 2 writes <date>_panel1b, the same 9 measures with values
+// shifted by half a band (lo + k band, k = 0 to 4; with the first pass, 10 values per measure) on two other structures
+// per measure (STRUCTURES2; the end of a new bond keeps the step ALDOL, the only one with such an arrow), so that the
+// thresholds are located twice as finely and checked on other structures. tools/agent_boundaries.js adds the passes
+// of a measure together. Writing it closes the first pass in the index (its answers are kept).
 // Phase 2 (0.2.0; decision 71, phase 2): --phase 2 reads the panel runs and the reviewers' answers (export as in
 // docs/INTERFACES.md I4c) and writes the next round: for each threshold to refine, 4 values half a band (of phase 1)
 // apart around it (the two around the threshold and their neighbours, kept inside the range), 6 drawings per value
@@ -15,6 +20,7 @@
 // refuses while the round before has fewer judgements than the rule needs (phase 1: 6 per value, both reviewers;
 // phase 2: 10 per value), unless --force. Writing a round closes every other open panel in the index.
 // Run: node tools/agent_panel.js --out <dir> [--date YYYY-MM-DD] [--index <runs/index.json of the live page>] [--seeds 10]
+//      node tools/agent_panel.js --pass 2 --out <dir> [--date] [--index <file>]   (second pass of phase 1)
 //      node tools/agent_panel.js --phase 2 --runs <dir> --answers <dir> --out <dir> [--index <file>] [--date] [--force]
 //      node tools/agent_panel.js --close <runId> --index <runs/index.json> --out <dir>   (marks the panel closed)
 // Writes <dir>/runs/<runId>.json and <dir>/runs/index.json (the given index plus the panel line), and prints the
@@ -29,7 +35,7 @@ const Arrows = require('../src/arrows.js');
 const Readings = require('../src/readings.js');
 const Recognize = require('../src/recognize.js');
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const repo = path.join(__dirname, '..');
 const arg = (name, def) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : def; };
 const BOX = { x: 0, y: 0, w: 16, h: 9 };
@@ -52,6 +58,19 @@ const STRUCTURES = {
   atomEnd: [['standard', 't1-substitution', 1], ['standard', 't1-addition', 1]],
   pairEnd: [['sheet', 'ALDOL', 2], ['sheet', 'ALDOL', 2]],
 };
+// second pass of phase 1: two other structures per measure (checked to be read as intended at a value inside the
+// convention, offline)
+const STRUCTURES2 = {
+  letterGap: [['2026-11-16', 'd20261116-c4'], ['2026-11-13', 'd20261113-c8']],
+  secondLineLength: [['2026-11-19', 'd20261119-c1'], ['2026-11-20', 'd20261120-c2']],
+  secondLineSpacing: [['2026-11-19', 'd20261119-c1'], ['2026-11-20', 'd20261120-c2']],
+  lpDistance: [['standard', 't1-water-loss', 1], ['standard', 't1-collapse', 1]],
+  lpAngle: [['standard', 't1-water-loss', 1], ['standard', 't1-collapse', 1]],
+  bondStart: [['standard', 't1-water-loss', 2], ['standard', 't1-collapse', 2]],
+  multipleStart: [['2026-11-17', 'd20261117-a4', 2], ['2026-11-20', 'd20261120-a2', 2]],
+  atomEnd: [['2026-11-20', 'd20261120-a5', 1], ['2026-11-16', 'd20261116-a3', 1]],
+  pairEnd: [['sheet', 'ALDOL', 2], ['sheet', 'ALDOL', 2]],
+};
 const COPY = ['letterGap', 'secondLineLength', 'secondLineSpacing'];
 // heading of a measure on the review page (each drawing asks its own question, which names the element)
 const HEADING = {
@@ -62,7 +81,8 @@ const HEADING = {
   pairEnd: 'Does the marked arrow form a new bond between the two marked atoms?',
 };
 const rangeOf = (m) => (COPY.includes(m) ? Ink.BOUNDARY[m] : Ink.ARROW_BOUNDARY[m].range);
-const valuesOf = (m) => { const [lo, hi] = rangeOf(m); return [0, 1, 2, 3, 4].map((i) => r3(lo + ((hi - lo) * (i + 0.5)) / 5)); };
+// band centres (first pass) or band starts (second pass, half a band lower)
+const valuesOf = (m, pass) => { const [lo, hi] = rangeOf(m); return [0, 1, 2, 3, 4].map((i) => r3(lo + ((hi - lo) * (i + (pass === 2 ? 0 : 0.5))) / 5)); };
 const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; return h >>> 0; };
 
 function taskOf(set, id) {
@@ -183,9 +203,10 @@ const runDoc = (runId, date, panel, parts) => ({ runId, date, tester: 'panel', l
   attempts: [].concat(...parts.map((x) => x.attempts)), offline: Object.fromEntries(parts.map((x) => [x.task.id, x.offline])), scenes: {}, svg: {},
   versions: { ink: Ink.VERSION, panel: VERSION, recognize: Recognize.VERSION, readings: Readings.VERSION, arrows: Arrows.VERSION } });
 
-function build(R, date, seeds) {
-  const parts = Object.keys(STRUCTURES).map((m) => taskRun(R, m, STRUCTURES[m].map((s) => prepare(R, m, s)), m, valuesOf(m), [[0, 1], [0, 2], [1, 1]], seeds));
-  return runDoc(date + '_panel1', date, { phase: 1, open: true }, parts);
+function build(R, date, seeds, pass) {
+  const S = pass === 2 ? STRUCTURES2 : STRUCTURES;
+  const parts = Object.keys(S).map((m) => taskRun(R, m, S[m].map((s) => prepare(R, m, s)), m, valuesOf(m, pass), pass === 2 ? [[0, 11], [0, 12], [1, 11]] : [[0, 1], [0, 2], [1, 1]], seeds));
+  return runDoc(date + (pass === 2 ? '_panel1b' : '_panel1'), date, pass === 2 ? { phase: 1, pass: 2, open: true } : { phase: 1, open: true }, parts);
 }
 
 // values of a phase 2 target: 4 values half a band apart around its centre, inside the range
@@ -241,7 +262,7 @@ function buildRound(R, date, targets, seeds) {
 function indexLine(run, file) {
   const p = run.panel;
   return { runId: run.runId, date: run.date, visibleFrom: run.date, tester: 'panel', label: 'panel', panel: p, file, ink: run.ink, script: run.script,
-    traits: { text: p.phase === 2 ? 'boundary panel, phase 2, round ' + p.round + ': finer values around the thresholds' : 'boundary panel, phase 1: one measure varied per drawing' },
+    traits: { text: p.phase === 2 ? 'boundary panel, phase 2, round ' + p.round + ': finer values around the thresholds' : 'boundary panel, phase 1' + (p.pass === 2 ? ', second pass (values shifted by half a band, other structures)' : '') + ': one measure varied per drawing' },
     attemptCount: run.attempts.length, listedCount: run.attempts.length,
     summary: { tasks: run.tasks.length, values: run.tasks.length ? run.tasks[0].values.length : 0, drawings: run.tasks.length ? run.attempts.length / run.tasks.length / run.tasks[0].values.length : 0 },
     added: new Date().toISOString(), source: 'tools/agent_panel.js ' + VERSION };
@@ -252,7 +273,7 @@ function addToIndex(index, run, file) {
   index.push(indexLine(run, file));
 }
 
-module.exports = { build, buildRound, plan2, targetValues, STRUCTURES, valuesOf, VERSION };
+module.exports = { build, buildRound, plan2, targetValues, STRUCTURES, STRUCTURES2, valuesOf, VERSION };
 
 if (require.main === module) {
   const out = arg('--out');
@@ -289,7 +310,7 @@ if (require.main === module) {
     for (const t of plan.targets) console.log('round ' + t.round + ' ' + t.chain + ': around ' + t.center + ' (' + t.source + ', accepted on the ' + (t.accepted === 'lo' ? 'low' : 'high') + ' side), values ' + targetValues(t).join(', '));
   }
   require('@rdkit/rdkit')({ locateFile: (f) => path.join(path.dirname(require.resolve('@rdkit/rdkit')), f) }).then((R) => {
-    const run = plan ? buildRound(R, date, plan.targets, Number(arg('--seeds', 10))) : build(R, date, Number(arg('--seeds', 10)));
+    const run = plan ? buildRound(R, date, plan.targets, Number(arg('--seeds', 10))) : build(R, date, Number(arg('--seeds', 10)), Number(arg('--pass', 1)));
     if (index.some((r) => r.runId === run.runId)) { console.log('run ' + run.runId + ' is already in the index'); process.exit(2); }
     const file = 'runs/' + run.runId + '.json';
     fs.writeFileSync(path.join(out, file), JSON.stringify(run));

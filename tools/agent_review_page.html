@@ -1056,6 +1056,7 @@ details.convention[open] > summary { margin-bottom: 12px; }
       const data = panelData.get(r.runId);
       if (!data) { box.appendChild(el('p', { class: 'status', text: 'Loading the panel…' })); continue; }
       if (r.panel.phase === 2) box.appendChild(el('p', { class: 'note muted', text: 'Phase 2, round ' + r.panel.round + ': finer values around the places where answers changed.' }));
+      if (r.panel.phase === 1 && r.panel.pass === 2) box.appendChild(el('p', { class: 'note muted', text: 'Second pass: other structures and other values than the first panel.' }));
       for (const t of data.tasks || []) {
         const list = data.attempts.filter((a) => a.task === t.id).sort((x, y) => x.attempt - y.attempt);
         const done = list.filter(isReviewed).length;

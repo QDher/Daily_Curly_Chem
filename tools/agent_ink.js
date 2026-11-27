@@ -28,12 +28,13 @@
 // the probability to go on drawing through the next bond is set per pointer type so that the bonds per stroke match
 // people's (TRAIL). Together these bring the joint gap measured by tools/compare_ink.js to that of people.
 // Ink 0.8.0 (request R6, decision 71): panel drawings (panelCopy, panelArrows), one measure varied and the rest at
-// people's median or ideal; the daily testers draw as with ink 0.7.0.
+// people's median or ideal; the daily testers draw as with ink 0.7.0. Ink 0.8.1: in panel drawings an arc whose two
+// sides are equally clear bulges to the same side in every drawing (before, the seed chose it).
 // Not a model of real handwriting. All randomness comes from seeds: the same writer, task and seed give the
 // same ink. Coordinates are in scene units (bond length of rendered structures 1.5).
 'use strict';
 
-const VERSION = '0.8.0';
+const VERSION = '0.8.1';
 
 // Named testers (john0002, john0003, ...): traits and seed of each, and the daily rotation.
 const TESTERS = require('./agent_testers.json');
@@ -967,7 +968,8 @@ const mid = (r) => (r[0] + r[1]) / 2;
 function panelDrawing(seed) {
   const style = {};
   for (const [k, r] of Object.entries(HABITS).concat(Object.entries(HABITS2))) style[k] = mid(r);
-  Object.assign(style, { pairAtom: 0, chargeStart: 0, arrowLeft: 0.5, lpFacing: 0.5 });
+  // arrowLeft 0: when both sides of an arc are equally clear, the same side in every drawing (ink 0.8.1)
+  Object.assign(style, { pairAtom: 0, chargeStart: 0, arrowLeft: 0, lpFacing: 0.5 });
   const noise = { end: 0, geometry: 0, wobble: PRECISION.high.wobble, arrowStart: 0, arrowEnd: 0, click: 0, angle: 0, care: 1, breakRate: 0 };
   return { seed, style, noise, r: rng(seedOf(seed, 'panel')), rc: rng(seedOf(seed, 'panel convention')) };
 }

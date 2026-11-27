@@ -20,12 +20,15 @@
 // centre of the next round; after round 3 "no sharp threshold" with the width between the last value at 80 % or more
 // and the first at 20 % or less; when the 50 % points of two reviewers lie more than one band apart, "reviewers
 // disagree" (to the user).
+// 0.5.0: the passes of phase 1 (first panel and second pass, tools/agent_panel.js --pass 2) are added together per
+// measure: values of both, judgements and offline reading summed per value; two reviewers are more than one band apart
+// when the values where they differ span more than a band.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { BOUNDARY, ARROW_BOUNDARY } = require('./agent_ink.js');
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 const arg = (name) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
 const RANGES = Object.assign({}, Object.fromEntries(['letterGap', 'secondLineLength', 'secondLineSpacing'].map((k) => [k, BOUNDARY[k]])),
@@ -72,6 +75,7 @@ function panelTable(runsDir, answersDir) {
   }
   const profile = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'ink_profile.json'), 'utf8')).pointers.pen;
   const out = [];
+  const p1 = {}; // phase 1: measure -> { runIds, range, cells: value -> { all, per, read, readN } }
   for (const f of walk(runsDir).filter((x) => x.endsWith('.json') && !x.endsWith('index.json'))) {
     let run; try { run = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { continue; }
     if (!run.panel || !run.tasks) continue;
@@ -96,20 +100,41 @@ function panelTable(runsDir, answersDir) {
           judged: all.reduce((m, c) => m + c.n, 0) }, phase2Rule(values, all, per, t.target)));
         continue;
       }
-      const band = (t.range[1] - t.range[0]) / values.length;
+      // phase 1: added up per measure over the passes, rows made below
+      const acc = (p1[measure] = p1[measure] || { runIds: [], range: t.range, cells: new Map() });
+      if (!acc.runIds.includes(run.runId)) acc.runIds.push(run.runId);
+      values.forEach((v, i) => {
+        const c = acc.cells.get(v) || { all: { yes: 0, n: 0 }, per: {}, read: 0, readN: 0 };
+        c.all.yes += all[i].yes; c.all.n += all[i].n;
+        for (const [id, cells] of Object.entries(per)) { const r = (c.per[id] = c.per[id] || { yes: 0, n: 0 }); r.yes += cells[i].yes; r.n += cells[i].n; }
+        if (run.offline && run.offline[t.id]) { c.read += run.offline[t.id].read[i]; c.readN += run.offline[t.id].n[i]; }
+        acc.cells.set(v, c);
+      });
+    }
+  }
+  for (const [measure, acc] of Object.entries(p1)) {
+    const values = [...acc.cells.keys()].sort((a, b) => a - b);
+    const all = values.map((v) => acc.cells.get(v).all);
+    const ids = [...new Set([].concat(...values.map((v) => Object.keys(acc.cells.get(v).per))))];
+    const per = Object.fromEntries(ids.map((id) => [id, values.map((v) => acc.cells.get(v).per[id] || { yes: 0, n: 0 })]));
+    const page = values.map((v) => { const c = acc.cells.get(v); return c.readN ? c.read / c.readN >= 0.5 : null; });
+    const t = { range: acc.range };
+    {
+      const accept = (cells) => cells.map((c) => (c.n ? c.yes / c.n >= 0.5 : null));
+      const band = (t.range[1] - t.range[0]) / 5;
+      const step = values.length > 1 ? Math.min(...values.slice(1).map((v, i) => v - values[i])) : band;
       const pr = profile[measure] ? [profile[measure].p10, profile[measure].p90] : null;
       const near = values.map((v) => !pr || (v >= pr[0] - band && v <= pr[1] + band));
       const rev = accept(all);
       const reasons = [];
       const differ = values.map((v, i) => near[i] && rev[i] !== null && page[i] !== null && rev[i] !== page[i]);
       if (differ.some(Boolean)) reasons.push('reviewers and page differ at ' + values.filter((v, i) => differ[i]).join(', '));
-      const ids = Object.keys(per);
       for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
         const ax = accept(per[ids[x]]), ay = accept(per[ids[y]]);
         const d = values.filter((v, i) => ax[i] !== null && ay[i] !== null && ax[i] !== ay[i]).length;
-        if (d >= 2) reasons.push('two reviewers differ at ' + d + ' values');
+        if (d * step > band + 1e-9) reasons.push('two reviewers differ at ' + d + ' values');
       }
-      out.push({ runId: run.runId, phase: 1, task: t.id, measure, band, range: t.range, values, all, per, reviewers: rev, page, people: pr, near, threshold: { reviewers: thresholds(values, rev), page: thresholds(values, page) },
+      out.push({ runId: acc.runIds.join(' + '), phase: 1, task: measure, measure, band, range: t.range, values, all, per, reviewers: rev, page, people: pr, near, threshold: { reviewers: thresholds(values, rev), page: thresholds(values, page) },
         cuts: { reviewers: cuts(values, rev), page: cuts(values, page), perReviewer: Object.fromEntries(ids.map((id) => [id, cuts(values, accept(per[id]))])) },
         perReviewer: Object.fromEntries(ids.map((id) => [id, thresholds(values, accept(per[id]))])), judged: all.reduce((m, c) => m + c.n, 0), relevant: reasons.length > 0, reasons });
     }

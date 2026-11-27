@@ -281,7 +281,27 @@ Thresholds of what reviewers accept come from a panel in which a drawing varies 
   round. Checked on made-up answers of two reviewers (letter gap determined in round 2, end on an atom "reviewers
   disagree" after round 1, a gradual reviewer "no sharp threshold" after round 3); no real answers yet.
 - The phase 1 panel published on 2026-11-26 repeats one drawing per value for the end of a new bond (its two
-  structures are the same step and had the same seed); later builds keep the seeds apart.
+  structures are the same step and had the same seed); later builds keep the seeds apart. In every measure, the
+  drawings of one structure at one value differ by 0.03 to 0.12 units only (the seed changes the bow of a line), so
+  they are near repeats.
+- Second pass of phase 1 (decision 75, user 2026-11-27; `tools/agent_panel.js` 0.3.0 `--pass 2`, run
+  `<date>_panel1b`, `panel: { phase: 1, pass: 2 }`): the 9 measures again, values half a band lower (the starts of
+  the 5 bands; with the first pass 10 values per measure) on two other structures per measure (`STRUCTURES2`: letter
+  gap `d20261116-c4`, `d20261113-c8`; second line `d20261119-c1`, `d20261120-c2`; lone-pair start and bond start
+  `t1-water-loss`, `t1-collapse`; start on a double bond `d20261117-a4`, `d20261120-a2`; end on an atom
+  `d20261120-a5`, `d20261116-a3`; end of a new bond the step ALDOL again). Writing it closes the first pass; its
+  answers stay. `tools/agent_boundaries.js` 0.5.0 adds the passes of a measure together (values, judgements and
+  offline reading per value); two reviewers are more than a band apart when the values where they differ span more
+  than a band. Ink 0.8.1: in panel drawings an arc whose two sides are equally clear bulges to the same side in
+  every drawing (the second pass showed both sides for one structure).
+- Phase 1, first pass, answered by both reviewers (2026-11-27, 269 of 270 judgements): reviewers' thresholds letter
+  gap between 0.25 and 0.35 L, lone-pair distance between 0.505 and 0.635 L, lone-pair angle between 27 and 45
+  degrees (closer to the bond is not read as a lone pair), bond start between 0.25 and 0.35 of the bond, end on an
+  atom between 0.35 and 0.45 L, end of a new bond between 0.725 and 0.835 of the way (at the middle, 0.505, no
+  reviewer answered yes); second line length and spacing and start on a double bond accepted at every value. The
+  page reads every value of the arrows; so lone-pair distance and angle, bond start, end on an atom and end of a new
+  bond are relevant (page more permissive than the reviewers), and the letter gap (page reads up to 0.35 L, the
+  reviewers differ by two values).
 - Offline reading of the phase 1 values (panel of 2026-11-26): the page reads every value of the eight measures other
   than the letter gap; the letter gap is not read at 0.45 L (0 of 20) and is read below it. So any "no" of the
   reviewers at a value the page reads points to a reading too permissive there.

@@ -40,6 +40,10 @@ one measure of the convention across a range from right to wrong, every standard
 standard copies are drawn at every run again. Answers on them give, per measure, where reviewers stop accepting
 (`node tools/agent_boundaries.js`).
 
+Note (agent side, 2026-11-27, decision 75): the first phase 1 panel is answered by both reviewers; a second pass
+(`2026-11-27_panel1b`: values half a band lower, other structures) replaces it on the review page. Thresholds of the
+first pass in `docs/AGENT_TESTER.md` "Boundary panel"; phase 2 waits for the second pass.
+
 Note (agent side, 2026-11-26, decision 72): `.github/workflows/pages.yml` has a job `testers` after the daily set
 (tester runs and replay, artifact `agent-runs-<date>`); the set build takes its date once (`steps.day`), otherwise
 unchanged; the deploy does not wait for the testers. Manual run with `testers_only` runs this job alone.

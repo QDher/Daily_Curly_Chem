@@ -584,6 +584,40 @@ test('panel phase 2: from phase 1 answers the tool writes round 1 for the releva
   fs.rmSync(out, { recursive: true, force: true });
 });
 
+test('panel, second pass of phase 1: values half a band lower on other structures, closes the first pass; the threshold table adds both passes (10 values)', () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'panel1b-'));
+  const tool = path.join(__dirname, '..', 'tools', 'agent_panel.js');
+  execFileSync('node', [tool, '--out', path.join(out, 'a'), '--date', '2026-01-05', '--seeds', '1'], { stdio: 'pipe' });
+  execFileSync('node', [tool, '--pass', '2', '--out', path.join(out, 'b'), '--date', '2026-01-06', '--seeds', '1', '--index', path.join(out, 'a', 'runs', 'index.json')], { stdio: 'pipe' });
+  const r1 = JSON.parse(fs.readFileSync(path.join(out, 'a', 'runs', '2026-01-05_panel1.json'), 'utf8'));
+  const r2 = JSON.parse(fs.readFileSync(path.join(out, 'b', 'runs', '2026-01-06_panel1b.json'), 'utf8'));
+  const index = JSON.parse(fs.readFileSync(path.join(out, 'b', 'runs', 'index.json'), 'utf8'));
+  ok(r2.attempts.length === 135 && r2.panel.phase === 1 && r2.panel.pass === 2, 'second pass');
+  for (const t of r2.tasks) {
+    const t1 = r1.tasks.find((x) => x.id === t.id);
+    const band = (t.range[1] - t.range[0]) / 5;
+    ok(t.values.every((v, i) => Math.abs(v - (t1.values[i] - band / 2)) < 1e-3), t.id + ' values shifted');
+    if (t.id !== 'pairEnd') ok(t.structures.every((x) => !t1.structures.includes(x)), t.id + ' other structures');
+  }
+  ok(index[0].panel.open === false && index[1].panel.open === true, 'first pass closed');
+  // answers: letter gap accepted up to 0.25 in both passes, by two reviewers
+  for (const run of [r1, r2]) for (const id of ['r1', 'r2']) {
+    const d = path.join(out, 'answers', 'reviews', id, 'answers');
+    fs.mkdirSync(d, { recursive: true });
+    for (const a of run.attempts.filter((x) => x.task === 'letterGap')) fs.writeFileSync(path.join(d, [run.runId, a.set, a.task, a.attempt].join('__') + '.json'),
+      JSON.stringify({ runId: run.runId, set: 'panel', task: a.task, attempt: a.attempt, expected: a.boundary.value <= 0.25 ? 'yes' : 'no', asked: 'panel', reviewer: id }));
+  }
+  fs.mkdirSync(path.join(out, 'runs'));
+  fs.copyFileSync(path.join(out, 'a', 'runs', '2026-01-05_panel1.json'), path.join(out, 'runs', 'p1.json'));
+  fs.copyFileSync(path.join(out, 'b', 'runs', '2026-01-06_panel1b.json'), path.join(out, 'runs', 'p1b.json'));
+  const rows = require('../tools/agent_boundaries.js').panelTable(path.join(out, 'runs'), path.join(out, 'answers'));
+  const lg = rows.find((r) => r.phase === 1 && r.measure === 'letterGap');
+  ok(lg.values.length === 10 && lg.all.every((c) => c.n === 6), 'letter gap: 10 values, 6 judgements each');
+  ok(lg.threshold.reviewers === 'between 0.25 (yes) and 0.3 (no)', 'threshold to half a band: ' + lg.threshold.reviewers);
+  ok(/2026-01-05_panel1 \+ 2026-01-06_panel1b|2026-01-06_panel1b \+ 2026-01-05_panel1/.test(lg.runId), 'both passes: ' + lg.runId);
+  fs.rmSync(out, { recursive: true, force: true });
+});
+
 fs.rmSync(dir6, { recursive: true, force: true });
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(pass + '/' + total + ' passed');
