@@ -1,5 +1,5 @@
 {
- "date": "2026-11-25",
+ "date": "2026-11-26",
  "note": "Daily set built by tools/make_daily.js.",
  "found": {
   "arrows": 5,
@@ -11,60 +11,199 @@
  },
  "tasks": [
   {
-   "id": "d20261125-a1",
+   "id": "d20261126-a1",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
-    "date": "2026-11-24"
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
    },
-   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "conditions": "TiCl₄ (2.0 equiv); CH₂Cl₂ (0.02 M), 40 °C, until the starting material is consumed",
    "start": [
-    "CC(C)COC1=CC(O)(CCCC2(C)OCCO2)CC1"
+    "O=C1CCC(CCCC(C)=C=C(C)[Si](C)(C)C)=C1C"
    ],
    "reference": [
     {
      "from": {
       "bond": [
-       "s0a7",
-       "s0a8"
+       "s0a8",
+       "s0a10"
       ]
      },
      "to": {
-      "atom": "s0a8"
+      "atom": "s0a4",
+      "via": "s0a8"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a4",
+       "s0a17"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a17",
+       "s0a1"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a0",
+       "s0a1"
+      ]
+     },
+     "to": {
+      "atom": "s0a0"
      }
     }
    ],
    "expected": [
-    "CC(C)C[O+]=C1C=C(CCCC2(C)OCCO2)CC1",
-    "CC(C)CO[C+]1C=C(CCCC2(C)OCCO2)CC1",
-    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1",
-    "CC(C)COC1=C[C+](CCCC2(C)OCCO2)CC1.[OH-]"
+    "CC1=C([O-])CCC12CCCC2(C)[C+]=C(C)[Si](C)(C)C",
+    "CC1C(=O)CCC12CCCC2(C)[C+]=C(C)[Si](C)(C)C",
+    "CC(=[C+]C1(C)CCCC12CCC([O-])=C2C)[Si](C)(C)C"
    ]
   },
   {
-   "id": "d20261125-c1",
+   "id": "d20261126-c1",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
-    "date": "2026-11-24"
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
    },
-   "target": "CC(C)COC1=CC(=O)CC1"
+   "target": "CC(=C=C(C)[Si](C)(C)C)CCCC1=C(C)C(=O)CC1"
   },
   {
-   "id": "d20261125-a2",
+   "id": "d20261126-a2",
    "type": "T1",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
-    "date": "2026-11-24"
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
    },
-   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "conditions": "TiCl₄ (2.0 equiv); CH₂Cl₂ (0.02 M), 40 °C, until the starting material is consumed",
    "start": [
-    "CC(C)COC1(O)C=C(CCCC2(C)OCCO2)CC1"
+    "CC1=C([O-])CCC12CCCC2(C)[C+]=C(C)[Si](C)(C)C"
    ],
    "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a12",
+       "s0a13"
+      ]
+     },
+     "to": {
+      "atom": "s0a15",
+      "via": "s0a12"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a13",
+       "s0a15"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a12",
+       "s0a13"
+      ]
+     }
+    }
+   ],
+   "expected": [
+    "CC1=C([O-])CCC12CCCC2(C)C([Si](C)(C)C)=[C+]C",
+    "CC1C(=O)CCC12CCCC2(C)C([Si](C)(C)C)=[C+]C",
+    "C[C+]=C(C1(C)CCCC12CCC([O-])=C2C)[Si](C)(C)C"
+   ]
+  },
+  {
+   "id": "d20261126-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
+   },
+   "target": "CC1=C([Si](C)(C)C)C2(C)CCCC23CCC(=O)C13C"
+  },
+  {
+   "id": "d20261126-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1948-performic-acid-trans-cyclohexanediol",
+    "date": "2026-11-25"
+   },
+   "conditions": "NaOH (aq.); warmed (about 45 °C); then neutralised",
+   "start": [
+    "C1CCC(OC=O)C(O)C1",
+    "[OH-]"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a5"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "C1CCC(OC(O)[O-])C(O)C1",
+    "C1CCC(OC(O)O)C(O)C1",
+    "[O-]C(O)OC1CCCCC1O"
+   ]
+  },
+  {
+   "id": "d20261126-c3",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
+   },
+   "target": "CC(=[C+]C1(C)CCCC12CCC([O-])=C2C)[Si](C)(C)C"
+  },
+  {
+   "id": "d20261126-a4",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "os1948-performic-acid-trans-cyclohexanediol",
+    "date": "2026-11-25"
+   },
+   "conditions": "NaOH (aq.); warmed (about 45 °C); then neutralised",
+   "start": [
+    "C1CCC(OC(O)[O-])C(O)C1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a6"
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    },
     {
      "from": {
       "bond": [
@@ -92,174 +231,68 @@
     }
    ],
    "expected": [
-    "O=C1C=C(CCCC2(C)OCCO2)CC1",
-    "CC1(CCCC2=CC(=O)CC2)OCCO1.[CH2+]C(C)C.[OH-]"
+    "OC1CCCCC1O",
+    "O=C[O-].OC1CCCCC1O"
    ]
   },
   {
-   "id": "d20261125-c2",
+   "id": "d20261126-c4",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
-    "date": "2026-11-24"
+    "problem": "os1948-performic-acid-trans-cyclohexanediol",
+    "date": "2026-11-25"
    },
-   "target": "CC(=O)CCCC1=CC(=O)CC1"
+   "target": "C1=CCCCC1"
   },
   {
-   "id": "d20261125-a3",
+   "id": "d20261126-a5",
    "type": "T1",
    "source": {
     "site": "namerxn",
-    "problem": "smn-pinacol-rearrangement-pinacolone",
-    "date": "2026-11-24"
+    "problem": "smn-hofmann-elimination-ethene",
+    "date": "2026-11-25"
    },
-   "conditions": "H₂SO₄ (sulfuric acid)",
+   "conditions": "CH₃I (iodomethane), excess",
    "start": [
-    "CC(C)(O)C(C)(C)O"
+    "CCN(C)C",
+    "CI"
    ],
    "reference": [
     {
      "from": {
+      "lp": "s0a2"
+     },
+     "to": {
+      "atom": "s1a0"
+     }
+    },
+    {
+     "from": {
       "bond": [
-       "s0a1",
-       "s0a3"
+       "s1a0",
+       "s1a1"
       ]
      },
      "to": {
-      "atom": "s0a3"
+      "atom": "s1a1"
      }
     }
    ],
    "expected": [
-    "CC(C)(O)[C+](C)C",
-    "C[C+](C)C(C)(C)O.[OH-]"
+    "CC[N+](C)(C)C",
+    "CC[N+](C)(C)C.[I-]"
    ]
   },
   {
-   "id": "d20261125-c3",
+   "id": "d20261126-c5",
    "type": "T2",
    "source": {
     "site": "onepot",
-    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
-    "date": "2026-11-24"
+    "problem": "os1948-performic-acid-trans-cyclohexanediol",
+    "date": "2026-11-25"
    },
-   "target": "CC(C)COC1=CC([O-])(CCCC2(C)OCCO2)CC1"
-  },
-  {
-   "id": "d20261125-a4",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-baylis-hillman-methyl-3-hydroxy-2-methylenebutanoate",
-    "date": "2026-11-09"
-   },
-   "conditions": "acetaldehyde, NMe₃ (trimethylamine, catalytic)",
-   "start": [
-    "C[N+](C)(C)CC(=C([O-])OC)C(C)O"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s0a7"
-     },
-     "to": {
-      "bond": [
-       "s0a6",
-       "s0a7"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a5",
-       "s0a6"
-      ]
-     },
-     "to": {
-      "bond": [
-       "s0a4",
-       "s0a5"
-      ]
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a1",
-       "s0a4"
-      ]
-     },
-     "to": {
-      "atom": "s0a1"
-     }
-    }
-   ],
-   "expected": [
-    "C=C(C(=O)OC)C(C)O",
-    "C=C(C(=O)OC)C(C)O.CN(C)C"
-   ]
-  },
-  {
-   "id": "d20261125-c4",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-pinacol-rearrangement-pinacolone",
-    "date": "2026-11-24"
-   },
-   "target": "CC(C)(O)C(C)(C)O"
-  },
-  {
-   "id": "d20261125-a5",
-   "type": "T1",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-staudinger-reduction-methylamine",
-    "date": "2026-11-08"
-   },
-   "conditions": "PMe₃ (trimethylphosphine)",
-   "start": [
-    "CN=[N+]=[N-]",
-    "CP(C)C"
-   ],
-   "reference": [
-    {
-     "from": {
-      "lp": "s1a1"
-     },
-     "to": {
-      "atom": "s0a3"
-     }
-    },
-    {
-     "from": {
-      "bond": [
-       "s0a2",
-       "s0a3"
-      ]
-     },
-     "to": {
-      "atom": "s0a2"
-     }
-    }
-   ],
-   "expected": [
-    "CN1N=NP1(C)(C)C",
-    "CN=NN=P(C)(C)C",
-    "CN=N[N-][P+](C)(C)C"
-   ]
-  },
-  {
-   "id": "d20261125-c5",
-   "type": "T2",
-   "source": {
-    "site": "namerxn",
-    "problem": "smn-pinacol-rearrangement-pinacolone",
-    "date": "2026-11-24"
-   },
-   "target": "CC(=O)C(C)(C)C"
+   "target": "OC1CCCCC1O"
   }
  ]
 }
