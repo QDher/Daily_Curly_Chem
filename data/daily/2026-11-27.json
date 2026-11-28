@@ -1,0 +1,293 @@
+{
+ "date": "2026-11-27",
+ "note": "Daily set built by tools/make_daily.js.",
+ "found": {
+  "arrows": 5,
+  "copies": 5
+ },
+ "versions": {
+  "solver": "0.2.0",
+  "recognize": "0.5.0"
+ },
+ "tasks": [
+  {
+   "id": "d20261127-a1",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1946-huang-minlon-wolff-kishner-phenoxyphenylbutyric",
+    "date": "2026-11-26"
+   },
+   "conditions": "N₂H₄·H₂O (2 equiv), KOH (3 equiv); diethylene glycol, 100–130 °C, 1 h",
+   "start": [
+    "OC(=O)CCC(O)(NN)c1ccc(Oc2ccccc2)cc1",
+    "NN"
+   ],
+   "drawH": [
+    "s0a7"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "h1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a7",
+       "h1"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a5",
+       "s0a7"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a5",
+       "s0a6"
+      ]
+     },
+     "to": {
+      "atom": "s0a6"
+     }
+    }
+   ],
+   "expected": [
+    "OC(=O)CCC(=NN)c1ccc(Oc2ccccc2)cc1",
+    "NN=C(CCC(=O)O)c1ccc(Oc2ccccc2)cc1.N[NH3+].[OH-]"
+   ]
+  },
+  {
+   "id": "d20261127-c1",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1946-huang-minlon-wolff-kishner-phenoxyphenylbutyric",
+    "date": "2026-11-26"
+   },
+   "target": "O=C(O)CCC(=O)c1ccc(Oc2ccccc2)cc1"
+  },
+  {
+   "id": "d20261127-a2",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-bucherer-bergs-5-5-dimethylhydantoin",
+    "date": "2026-11-26"
+   },
+   "conditions": "(NH₄)₂CO₃ (ammonium carbonate), KCN (potassium cyanide)",
+   "start": [
+    "CC(C)=[NH2+]",
+    "[C-]#N"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s1a0"
+     },
+     "to": {
+      "atom": "s0a1"
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a3"
+      ]
+     },
+     "to": {
+      "atom": "s0a3"
+     }
+    }
+   ],
+   "expected": [
+    "CC(C)(N)C#N",
+    "CC(C)([NH3+])C#N"
+   ]
+  },
+  {
+   "id": "d20261127-c2",
+   "type": "T2",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs1946-huang-minlon-wolff-kishner-phenoxyphenylbutyric",
+    "date": "2026-11-26"
+   },
+   "target": "O=C(O)CCCc1ccc(Oc2ccccc2)cc1"
+  },
+  {
+   "id": "d20261127-a3",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-ticl4-allenylsilane-annulation-arnicenone",
+    "date": "2026-11-25"
+   },
+   "conditions": "TiCl₄ (2.0 equiv); CH₂Cl₂ (0.02 M), 40 °C, until the starting material is consumed",
+   "start": [
+    "CC1=C([O-])CCC12CCCC2(C)C([Si](C)(C)C)=[C+]C"
+   ],
+   "reference": [
+    {
+     "from": {
+      "lp": "s0a3"
+     },
+     "to": {
+      "bond": [
+       "s0a2",
+       "s0a3"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     },
+     "to": {
+      "atom": "s0a17",
+      "via": "s0a1"
+     }
+    }
+   ],
+   "expected": [
+    "CC12C(C)=C([Si](C)(C)C)C3(C)CCCC13CCC2=O",
+    "CC1=C([Si](C)(C)C)C2(C)CCCC23CCC(=O)C13C"
+   ]
+  },
+  {
+   "id": "d20261127-c3",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-bucherer-bergs-5-5-dimethylhydantoin",
+    "date": "2026-11-26"
+   },
+   "target": "CC1(C)NC(=O)NC1=O"
+  },
+  {
+   "id": "d20261127-a4",
+   "type": "T1",
+   "source": {
+    "site": "onepot",
+    "problem": "jacs2026-grignard-vinylogous-ester-acid-transposition-arnicenone",
+    "date": "2026-11-24"
+   },
+   "conditions": "6 N aqueous HCl (ice-cold, 15 equiv); 0 °C, 30 min; then ice-cold 6 N aqueous NaOH, extraction",
+   "start": [
+    "O=C1C=C(CCCC(C)(O)OCCO)CC1"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a10",
+       "s0a11"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a7",
+       "s0a10"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a7",
+       "s0a9"
+      ]
+     },
+     "to": {
+      "atom": "s0a9"
+     }
+    }
+   ],
+   "expected": [
+    "CC(=O)CCCC1=CC(=O)CC1",
+    "CC(=O)CCCC1=CC(=O)CC1.[CH2+]CO.[OH-]"
+   ]
+  },
+  {
+   "id": "d20261127-c4",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-bucherer-bergs-5-5-dimethylhydantoin",
+    "date": "2026-11-26"
+   },
+   "target": "O=C([O-])[O-]"
+  },
+  {
+   "id": "d20261127-a5",
+   "type": "T1",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-staudinger-reduction-methylamine",
+    "date": "2026-11-08"
+   },
+   "conditions": "PMe₃ (trimethylphosphine)",
+   "start": [
+    "CN1N=NP1(C)(C)C"
+   ],
+   "reference": [
+    {
+     "from": {
+      "bond": [
+       "s0a1",
+       "s0a2"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a4",
+       "s0a1"
+      ]
+     }
+    },
+    {
+     "from": {
+      "bond": [
+       "s0a3",
+       "s0a4"
+      ]
+     },
+     "to": {
+      "bond": [
+       "s0a2",
+       "s0a3"
+      ]
+     }
+    }
+   ],
+   "expected": [
+    "CN=P(C)(C)C",
+    "C[N-][P+](C)(C)C",
+    "CN=P(C)(C)C.N#N"
+   ]
+  },
+  {
+   "id": "d20261127-c5",
+   "type": "T2",
+   "source": {
+    "site": "namerxn",
+    "problem": "smn-bucherer-bergs-5-5-dimethylhydantoin",
+    "date": "2026-11-26"
+   },
+   "target": "CC(C)=N"
+  }
+ ]
+}
